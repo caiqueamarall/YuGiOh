@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Edison League</string>
+    <string name="title_activity_main">Edison League</string>
+    <string name="package_name">com.edisonleague.app</string>
+    <string name="custom_url_scheme">com.edisonleague.app</string>
+</resources>
