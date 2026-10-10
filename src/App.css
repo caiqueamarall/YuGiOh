@@ -4,11 +4,12 @@
 
 .app-layout {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
   color: var(--text-main);
-  padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(85px + env(safe-area-inset-bottom, 10px));
 }
 
 @media (min-width: 768px) {
@@ -45,6 +46,8 @@
   border-bottom: 1px solid var(--border-subtle);
   padding: 8px 14px;
   padding-top: max(8px, env(safe-area-inset-top, 8px));
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
 }
 
 @media (min-width: 768px) {
@@ -208,23 +211,36 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 100;
-  background: rgba(16, 20, 32, 0.95);
+  width: 100%;
+  z-index: 1000;
+  background: rgba(16, 20, 32, 0.96);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--border-subtle);
   padding: 6px 8px;
   padding-bottom: max(6px, env(safe-area-inset-bottom, 6px));
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 @media (min-width: 768px) {
   .app-nav {
     position: static;
+    width: auto;
+    z-index: auto;
     background: transparent;
     border-top: none;
     border-bottom: 1px solid var(--border-subtle);
     padding: 0;
     margin-bottom: 24px;
+    -webkit-transform: none;
+    transform: none;
+    -webkit-backface-visibility: visible;
+    backface-visibility: visible;
+    will-change: auto;
   }
 }
 
