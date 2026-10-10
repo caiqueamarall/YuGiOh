@@ -6,7 +6,7 @@ interface MobileSimulatorProps {
   children: React.ReactNode;
 }
 
-type DeviceModel = 'xiaomi' | 'pixel' | 'iphone';
+type DeviceModel = 'iphone' | 'xiaomi' | 'pixel';
 
 interface DeviceConfig {
   name: string;
@@ -16,6 +16,12 @@ interface DeviceConfig {
 }
 
 const DEVICES: Record<DeviceModel, DeviceConfig> = {
+  iphone: {
+    name: 'iPhone 15 Pro (393 × 852)',
+    width: 393,
+    height: 852,
+    notchType: 'island',
+  },
   xiaomi: {
     name: 'Xiaomi / Redmi (390 × 844)',
     width: 390,
@@ -28,12 +34,6 @@ const DEVICES: Record<DeviceModel, DeviceConfig> = {
     height: 892,
     notchType: 'punch-hole',
   },
-  iphone: {
-    name: 'iPhone 15 Pro (393 × 852)',
-    width: 393,
-    height: 852,
-    notchType: 'island',
-  },
 };
 
 export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) => {
@@ -41,20 +41,38 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
   const searchParams = new URLSearchParams(window.location.search);
   const isEmbedded = window.self !== window.top || searchParams.get('embedded') === 'true';
 
-  // Se já estiver dentro do APK nativo ou dentro do iframe, renderiza o app diretamente
-  if (isNative || isEmbedded) {
+  // Detecta se o acesso é feito a partir de um smartphone/tablet real (iOS, Android, tela pequena)
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const isMobileUA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isSmallScreen = window.innerWidth <= 820;
+    return isMobileUA || isSmallScreen;
+  });
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileUA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isSmallScreen = window.innerWidth <= 820;
+      setIsMobileDevice(isMobileUA || isSmallScreen);
+    };
+
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Se for celular real (iOS / Android), aplicativo nativo ou dentro de um iframe:
+  // Renderiza a aplicação pura em tela cheia sem carcaça de simulador
+  if (isNative || isEmbedded || isMobileDevice) {
     return <>{children}</>;
   }
 
-  // Estado do simulador na versão Desktop do navegador
+  // Estado do simulador apenas em navegadores de Computador / Desktop
   const [isSimActive, setIsSimActive] = useState<boolean>(() => {
-    // Se a URL tiver ?sim=true ou se a tela for desktop, ativamos por padrão para testes
-    if (searchParams.get('sim') === 'true') return true;
-    if (searchParams.get('sim') === 'false') return false;
-    return true; // Padrão no PC para permitir testes imediatos de celular
+    // Ativa apenas se a URL tiver ?sim=true explicitamente (ex: atalho Simular Celular no PC.bat)
+    return searchParams.get('sim') === 'true';
   });
 
-  const [selectedDevice, setSelectedDevice] = useState<DeviceModel>('xiaomi');
+  const [selectedDevice, setSelectedDevice] = useState<DeviceModel>('iphone');
   const [isLandscape, setIsLandscape] = useState(false);
   const [currentTime, setCurrentTime] = useState('17:50');
 
@@ -74,7 +92,7 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
   const screenWidth = isLandscape ? device.height : device.width;
   const screenHeight = isLandscape ? device.width : device.height;
 
-  // Se o usuário desativou o simulador para ver no formato Desktop completo:
+  // Se o usuário no desktop não estiver com o simulador ativo:
   if (!isSimActive) {
     return (
       <>
@@ -83,7 +101,7 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
           id="btn-open-mobile-sim"
           className="btn-floating-sim-toggle"
           onClick={() => setIsSimActive(true)}
-          title="Abrir Simulador de Celular Android"
+          title="Abrir Simulador de Celular"
         >
           <Smartphone size={20} />
           <span>Simulador Celular</span>
@@ -92,7 +110,7 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
     );
   }
 
-  const iframeSrc = `${window.location.pathname}?embedded=true`;
+  const iframeSrc = `${window.location.pathname}${window.location.search ? window.location.search + '&' : '?'}embedded=true`;
 
   return (
     <div className="simulator-backdrop">
@@ -118,9 +136,9 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
               onChange={(e) => setSelectedDevice(e.target.value as DeviceModel)}
               className="sim-select"
             >
+              <option value="iphone">iPhone 15 Pro (393×852)</option>
               <option value="xiaomi">Xiaomi / Redmi (390×844)</option>
               <option value="pixel">Galaxy / Pixel (412×892)</option>
-              <option value="iphone">iPhone 15 Pro (393×852)</option>
             </select>
           </div>
 
@@ -138,7 +156,7 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
           <button
             className="sim-tool-btn"
             onClick={() => setIsSimActive(false)}
-            title="Expandir para tela cheia de computador"
+            title="Fechar simulador e ver site em tela cheia"
           >
             <Monitor size={16} />
             <span>Ver em Desktop</span>
@@ -179,7 +197,7 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
             <div className="phone-status-bar">
               <span className="phone-status-time">{currentTime}</span>
               <div className="phone-status-icons">
-                <span className="phone-status-net">4G</span>
+                <span className="phone-status-net">5G</span>
                 <Signal size={12} />
                 <Wifi size={13} />
                 <BatteryMedium size={14} />
