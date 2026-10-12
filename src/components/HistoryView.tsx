@@ -1,16 +1,38 @@
 import React, { useState } from 'react';
-import { History, Trophy, Calendar, Users, ChevronDown, ChevronUp, Swords, Sparkles, FileDown, Shield, Info } from 'lucide-react';
+import {
+  History,
+  Trophy,
+  Calendar,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  Swords,
+  Sparkles,
+  FileDown,
+  ImageDown,
+  Shield,
+  Info,
+  Trash2,
+  AlertTriangle,
+} from 'lucide-react';
 import type { Player, Tournament } from '../types';
 import { exportTournamentResultsPDF } from '../utils/pdfGenerator';
+import { exportTournamentResultsPNG } from '../utils/imageExporter';
 import { calculateTournamentStandings, getTiebreakExplanations } from '../utils/swissEngine';
 
 interface HistoryViewProps {
   tournaments: Tournament[];
   players: Player[];
+  onDeleteTournament: (tournamentId: string) => void;
 }
 
-export const HistoryView: React.FC<HistoryViewProps> = ({ tournaments, players }) => {
+export const HistoryView: React.FC<HistoryViewProps> = ({
+  tournaments,
+  players,
+  onDeleteTournament,
+}) => {
   const [expandedTournamentId, setExpandedTournamentId] = useState<string | null>(null);
+  const [tournamentToDelete, setTournamentToDelete] = useState<Tournament | null>(null);
 
   const playerMap = new Map(players.map((p) => [p.id, p]));
 
@@ -115,6 +137,30 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ tournaments, players }
                     >
                       <FileDown size={14} />
                       <span>PDF</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-export-png-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        exportTournamentResultsPNG(tournament, players);
+                      }}
+                      title="Exportar resultado em Imagem PNG (Página Única)"
+                    >
+                      <ImageDown size={14} />
+                      <span>PNG</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-delete-history-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTournamentToDelete(tournament);
+                      }}
+                      title="Remover este torneio do histórico"
+                    >
+                      <Trash2 size={14} />
+                      <span>Remover</span>
                     </button>
                     <button className="btn-expand-history" aria-label="Expandir detalhes">
                       {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -321,6 +367,66 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ tournaments, players }
           })
         )}
       </div>
+
+      {/* Modal de Confirmação de Exclusão de Torneio */}
+      {tournamentToDelete && (
+        <div className="modal-backdrop" onClick={() => setTournamentToDelete(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f43f5e' }}>
+                <AlertTriangle size={20} />
+                <h3 style={{ margin: 0, fontSize: '17px', color: '#fff' }}>Remover Torneio do Histórico?</h3>
+              </div>
+            </div>
+            <div className="modal-body" style={{ padding: '16px 0', fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6' }}>
+              <p style={{ marginBottom: '12px' }}>
+                Você está prestes a remover o torneio <strong>{tournamentToDelete.name}</strong>.
+              </p>
+              {tournamentToDelete.countsForLeague !== false ? (
+                <div style={{ background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', borderRadius: '8px', padding: '12px', color: '#fca5a5' }}>
+                  ⚠️ <strong>Atenção:</strong> Por se tratar de um torneio oficial da Liga, <strong>todos os pontos, vitórias, empates e títulos</strong> concedidos aos duelistas neste torneio serão <strong>revertidos automaticamente</strong> da tabela de classificação.
+                </div>
+              ) : (
+                <div style={{ background: 'rgba(34, 211, 238, 0.1)', border: '1px solid rgba(34, 211, 238, 0.3)', borderRadius: '8px', padding: '12px', color: '#a5f3fc' }}>
+                  ℹ️ Este foi um torneio Freeplay. O registro será removido do histórico sem afetar a pontuação da Liga.
+                </div>
+              )}
+            </div>
+            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                className="btn-secondary-action"
+                onClick={() => setTournamentToDelete(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-danger-confirm"
+                onClick={() => {
+                  onDeleteTournament(tournamentToDelete.id);
+                  setTournamentToDelete(null);
+                }}
+                style={{
+                  background: '#e11d48',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '9px 18px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Trash2 size={16} />
+                <span>Sim, Excluir Torneio</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

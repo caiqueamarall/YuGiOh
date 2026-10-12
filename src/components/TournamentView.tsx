@@ -14,6 +14,7 @@ import {
   Edit2,
   Calendar,
   FileDown,
+  ImageDown,
   Medal,
   Award
 } from 'lucide-react';
@@ -26,6 +27,7 @@ import {
 } from '../utils/swissEngine';
 import { CustomDatePicker } from './CustomDatePicker';
 import { exportTournamentResultsPDF } from '../utils/pdfGenerator';
+import { exportTournamentResultsPNG } from '../utils/imageExporter';
 
 interface TournamentViewProps {
   players: Player[];
@@ -769,6 +771,16 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
             >
               <FileDown size={18} />
               <span>Baixar Relatório em PDF</span>
+            </button>
+            <button
+              id="btn-export-finished-tournament-png"
+              type="button"
+              className="btn-png-export-secondary"
+              onClick={() => exportTournamentResultsPNG(activeTournament, players)}
+              title="Baixar Relatório do Torneio em Imagem PNG (Página Única)"
+            >
+              <ImageDown size={18} />
+              <span>Baixar Imagem PNG</span>
             </button>
             <button
               id="btn-save-to-league"

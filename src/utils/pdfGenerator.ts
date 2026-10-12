@@ -179,51 +179,91 @@ const PRINT_CSS = `
   }
   .podium-box {
     display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
+    gap: 12px;
+    margin-bottom: 16px;
     max-width: 820px;
   }
   .podium-card {
     flex: 1;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 8px 10px;
+    border-radius: 8px;
+    padding: 0;
     text-align: center;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
   }
   .podium-card.place-1 {
-    border-color: #f59e0b;
-    background: #fefce8;
+    border: 2px solid #d97706;
+    background: linear-gradient(180deg, #fffbeb 0%, #ffffff 70%);
   }
   .podium-card.place-2 {
-    border-color: #94a3b8;
-    background: #f8fafc;
+    border: 2px solid #64748b;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 70%);
   }
   .podium-card.place-3 {
-    border-color: #d97706;
-    background: #fffbeb;
+    border: 2px solid #ea580c;
+    background: linear-gradient(180deg, #fff7ed 0%, #ffffff 70%);
   }
-  .podium-title {
-    font-size: 11px;
+  .podium-header-bar {
+    padding: 5px 8px;
+    font-size: 10.5px;
     font-weight: 800;
     text-transform: uppercase;
-    color: #475569;
+    letter-spacing: 0.05em;
+    color: #ffffff;
   }
-  .podium-card.place-1 .podium-title {
-    color: #b45309;
+  .podium-card.place-1 .podium-header-bar {
+    background: linear-gradient(135deg, #d97706, #b45309);
   }
-  .podium-card.place-3 .podium-title {
-    color: #92400e;
+  .podium-card.place-2 .podium-header-bar {
+    background: linear-gradient(135deg, #64748b, #475569);
+  }
+  .podium-card.place-3 .podium-header-bar {
+    background: linear-gradient(135deg, #ea580c, #c2410c);
+  }
+  .podium-body {
+    padding: 8px 10px;
   }
   .podium-player {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 800;
-    color: #0f172a;
-    margin: 3px 0 2px 0;
+    margin: 2px 0;
+  }
+  .podium-card.place-1 .podium-player {
+    color: #92400e;
+  }
+  .podium-card.place-2 .podium-player {
+    color: #1e293b;
+  }
+  .podium-card.place-3 .podium-player {
+    color: #9a3412;
   }
   .podium-sub {
-    font-size: 10.5px;
-    color: #64748b;
+    font-size: 11px;
+    color: #475569;
     font-weight: 600;
+  }
+  .podium-badge-pts {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    margin-top: 4px;
+  }
+  .podium-card.place-1 .podium-badge-pts {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #f59e0b;
+  }
+  .podium-card.place-2 .podium-badge-pts {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #94a3b8;
+  }
+  .podium-card.place-3 .podium-badge-pts {
+    background: #ffedd5;
+    color: #c2410c;
+    border: 1px solid #ea580c;
   }
   table.standings-table {
     width: 100%;
@@ -671,23 +711,32 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
     <div class="podium-box">
       ${firstPlace ? `
         <div class="podium-card place-1">
-          <div class="podium-title">🥇 1º Lugar</div>
-          <div class="podium-player">${firstPlace.playerName}</div>
-          <div class="podium-sub">${playerDecks[firstPlace.playerId] || 'Edison Deck'} • ${firstPlace.matchPoints} pontos</div>
+          <div class="podium-header-bar">👑 1º Lugar • Campeão</div>
+          <div class="podium-body">
+            <div class="podium-player">${firstPlace.playerName}</div>
+            <div class="podium-sub">${playerDecks[firstPlace.playerId] || 'Edison Deck'}</div>
+            <div class="podium-badge-pts">${firstPlace.matchPoints} pontos (${firstPlace.matchWins}-${firstPlace.matchDraws}-${firstPlace.matchLosses})</div>
+          </div>
         </div>
       ` : ''}
       ${secondPlace ? `
         <div class="podium-card place-2">
-          <div class="podium-title">🥈 2º Lugar</div>
-          <div class="podium-player">${secondPlace.playerName}</div>
-          <div class="podium-sub">${playerDecks[secondPlace.playerId] || 'Edison Deck'} • ${secondPlace.matchPoints} pontos</div>
+          <div class="podium-header-bar">🥈 2º Lugar • Vice</div>
+          <div class="podium-body">
+            <div class="podium-player">${secondPlace.playerName}</div>
+            <div class="podium-sub">${playerDecks[secondPlace.playerId] || 'Edison Deck'}</div>
+            <div class="podium-badge-pts">${secondPlace.matchPoints} pontos (${secondPlace.matchWins}-${secondPlace.matchDraws}-${secondPlace.matchLosses})</div>
+          </div>
         </div>
       ` : ''}
       ${thirdPlace ? `
         <div class="podium-card place-3">
-          <div class="podium-title">🥉 3º Lugar</div>
-          <div class="podium-player">${thirdPlace.playerName}</div>
-          <div class="podium-sub">${playerDecks[thirdPlace.playerId] || 'Edison Deck'} • ${thirdPlace.matchPoints} pontos</div>
+          <div class="podium-header-bar">🥉 3º Lugar • Bronze Nobre</div>
+          <div class="podium-body">
+            <div class="podium-player">${thirdPlace.playerName}</div>
+            <div class="podium-sub">${playerDecks[thirdPlace.playerId] || 'Edison Deck'}</div>
+            <div class="podium-badge-pts">${thirdPlace.matchPoints} pontos (${thirdPlace.matchWins}-${thirdPlace.matchDraws}-${thirdPlace.matchLosses})</div>
+          </div>
         </div>
       ` : ''}
     </div>

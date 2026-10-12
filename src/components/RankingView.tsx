@@ -8,11 +8,13 @@ import {
   Flame,
   Shield,
   FileDown,
+  ImageDown,
   Users,
   UserPlus
 } from 'lucide-react';
 import type { Player } from '../types';
 import { exportLeagueRankingPDF } from '../utils/pdfGenerator';
+import { exportLeagueRankingPNG } from '../utils/imageExporter';
 
 interface RankingViewProps {
   players: Player[];
@@ -84,6 +86,15 @@ export const RankingView: React.FC<RankingViewProps> = ({
           >
             <FileDown size={16} />
             <span>Exportar PDF</span>
+          </button>
+          <button
+            id="btn-export-ranking-png"
+            className="btn-png-export-main"
+            onClick={() => exportLeagueRankingPNG(sortedPlayers)}
+            title="Exportar Classificação da Liga em Imagem PNG (Página Única)"
+          >
+            <ImageDown size={16} />
+            <span>Exportar PNG</span>
           </button>
           <button
             id="btn-ranking-new-tournament"
