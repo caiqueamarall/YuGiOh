@@ -166,8 +166,8 @@ button:disabled {
   transform: none !important;
 }
 
-/* Inputs base */
-input, select, textarea {
+/* Inputs base (campos de texto, datas, seleção e números) */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
   font-family: var(--font-body);
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
@@ -180,9 +180,25 @@ input, select, textarea {
   width: 100%;
 }
 
-input:focus, select:focus, textarea:focus {
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
   border-color: var(--gold-500);
   box-shadow: 0 0 0 3px var(--gold-glow);
+}
+
+/* Checkbox e Radio base (tamanho fixo, sem distorção mobile) */
+input[type="checkbox"], input[type="radio"] {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  accent-color: var(--gold-500);
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 4px;
 }
 
 select {
@@ -193,3 +209,4 @@ select option {
   background: var(--bg-secondary);
   color: var(--text-main);
 }
+

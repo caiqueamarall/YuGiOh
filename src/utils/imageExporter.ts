@@ -74,8 +74,8 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
   const secondPlace = standings[1];
   const thirdPlace = standings[2];
 
-  // Dimensões do Canvas
-  const width = 1200;
+  // Dimensões do Canvas (Expandido para 1480px para acomodar confortavelmente todas as porcentagens oficiais)
+  const width = 1480;
   const padding = 40;
   const contentWidth = width - padding * 2;
 
@@ -85,10 +85,19 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
   const tableHeaderHeight = 44;
   const rowHeight = 36;
   const tableHeight = tableHeaderHeight + standings.length * rowHeight;
+  const legendHeight = 32;
   const tiebreakHeight = tiebreakNotes.length > 0 ? 30 + tiebreakNotes.length * 28 : 0;
   const footerHeight = 60;
 
-  const totalHeight = padding + headerHeight + (podiumHeight > 0 ? podiumHeight + 24 : 0) + tableHeight + (tiebreakHeight > 0 ? tiebreakHeight + 16 : 0) + footerHeight + padding;
+  const totalHeight =
+    padding +
+    headerHeight +
+    (podiumHeight > 0 ? podiumHeight + 24 : 0) +
+    tableHeight +
+    legendHeight +
+    (tiebreakHeight > 0 ? tiebreakHeight + 16 : 0) +
+    footerHeight +
+    padding;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -346,15 +355,18 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
   ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
 
   const colX = {
-    pos: padding + 20,
-    name: padding + 80,
-    deck: padding + 340,
-    pts: padding + 560,
-    ved: padding + 660,
-    games: padding + 760,
-    saldo: padding + 860,
-    by: padding + 950,
-    omw: padding + 1040,
+    pos: padding + 15,
+    name: padding + 65,
+    deck: padding + 295,
+    pts: padding + 485,
+    ved: padding + 565,
+    games: padding + 645,
+    saldo: padding + 715,
+    by: padding + 775,
+    pmw: padding + 830,
+    omw: padding + 975,
+    pgw: padding + 1135,
+    ogw: padding + 1270,
   };
 
   ctx.fillText('POS', colX.pos, curY + 26);
@@ -365,7 +377,12 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
   ctx.fillText('GAMES', colX.games, curY + 26);
   ctx.fillText('SALDO', colX.saldo, curY + 26);
   ctx.fillText('BY', colX.by, curY + 26);
-  ctx.fillText('OMW% (1º CRIT.)', colX.omw, curY + 26);
+  ctx.fillText('PMW%', colX.pmw, curY + 26);
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillText('OMW% (MÍNIMOS)', colX.omw, curY + 26);
+  ctx.fillStyle = '#f59e0b';
+  ctx.fillText('PGW%', colX.pgw, curY + 26);
+  ctx.fillText('OGW%', colX.ogw, curY + 26);
 
   curY += tableHeaderHeight;
 
@@ -436,15 +453,45 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
     ctx.fillStyle = s.hadBy ? '#fbbf24' : '#64748b';
     ctx.fillText(s.hadBy ? 'Sim' : '-', colX.by, rowY + 23);
 
-    // OMW%
-    ctx.fillStyle = '#fde68a';
-    ctx.font = 'bold 12.5px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`${s.omwPercentage}%`, colX.omw, rowY + 23);
+    // PMW% (Player Match Win %)
+    const pmwStr = `${(s.pmw ?? 0).toFixed(2)} (${s.pmwPercentage ?? 0}%)`;
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '12px system-ui, -apple-system, sans-serif';
+    ctx.fillText(pmwStr, colX.pmw, rowY + 23);
+
+    // OMW% (Mínimos - 1º Critério Oficial de Desempate)
+    const omwStr = `${(s.omw ?? 0).toFixed(2)} (${s.omwPercentage ?? 0}%)`;
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
+    ctx.fillText(omwStr, colX.omw, rowY + 23);
+
+    // PGW% (Player Game Win %)
+    const pgwStr = `${(s.pgw ?? 0).toFixed(2)} (${s.pgwPercentage ?? 0}%)`;
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '12px system-ui, -apple-system, sans-serif';
+    ctx.fillText(pgwStr, colX.pgw, rowY + 23);
+
+    // OGW% (Opponent Game Win %)
+    const ogwStr = `${(s.ogw ?? 0).toFixed(2)} (${s.ogwPercentage ?? 0}%)`;
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px system-ui, -apple-system, sans-serif';
+    ctx.fillText(ogwStr, colX.ogw, rowY + 23);
 
     curY += rowHeight;
   });
 
-  curY += 16;
+  curY += 12;
+
+  // Legenda Oficial de Desempate
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px system-ui, -apple-system, sans-serif';
+  ctx.fillText(
+    '* Critérios Oficiais Suíço: Pontos > Sem BY > Mínimos (OMW%) > Saldo de Games > Confronto Direto > PGW% > OGW% (Piso: 0.33)',
+    padding + 8,
+    curY + 12
+  );
+
+  curY += 24;
 
   // 5. Observações de Desempate (se houver empates)
   if (tiebreakNotes.length > 0) {
