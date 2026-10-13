@@ -1223,18 +1223,51 @@
 .round-hero-buttons {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .round-hero-card {
+    padding: 16px 14px;
+    gap: 12px;
+  }
+
+  .round-title {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .round-hero-buttons {
+    gap: 6px;
+    width: 100%;
+  }
+
+  .round-hero-buttons .btn-secondary-action {
+    padding: 7px 11px;
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  .round-hero-buttons .btn-danger-ghost {
+    padding: 7px 11px;
+    font-size: 12px;
+  }
 }
 
 .btn-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--bg-card);
   border: 1px solid var(--border-medium);
   color: #fff;
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
 .btn-secondary-action:hover,
@@ -1245,14 +1278,22 @@
 }
 
 .btn-danger-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--rose-400);
   padding: 8px 12px;
-  font-size: 13px;
+  font-size: 12.5px;
   border-radius: var(--radius-md);
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
 }
 
 .btn-danger-ghost:hover {
-  background: rgba(244, 63, 94, 0.1);
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.3);
 }
 
 /* Standings Drawer */
@@ -2813,8 +2854,7 @@
 .history-card-header {
   padding: 12px 14px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 10px;
   cursor: pointer;
   user-select: none;
@@ -2822,6 +2862,14 @@
 
 .history-card-header:hover {
   background: var(--bg-card-hover);
+}
+
+.history-header-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
 }
 
 .history-main-info {
@@ -2833,8 +2881,8 @@
 }
 
 .history-icon-box {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-md);
   background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.2);
@@ -2900,11 +2948,23 @@
   color: var(--text-dim);
 }
 
-.history-header-right {
+.history-actions-strip {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.history-btn-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .btn-export-pdf-sm {

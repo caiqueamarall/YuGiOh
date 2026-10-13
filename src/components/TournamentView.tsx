@@ -1009,8 +1009,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
             className={`btn-secondary-action ${showStandings ? 'active' : ''}`}
             onClick={() => setShowStandings(!showStandings)}
           >
-            <Eye size={18} />
-            <span>{showStandings ? 'Ocultar Classificação' : 'Ver Classificação'}</span>
+            <Eye size={15} />
+            <span>{showStandings ? 'Ocultar' : 'Classificação'}</span>
           </button>
           {activeTournament.currentRound > 1 && (
             <button
@@ -1020,7 +1020,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
               title="Voltar para a rodada anterior para corrigir placares e mesas"
               style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24' }}
             >
-              <RotateCcw size={16} />
+              <RotateCcw size={14} />
               <span>Voltar Rodada</span>
             </button>
           )}
@@ -1032,10 +1032,10 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
               borderColor: (activeTournament.droppedPlayerIds?.length || 0) > 0 ? '#ef4444' : undefined,
               color: (activeTournament.droppedPlayerIds?.length || 0) > 0 ? '#fca5a5' : undefined,
             }}
-            title="Gerenciar participantes, desistências (Drops) e entradas tardias"
+            title="Gerenciar participantes, drops e adicionar jogador"
           >
-            <Users size={18} />
-            <span>Participantes ({(activeTournament.droppedPlayerIds?.length || 0)} drops)</span>
+            <Users size={15} />
+            <span>Participantes{(activeTournament.droppedPlayerIds?.length || 0) > 0 ? ` (${activeTournament.droppedPlayerIds!.length})` : ''}</span>
           </button>
           <button
             id="btn-cancel-tournament"
@@ -1555,9 +1555,9 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '8px 14px',
+                  padding: '8px 16px',
                   fontSize: '13px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   background: participantsModalTab === 'drops' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
                   color: participantsModalTab === 'drops' ? '#f87171' : '#94a3b8',
                   border: 'none',
@@ -1567,7 +1567,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 }}
               >
                 <UserMinus size={15} />
-                <span>Desistências (Drops)</span>
+                <span>Drop</span>
                 {(activeTournament.droppedPlayerIds?.length || 0) > 0 && (
                   <span
                     style={{
@@ -1590,9 +1590,9 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '8px 14px',
+                  padding: '8px 16px',
                   fontSize: '13px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   background: participantsModalTab === 'late-entry' ? 'rgba(52, 211, 153, 0.15)' : 'transparent',
                   color: participantsModalTab === 'late-entry' ? '#34d399' : '#94a3b8',
                   border: 'none',
@@ -1602,7 +1602,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 }}
               >
                 <UserPlus size={15} />
-                <span>Entrada Tardia (+ Jogador)</span>
+                <span>Adicionar Jogador</span>
               </button>
             </div>
 

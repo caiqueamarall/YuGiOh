@@ -130,94 +130,99 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             return (
               <div key={tournament.id} className="history-card">
                 <div className="history-card-header" onClick={() => toggleExpand(tournament.id)}>
-                  <div className="history-main-info">
-                    <div className="history-icon-box">
-                      <Trophy size={22} className="text-gold" />
-                    </div>
-                    <div className="history-text-details">
-                      <div className="history-title-row">
-                        <h3 className="history-title">{tournament.name}</h3>
-                        {tournament.countsForLeague !== false ? (
-                          <span className="badge-league-official">Oficial da Liga</span>
-                        ) : (
-                          <span className="badge-league-freeplay">Freeplay</span>
-                        )}
+                  <div className="history-header-top-row">
+                    <div className="history-main-info">
+                      <div className="history-icon-box">
+                        <Trophy size={20} className="text-gold" />
                       </div>
-                      <div className="history-meta-row">
-                        <span className="history-meta-item">
-                          <Calendar size={12} />
-                          <span>{formatTournamentDate(tournament.date)}</span>
-                        </span>
-                        <span className="history-meta-item">
-                          <Users size={12} />
-                          <span>{tournament.playerIds.length} duelistas</span>
-                        </span>
-                        <span className="history-meta-item">
-                          <Swords size={12} />
-                          <span>{tournament.totalRounds} rodadas</span>
-                        </span>
+                      <div className="history-text-details">
+                        <div className="history-title-row">
+                          <h3 className="history-title">{tournament.name}</h3>
+                          {tournament.countsForLeague !== false ? (
+                            <span className="badge-league-official">Oficial da Liga</span>
+                          ) : (
+                            <span className="badge-league-freeplay">Freeplay</span>
+                          )}
+                        </div>
+                        <div className="history-meta-row">
+                          <span className="history-meta-item">
+                            <Calendar size={12} />
+                            <span>{formatTournamentDate(tournament.date)}</span>
+                          </span>
+                          <span className="history-meta-item">
+                            <Users size={12} />
+                            <span>{tournament.playerIds.length} duelistas</span>
+                          </span>
+                          <span className="history-meta-item">
+                            <Swords size={12} />
+                            <span>{tournament.totalRounds} rodadas</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="history-header-right">
-                    {champion && (
-                      <div className="champion-preview-badge">
-                        <Trophy size={13} className="text-gold" />
-                        <span>1º Lugar: <strong>{champion.name}</strong></span>
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      className="btn-edit-history-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingTournament(tournament);
-                      }}
-                      title="Editar placares, mesas ou dados deste torneio com recálculo automático da Liga"
-                    >
-                      <Edit2 size={13} />
-                      <span>Editar</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-export-pdf-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        exportTournamentResultsPDF(tournament, players);
-                      }}
-                      title="Exportar resultado e chaveamento deste torneio em PDF"
-                    >
-                      <FileDown size={14} />
-                      <span>PDF</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-export-png-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        exportTournamentResultsPNG(tournament, players);
-                      }}
-                      title="Exportar resultado em Imagem PNG (Página Única)"
-                    >
-                      <ImageDown size={14} />
-                      <span>PNG</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-delete-history-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTournamentToDelete(tournament);
-                      }}
-                      title="Remover este torneio do histórico"
-                    >
-                      <Trash2 size={14} />
-                      <span>Remover</span>
-                    </button>
                     <button className="btn-expand-history" aria-label="Expandir detalhes">
                       {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </button>
+                  </div>
+
+                  <div className="history-actions-strip">
+                    {champion && (
+                      <div className="champion-preview-badge">
+                        <Trophy size={12} className="text-gold" />
+                        <span>1º: <strong>{champion.name}</strong></span>
+                      </div>
+                    )}
+                    <div className="history-btn-group">
+                      <button
+                        type="button"
+                        className="btn-edit-history-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingTournament(tournament);
+                        }}
+                        title="Editar placares e dados deste torneio"
+                      >
+                        <Edit2 size={12} />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-export-pdf-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          exportTournamentResultsPDF(tournament, players);
+                        }}
+                        title="Exportar resultado e chaveamento deste torneio em PDF"
+                      >
+                        <FileDown size={13} />
+                        <span>PDF</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-export-png-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          exportTournamentResultsPNG(tournament, players);
+                        }}
+                        title="Exportar resultado em Imagem PNG (Página Única)"
+                      >
+                        <ImageDown size={13} />
+                        <span>PNG</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-delete-history-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTournamentToDelete(tournament);
+                        }}
+                        title="Remover este torneio do histórico"
+                      >
+                        <Trash2 size={13} />
+                        <span>Remover</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
