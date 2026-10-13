@@ -101,7 +101,7 @@ export const StatInfoModal: React.FC<StatInfoModalProps> = ({ statType, onClose 
         style={{
           maxWidth: '520px',
           width: '92%',
-          background: '#0a0d16',
+          background: '#161619',
           border: `1px solid ${info.badgeColor}55`,
           borderRadius: '12px',
           padding: 0,

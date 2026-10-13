@@ -1,14 +1,14 @@
 :root {
-  /* Paleta Inspirada em Yu-Gi-Oh! TCG / Edison Format */
-  --bg-primary: #0a0d14;
-  --bg-secondary: #101420;
-  --bg-card: #151b2c;
-  --bg-card-hover: #1b2339;
-  --bg-card-active: #212c47;
-  --bg-glass: rgba(21, 27, 44, 0.75);
+  /* Paleta Grafite / Cinza Escuro Neutro Premium (Yu-Gi-Oh! Edison) */
+  --bg-primary: #121214;
+  --bg-secondary: #18181b;
+  --bg-card: #202024;
+  --bg-card-hover: #28282e;
+  --bg-card-active: #323238;
+  --bg-glass: rgba(32, 32, 36, 0.82);
   
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.15);
+  --border-medium: rgba(255, 255, 255, 0.14);
   --border-gold: rgba(245, 158, 11, 0.4);
   --border-purple: rgba(168, 85, 247, 0.4);
 
@@ -104,8 +104,8 @@ body::before {
   pointer-events: none;
   background-image: 
     radial-gradient(circle at 15% 10%, rgba(245, 158, 11, 0.05) 0%, transparent 45%),
-    radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.06) 0%, transparent 45%),
-    linear-gradient(180deg, #0a0d14 0%, #0d111b 100%);
+    radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.04) 0%, transparent 45%),
+    linear-gradient(180deg, #121214 0%, #18181b 100%);
   -webkit-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
 }

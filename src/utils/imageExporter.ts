@@ -98,14 +98,14 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
 
   // 1. Fundo Principal Elegante (Tema Noturno Yu-Gi-Oh Edison)
   const bgGrad = ctx.createLinearGradient(0, 0, 0, totalHeight);
-  bgGrad.addColorStop(0, '#0a0d14');
-  bgGrad.addColorStop(0.5, '#0f1422');
-  bgGrad.addColorStop(1, '#080a10');
+  bgGrad.addColorStop(0, '#121214');
+  bgGrad.addColorStop(0.5, '#18181b');
+  bgGrad.addColorStop(1, '#0e0e10');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, width, totalHeight);
 
   // Borda decorativa externa do card
-  ctx.strokeStyle = '#252d43';
+  ctx.strokeStyle = '#27272a';
   ctx.lineWidth = 2;
   roundRect(ctx, 12, 12, width - 24, totalHeight - 24, 16);
   ctx.stroke();
@@ -514,14 +514,14 @@ export function exportLeagueRankingPNG(players: Player[]): void {
 
   // Fundo
   const bgGrad = ctx.createLinearGradient(0, 0, 0, totalHeight);
-  bgGrad.addColorStop(0, '#0a0d14');
-  bgGrad.addColorStop(0.5, '#0f1422');
-  bgGrad.addColorStop(1, '#080a10');
+  bgGrad.addColorStop(0, '#121214');
+  bgGrad.addColorStop(0.5, '#18181b');
+  bgGrad.addColorStop(1, '#0e0e10');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, width, totalHeight);
 
   // Borda decorativa
-  ctx.strokeStyle = '#252d43';
+  ctx.strokeStyle = '#27272a';
   ctx.lineWidth = 2;
   roundRect(ctx, 12, 12, width - 24, totalHeight - 24, 16);
   ctx.stroke();

@@ -132,7 +132,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
-          background: '#0a0d16',
+          background: '#161619',
           border: '1px solid rgba(245, 158, 11, 0.35)',
           borderRadius: '12px',
           overflow: 'hidden',

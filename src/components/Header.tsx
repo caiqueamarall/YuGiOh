@@ -1,5 +1,5 @@
 import React from 'react';
-import { Swords, Trophy } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import type { Tournament } from '../types';
 
 interface HeaderProps {
@@ -13,7 +13,13 @@ export const Header: React.FC<HeaderProps> = ({ activeTournament, onNavigateToTo
       <div className="header-container">
         <div className="brand-group">
           <div className="brand-icon-wrapper">
-            <Swords className="brand-icon" size={20} />
+            <img
+              src="./icon.png"
+              alt="Edison League"
+              className="brand-logo-img"
+              width="36"
+              height="36"
+            />
           </div>
           <div className="brand-text-col">
             <h1 className="brand-title">Edison League</h1>
