@@ -30,10 +30,11 @@ import {
   calculateTournamentStandings,
   getTiebreakExplanations,
 } from '../utils/swissEngine';
-import { CustomDatePicker } from './CustomDatePicker';
 import { exportTournamentResultsPDF } from '../utils/pdfGenerator';
 import { exportTournamentResultsPNG } from '../utils/imageExporter';
 import { StatInfoModal, type TiebreakStatType } from './StatInfoModal';
+import { RoundTimer } from './RoundTimer';
+import { CustomDatePicker } from './CustomDatePicker';
 
 interface TournamentViewProps {
   players: Player[];
@@ -1051,6 +1052,12 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Cronômetro Oficial da Rodada (40 min padrão, customizável com alertas) */}
+      <RoundTimer
+        tournamentId={activeTournament.id}
+        roundNumber={activeTournament.currentRound}
+      />
 
       {/* Classificação Parcial Expansível */}
       {showStandings && (

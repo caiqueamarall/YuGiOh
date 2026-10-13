@@ -5389,3 +5389,329 @@
   transform: scale(1.12);
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.55);
 }
+
+/* ========================================================
+   CRONÔMETRO DA RODADA (ROUND TIMER)
+   ======================================================== */
+.round-timer-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  transition: all var(--transition-fast);
+}
+
+.round-timer-card.timer-warning {
+  border-color: rgba(245, 158, 11, 0.65);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.2);
+}
+
+.round-timer-card.timer-critical {
+  border-color: rgba(239, 68, 68, 0.75);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(15, 23, 42, 0.9) 100%);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.28);
+  animation: timerPulse 1.5s infinite alternate;
+}
+
+.round-timer-card.timer-time-up {
+  border-color: #ef4444;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(15, 23, 42, 0.92) 100%);
+  box-shadow: 0 0 35px rgba(239, 68, 68, 0.45);
+}
+
+@keyframes timerPulse {
+  0% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+  100% { box-shadow: 0 0 35px rgba(239, 68, 68, 0.5); }
+}
+
+.timer-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.timer-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.timer-header-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold-400);
+  letter-spacing: 0.05em;
+}
+
+.timer-round-pill {
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
+.timer-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.timer-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.timer-status-badge.running {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.timer-status-badge.paused {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.timer-status-badge.expired {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}
+
+.pulse-dot-green {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399;
+  animation: blinkDot 1s infinite alternate;
+}
+
+@keyframes blinkDot {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.timer-base-info {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Display Central do Relógio */
+.timer-display-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-clock-digits {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.timer-clock-digits:hover {
+  border-color: var(--gold-400);
+  transform: scale(1.02);
+}
+
+.digits-normal {
+  color: #38bdf8;
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+}
+
+.digits-yellow {
+  color: #fbbf24;
+  text-shadow: 0 0 18px rgba(251, 191, 36, 0.5);
+}
+
+.digits-orange {
+  color: #f97316;
+  text-shadow: 0 0 20px rgba(249, 115, 22, 0.6);
+  animation: blinkDot 0.8s infinite alternate;
+}
+
+.digits-red {
+  color: #ef4444;
+  text-shadow: 0 0 22px rgba(239, 68, 68, 0.7);
+}
+
+/* Coluna de Controles */
+.timer-controls-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.timer-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-timer-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-timer-play {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-timer-play:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.5);
+}
+
+.btn-timer-pause {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #000;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-timer-pause:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.5);
+}
+
+.btn-timer-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-timer-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #cbd5e1;
+  color: #fff;
+}
+
+.timer-quick-add-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-add-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.btn-quick-add {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-quick-add:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+/* Banner de Tempo Esgotado */
+.timer-time-up-banner {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  animation: bannerGlow 1.2s infinite alternate;
+}
+
+@keyframes bannerGlow {
+  0% { background: rgba(239, 68, 68, 0.12); }
+  100% { background: rgba(239, 68, 68, 0.22); }
+}
+
+@media (max-width: 680px) {
+  .timer-main-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .timer-info-col {
+    align-items: center;
+  }
+
+  .timer-controls-col {
+    align-items: center;
+    width: 100%;
+  }
+
+  .timer-btn-group {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .timer-clock-digits {
+    font-size: 34px;
+  }
+}
