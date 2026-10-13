@@ -950,6 +950,7 @@ export function recalculateAllPlayerStats(
       tournamentTitles: 0,
       byCount: 0,
       decksHistory: [],
+      savedDecklists: p.savedDecklists || [],
     });
   }
 
@@ -971,6 +972,7 @@ export function recalculateAllPlayerStats(
       if (!p) continue;
 
       const deckName = playerDecks[standing.playerId] || 'Edison Deck';
+      const decklist = tourn.playerDecklists?.[standing.playerId];
       const isChampion = standing.playerId === championId;
       const isDropped = droppedSet.has(standing.playerId);
 
@@ -979,6 +981,7 @@ export function recalculateAllPlayerStats(
         tournamentName: tourn.name,
         date: tourn.date,
         deckName,
+        decklist,
         rank: standing.rank,
         matchPoints: standing.matchPoints,
         matchWins: standing.matchWins,

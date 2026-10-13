@@ -8,9 +8,11 @@ import {
   AlertTriangle,
   Sparkles,
   Info,
+  Layers,
 } from 'lucide-react';
-import type { Player, Tournament } from '../types';
+import type { Player, Tournament, Decklist } from '../types';
 import { calculateTournamentStandings } from '../utils/swissEngine';
+import { DecklistModal } from './DecklistModal';
 
 interface TournamentEditModalProps {
   tournament: Tournament;
@@ -33,6 +35,12 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
   const [activeTab, setActiveTab] = useState<'matches' | 'decks' | 'info'>('matches');
   const [selectedRoundNum, setSelectedRoundNum] = useState<number>(1);
   const [showPreviewDrawer, setShowPreviewDrawer] = useState<boolean>(true);
+  const [activeDecklistModal, setActiveDecklistModal] = useState<{
+    playerId: string;
+    playerName: string;
+    deckName: string;
+    decklist?: Decklist | null;
+  } | null>(null);
 
   const playerMap = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
 
@@ -713,14 +721,14 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                       </span>
                     </div>
 
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input
                         type="text"
                         value={currentDeck}
                         onChange={(e) => handleUpdatePlayerDeck(pid, e.target.value)}
                         placeholder="Nome do Deck (ex: Diva Zombie, Blackwing...)"
                         style={{
-                          width: '100%',
+                          flex: 1,
                           padding: '8px 12px',
                           background: '#161619',
                           border: '1px solid #3f3f46',
@@ -729,6 +737,29 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                           fontSize: '13px',
                         }}
                       />
+                      {(() => {
+                        const dl = editedTournament.playerDecklists?.[pid];
+                        const hasDl = dl && ((dl.mainDeck?.length || 0) > 0 || (dl.extraDeck?.length || 0) > 0);
+                        const countTotal = hasDl ? dl.mainDeck.reduce((a, b) => a + (b.count || 1), 0) : 0;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveDecklistModal({
+                                playerId: pid,
+                                playerName: p?.name || 'Duelista',
+                                deckName: currentDeck || 'Edison Deck',
+                                decklist: dl || null,
+                              })
+                            }
+                            className={hasDl ? 'badge-decklist-has' : 'btn-decklist-add'}
+                            title="Montar ou visualizar Decklist deste jogador"
+                          >
+                            <Layers size={11} />
+                            <span>{hasDl ? `Decklist (${countTotal})` : '+ Decklist'}</span>
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
@@ -1024,6 +1055,30 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Modal de Decklist Edison */}
+      {activeDecklistModal && (
+        <DecklistModal
+          decklist={activeDecklistModal.decklist}
+          playerName={activeDecklistModal.playerName}
+          defaultDeckName={activeDecklistModal.deckName}
+          onSave={(savedDecklist) => {
+            setEditedTournament((prev) => ({
+              ...prev,
+              playerDecks: {
+                ...(prev.playerDecks || {}),
+                [activeDecklistModal.playerId]: savedDecklist.deckName,
+              },
+              playerDecklists: {
+                ...(prev.playerDecklists || {}),
+                [activeDecklistModal.playerId]: savedDecklist,
+              },
+            }));
+            setActiveDecklistModal(null);
+          }}
+          onClose={() => setActiveDecklistModal(null)}
+        />
+      )}
     </div>
   );
 };

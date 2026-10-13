@@ -21,10 +21,11 @@ import {
   UserPlus,
   Users,
   RotateCcw,
+  Layers,
   X,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import type { Player, Tournament, TournamentRound } from '../types';
+import type { Player, Tournament, TournamentRound, Decklist } from '../types';
 import {
   generateSwissPairings,
   calculateTournamentStandings,
@@ -35,6 +36,7 @@ import { exportTournamentResultsPNG } from '../utils/imageExporter';
 import { StatInfoModal, type TiebreakStatType } from './StatInfoModal';
 import { RoundTimer } from './RoundTimer';
 import { CustomDatePicker } from './CustomDatePicker';
+import { DecklistModal } from './DecklistModal';
 
 interface TournamentViewProps {
   players: Player[];
@@ -118,6 +120,18 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
       return updated;
     });
   }, [players]);
+
+  // Mapeamento das decklists dos jogadores para o novo torneio
+  const [tournamentPlayerDecklists, setTournamentPlayerDecklists] = useState<Record<string, Decklist>>({});
+
+  // Modal de Decklist (para criar, editar ou visualizar)
+  const [activeDecklistModal, setActiveDecklistModal] = useState<{
+    playerId: string;
+    playerName: string;
+    deckName: string;
+    decklist?: Decklist | null;
+    isPreTournament?: boolean;
+  } | null>(null);
 
   // Controle de abas internas no torneio ativo
   const [showStandings, setShowStandings] = useState(false);
@@ -288,6 +302,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
       countsForLeague: countsForLeague,
       playerIds: selectedPlayerIds,
       playerDecks: sanitizedPlayerDecks,
+      playerDecklists: tournamentPlayerDecklists,
       rounds: [],
       createdAt: new Date().toISOString(),
     };
@@ -599,15 +614,44 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                           <Shield size={13} className="text-gold" />
                           <span>Deck neste Torneio:</span>
                         </label>
-                        <input
-                          id={`input-deck-${player.id}`}
-                          type="text"
-                          value={currentDeck}
-                          disabled={!isSelected}
-                          onChange={(e) => handleDeckChange(player.id, e.target.value)}
-                          placeholder="Digite o nome do deck..."
-                          className="input-roster-deck"
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                          <input
+                            id={`input-deck-${player.id}`}
+                            type="text"
+                            value={currentDeck}
+                            disabled={!isSelected}
+                            onChange={(e) => handleDeckChange(player.id, e.target.value)}
+                            placeholder="Digite o nome do deck..."
+                            className="input-roster-deck"
+                            style={{ flex: 1 }}
+                          />
+                          {isSelected && (() => {
+                            const dl = tournamentPlayerDecklists[player.id];
+                            const hasDl = dl && (dl.mainDeck?.length > 0 || dl.extraDeck?.length > 0);
+                            const countTotal = hasDl
+                              ? dl.mainDeck.reduce((a, b) => a + (b.count || 1), 0)
+                              : 0;
+                            return (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActiveDecklistModal({
+                                    playerId: player.id,
+                                    playerName: player.name,
+                                    deckName: currentDeck || 'Edison Deck',
+                                    decklist: dl || null,
+                                    isPreTournament: true,
+                                  })
+                                }
+                                className={hasDl ? 'badge-decklist-has' : 'btn-decklist-add'}
+                                title="Montar ou visualizar Decklist (opcional)"
+                              >
+                                <Layers size={11} />
+                                <span>{hasDl ? `Decklist (${countTotal})` : '+ Decklist'}</span>
+                              </button>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
                   );
@@ -1175,16 +1219,45 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                       )}
                     </td>
                     <td>
-                      <span
-                        className="player-deck-badge"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleUpdateActiveDeck(s.playerId)}
-                        title="Clique para editar o deck deste jogador"
-                      >
-                        <Shield size={11} />
-                        <span>{playerDecks[s.playerId] || 'Edison'}</span>
-                        <Edit2 size={10} style={{ opacity: 0.6, marginLeft: '3px' }} />
-                      </span>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span
+                          className="player-deck-badge"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleUpdateActiveDeck(s.playerId)}
+                          title="Clique para editar o nome do deck deste jogador"
+                        >
+                          <Shield size={11} />
+                          <span>{playerDecks[s.playerId] || 'Edison'}</span>
+                          <Edit2 size={10} style={{ opacity: 0.6, marginLeft: '3px' }} />
+                        </span>
+
+                        {(() => {
+                          const dl = activeTournament.playerDecklists?.[s.playerId];
+                          const hasDl = dl && ((dl.mainDeck?.length || 0) > 0 || (dl.extraDeck?.length || 0) > 0);
+                          const countTotal = hasDl
+                            ? dl.mainDeck.reduce((a, b) => a + (b.count || 1), 0)
+                            : 0;
+                          return (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveDecklistModal({
+                                  playerId: s.playerId,
+                                  playerName: s.playerName,
+                                  deckName: playerDecks[s.playerId] || 'Edison Deck',
+                                  decklist: dl || null,
+                                  isPreTournament: false,
+                                })
+                              }
+                              className={hasDl ? 'badge-decklist-has' : 'btn-decklist-add'}
+                              title={hasDl ? `Ver Decklist (${countTotal} cartas)` : 'Adicionar Decklist (opcional)'}
+                            >
+                              <Layers size={11} />
+                              <span>{hasDl ? `Decklist (${countTotal})` : '+ Decklist'}</span>
+                            </button>
+                          );
+                        })()}
+                      </div>
                     </td>
                     <td>
                       <span className="points-bold">{s.matchPoints} pts</span>
@@ -1862,6 +1935,41 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
         <StatInfoModal
           statType={selectedStatModal}
           onClose={() => setSelectedStatModal(null)}
+        />
+      )}
+
+      {/* Modal de Decklist Edison (Visualização e Edição de Decks) */}
+      {activeDecklistModal && (
+        <DecklistModal
+          decklist={activeDecklistModal.decklist}
+          playerName={activeDecklistModal.playerName}
+          defaultDeckName={activeDecklistModal.deckName}
+          onSave={(savedDecklist) => {
+            if (activeDecklistModal.isPreTournament) {
+              setTournamentPlayerDecklists((prev) => ({
+                ...prev,
+                [activeDecklistModal.playerId]: savedDecklist,
+              }));
+              setTournamentPlayerDecks((prev) => ({
+                ...prev,
+                [activeDecklistModal.playerId]: savedDecklist.deckName,
+              }));
+            } else if (activeTournament) {
+              onUpdateActiveTournament({
+                ...activeTournament,
+                playerDecks: {
+                  ...(activeTournament.playerDecks || {}),
+                  [activeDecklistModal.playerId]: savedDecklist.deckName,
+                },
+                playerDecklists: {
+                  ...(activeTournament.playerDecklists || {}),
+                  [activeDecklistModal.playerId]: savedDecklist,
+                },
+              });
+            }
+            setActiveDecklistModal(null);
+          }}
+          onClose={() => setActiveDecklistModal(null)}
         />
       )}
     </div>

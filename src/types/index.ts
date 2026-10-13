@@ -1,8 +1,36 @@
+export interface DeckCardItem {
+  cardId: number;
+  cardName: string;
+  count: number; // 1, 2, ou 3 cópias
+  type?: string;
+  frameType?: string;
+  attribute?: string;
+  race?: string;
+  level?: number;
+  atk?: number;
+  def?: number;
+  desc?: string;
+}
+
+export interface Decklist {
+  id?: string;
+  deckName: string;
+  mainDeck: DeckCardItem[]; // 40-60 cartas
+  extraDeck: DeckCardItem[]; // 0-15 cartas (Fusão e Synchro)
+  sideDeck: DeckCardItem[]; // 0-15 cartas
+  mainCount?: number;
+  extraCount?: number;
+  sideCount?: number;
+  notes?: string;
+  updatedAt?: string;
+}
+
 export interface PlayerTournamentHistory {
   tournamentId: string;
   tournamentName: string;
   date: string;
   deckName: string;
+  decklist?: Decklist; // Decklist completa usada especificamente neste torneio (opcional)
   rank: number;
   matchPoints: number;
   matchWins: number;
@@ -33,6 +61,9 @@ export interface Player {
 
   // Histórico de torneios com o deck usado em cada um
   decksHistory?: PlayerTournamentHistory[];
+
+  // Decklists salvas do duelista no perfil pessoal
+  savedDecklists?: Decklist[];
 }
 
 export interface MatchScore {
@@ -99,7 +130,8 @@ export interface Tournament {
   status: 'active' | 'completed';
   playerIds: string[];
   droppedPlayerIds?: string[]; // IDs dos jogadores que droparam deste torneio
-  playerDecks?: Record<string, string>; // Mapeia playerId -> Deck jogado especificamente neste torneio
+  playerDecks?: Record<string, string>; // Mapeia playerId -> Nome do Deck jogado neste torneio
+  playerDecklists?: Record<string, Decklist>; // Mapeia playerId -> Decklist completa (Main, Extra, Side) deste torneio
   rounds: TournamentRound[];
   championId?: string;
   runnerUpId?: string;

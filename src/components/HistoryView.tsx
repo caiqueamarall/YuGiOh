@@ -15,14 +15,17 @@ import {
   Trash2,
   AlertTriangle,
   Edit2,
+  Layers,
   X,
 } from 'lucide-react';
-import type { Player, Tournament } from '../types';
+import type { Player, Tournament, Decklist } from '../types';
 import { exportTournamentResultsPDF } from '../utils/pdfGenerator';
 import { exportTournamentResultsPNG } from '../utils/imageExporter';
 import { calculateTournamentStandings, getTiebreakExplanations } from '../utils/swissEngine';
 import { StatInfoModal, type TiebreakStatType } from './StatInfoModal';
 import { TournamentEditModal } from './TournamentEditModal';
+import { DecklistModal } from './DecklistModal';
+import { getDeckCardCounts } from '../utils/cardDatabase';
 
 interface HistoryViewProps {
   tournaments: Tournament[];
@@ -41,6 +44,13 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const [tournamentToDelete, setTournamentToDelete] = useState<Tournament | null>(null);
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
   const [selectedStatModal, setSelectedStatModal] = useState<TiebreakStatType | null>(null);
+  const [historyDecklistModal, setHistoryDecklistModal] = useState<{
+    tournament: Tournament;
+    playerId: string;
+    playerName: string;
+    deckName: string;
+    decklist?: Decklist | null;
+  } | null>(null);
 
   // Estado para edição rápida e direta de nome de deck de um jogador no histórico
   const [quickDeckModal, setQuickDeckModal] = useState<{
@@ -402,7 +412,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                                       <strong>{s.playerName}</strong>
                                     </td>
                                     <td>
-                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                         <span className="player-deck-badge">
                                           <Shield size={11} />
                                           {playerDecks[s.playerId] || 'Edison'}
@@ -421,6 +431,43 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                                         >
                                           <Edit2 size={10} />
                                         </button>
+                                        {tournament.playerDecklists?.[s.playerId] ? (
+                                          <button
+                                            type="button"
+                                            className="badge-decklist-has"
+                                            onClick={() =>
+                                              setHistoryDecklistModal({
+                                                tournament,
+                                                playerId: s.playerId,
+                                                playerName: s.playerName,
+                                                deckName: playerDecks[s.playerId] || 'Edison Deck',
+                                                decklist: tournament.playerDecklists?.[s.playerId] || null,
+                                              })
+                                            }
+                                            title="Ver / Editar Decklist completa"
+                                          >
+                                            <Layers size={10} />
+                                            Decklist ({getDeckCardCounts(tournament.playerDecklists[s.playerId]).totalCount})
+                                          </button>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            className="btn-decklist-add"
+                                            onClick={() =>
+                                              setHistoryDecklistModal({
+                                                tournament,
+                                                playerId: s.playerId,
+                                                playerName: s.playerName,
+                                                deckName: playerDecks[s.playerId] || 'Edison Deck',
+                                                decklist: null,
+                                              })
+                                            }
+                                            title="Adicionar Decklist para este jogador"
+                                          >
+                                            <Layers size={10} />
+                                            + Decklist
+                                          </button>
+                                        )}
                                       </div>
                                     </td>
                                     <td>
@@ -619,6 +666,40 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                   if (e.key === 'Enter') handleSaveQuickDeck();
                 }}
               />
+
+              <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn-decklist-add"
+                  style={{ fontSize: '12px' }}
+                  onClick={() => {
+                    if (!quickDeckModal) return;
+                    const curPlayer = playerMap.get(quickDeckModal.playerId);
+                    const sanitizedDeck = quickDeckValue.trim() || 'Edison Deck';
+                    const updatedTournament: Tournament = {
+                      ...quickDeckModal.tournament,
+                      playerDecks: {
+                        ...(quickDeckModal.tournament.playerDecks || {}),
+                        [quickDeckModal.playerId]: sanitizedDeck,
+                      },
+                    };
+                    onUpdateTournament(updatedTournament);
+                    setHistoryDecklistModal({
+                      tournament: updatedTournament,
+                      playerId: quickDeckModal.playerId,
+                      playerName: curPlayer?.name || 'Jogador',
+                      deckName: sanitizedDeck,
+                      decklist: updatedTournament.playerDecklists?.[quickDeckModal.playerId] || null,
+                    });
+                    setQuickDeckModal(null);
+                  }}
+                >
+                  <Layers size={12} />
+                  {quickDeckModal.tournament.playerDecklists?.[quickDeckModal.playerId]
+                    ? 'Editar Decklist Completa'
+                    : 'Criar Decklist deste Deck'}
+                </button>
+              </div>
             </div>
 
             <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -721,6 +802,32 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* Modal de Decklist Edison do Jogador no Histórico */}
+      {historyDecklistModal && (
+        <DecklistModal
+          decklist={historyDecklistModal.decklist}
+          playerName={historyDecklistModal.playerName}
+          defaultDeckName={historyDecklistModal.deckName}
+          onClose={() => setHistoryDecklistModal(null)}
+          onSave={(newDecklist) => {
+            const currentT = historyDecklistModal.tournament;
+            const updatedDecklists = {
+              ...(currentT.playerDecklists || {}),
+              [historyDecklistModal.playerId]: newDecklist,
+            };
+            const updatedT: Tournament = {
+              ...currentT,
+              playerDecks: {
+                ...(currentT.playerDecks || {}),
+                [historyDecklistModal.playerId]: newDecklist.deckName,
+              },
+              playerDecklists: updatedDecklists,
+            };
+            onUpdateTournament(updatedT);
+            setHistoryDecklistModal(null);
+          }}
+        />
       )}
     </div>
   );

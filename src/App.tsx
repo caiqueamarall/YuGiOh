@@ -75,6 +75,9 @@ export function App() {
     const updated = players.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p));
     setPlayers(updated);
     savePlayers(updated);
+    if (selectedPlayerForStats?.id === updatedPlayer.id) {
+      setSelectedPlayerForStats(updatedPlayer);
+    }
   };
 
   const handleDeletePlayer = (id: string) => {
@@ -139,6 +142,7 @@ export function App() {
         tournamentName: completedTournament.name,
         date: completedTournament.date,
         deckName: tournamentDeckUsed,
+        decklist: completedTournament.playerDecklists?.[player.id],
         rank: standing.rank,
         matchPoints: standing.matchPoints,
         matchWins: standing.matchWins,
@@ -307,6 +311,7 @@ export function App() {
             player={selectedPlayerForStats}
             onClose={() => setSelectedPlayerForStats(null)}
             leagueRank={getPlayerLeagueRank(selectedPlayerForStats.id)}
+            onUpdatePlayer={handleUpdatePlayer}
           />
         )}
       </div>

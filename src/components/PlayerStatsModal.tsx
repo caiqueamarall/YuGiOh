@@ -1,26 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Trophy,
   Shield,
   Calendar,
   Sparkles,
-  Layers
+  Layers,
+  Plus,
+  Trash2,
 } from 'lucide-react';
-import type { Player } from '../types';
+import type { Player, Decklist } from '../types';
 import { RadarChart } from './RadarChart';
+import { DecklistModal } from './DecklistModal';
+import { getDeckCardCounts } from '../utils/cardDatabase';
 
 interface PlayerStatsModalProps {
   player: Player | null;
   onClose: () => void;
   leagueRank?: number;
+  onUpdatePlayer?: (player: Player) => void;
 }
 
 export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   player,
   onClose,
   leagueRank,
+  onUpdatePlayer,
 }) => {
+  const [activeDecklistModal, setActiveDecklistModal] = useState<{
+    decklist?: Decklist | null;
+    deckName: string;
+    readOnly?: boolean;
+    savedIndex?: number;
+  } | null>(null);
+
   if (!player) return null;
 
   const totalMatches = player.wins + player.draws + player.losses;
@@ -201,6 +214,112 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
             </div>
           )}
 
+          {/* Seção 2.5: Decklists Salvas / Repositório Pessoal */}
+          <div className="stats-section-block">
+            <div className="section-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Layers size={18} className="text-gold" />
+                <h4 className="section-mini-title">Decklists do Duelista (Edison Format)</h4>
+              </div>
+              {onUpdatePlayer && (
+                <button
+                  type="button"
+                  className="btn-decklist-add"
+                  style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  onClick={() =>
+                    setActiveDecklistModal({
+                      decklist: null,
+                      deckName: 'Novo Deck Edison',
+                      readOnly: false,
+                    })
+                  }
+                >
+                  <Plus size={12} />
+                  Criar Decklist
+                </button>
+              )}
+            </div>
+
+            {(!player.savedDecklists || player.savedDecklists.length === 0) ? (
+              <p className="text-muted text-xs" style={{ margin: '8px 0 0', fontStyle: 'italic' }}>
+                Nenhuma decklist salva no perfil ainda.{onUpdatePlayer ? ' Clique em "Criar Decklist" para montar uma decklist de 40 a 60 cartas Edison para este jogador.' : ''}
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px', marginTop: '10px' }}>
+                {player.savedDecklists.map((dk, dIdx) => (
+                  <div
+                    key={`${dk.deckName}-${dIdx}`}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '10px 12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    {(() => {
+                      const counts = getDeckCardCounts(dk);
+                      return (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <strong style={{ fontSize: '13px', color: '#f1f5f9' }}>{dk.deckName}</strong>
+                            <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700 }}>
+                              {counts.totalCount} cartas
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', gap: '8px' }}>
+                            <span>Main: <strong>{counts.mainCount}</strong></span>
+                            <span>Extra: <strong>{counts.extraCount}</strong></span>
+                            <span>Side: <strong>{counts.sideCount}</strong></span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                      <button
+                        type="button"
+                        className="badge-decklist-has"
+                        style={{ flex: 1, justifyContent: 'center' }}
+                        onClick={() =>
+                          setActiveDecklistModal({
+                            decklist: dk,
+                            deckName: dk.deckName,
+                            readOnly: false,
+                            savedIndex: dIdx,
+                          })
+                        }
+                      >
+                        <Layers size={11} />
+                        Editar / Ver
+                      </button>
+                      {onUpdatePlayer && (
+                        <button
+                          type="button"
+                          className="btn-danger-ghost"
+                          style={{ padding: '3px 7px', fontSize: '11px' }}
+                          onClick={() => {
+                            if (confirm(`Remover a decklist "${dk.deckName}" do perfil de ${player.name}?`)) {
+                              const updatedSaved = (player.savedDecklists || []).filter((_, idx) => idx !== dIdx);
+                              onUpdatePlayer({
+                                ...player,
+                                savedDecklists: updatedSaved,
+                              });
+                            }
+                          }}
+                          title="Excluir decklist salva"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Seção 3: Histórico de Torneios */}
           {player.decksHistory && player.decksHistory.length > 0 && (
             <div className="stats-section-block">
@@ -234,10 +353,29 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
                         </td>
                         <td>{formatHistoryDate(h.date)}</td>
                         <td>
-                          <span className="player-deck-badge">
-                            <Shield size={11} />
-                            {h.deckName}
-                          </span>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span className="player-deck-badge">
+                              <Shield size={11} />
+                              {h.deckName}
+                            </span>
+                            {h.decklist && (
+                              <button
+                                type="button"
+                                className="badge-decklist-has"
+                                onClick={() =>
+                                  setActiveDecklistModal({
+                                    decklist: h.decklist,
+                                    deckName: h.deckName,
+                                    readOnly: true,
+                                  })
+                                }
+                                title="Visualizar Decklist deste torneio"
+                              >
+                                <Layers size={10} />
+                                Decklist ({getDeckCardCounts(h.decklist).totalCount})
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td>
                           <span className={`rank-tag ${h.rank <= 3 ? 'top' : ''}`}>
@@ -268,6 +406,38 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Modal de Decklist Edison (Visualização ou Edição) */}
+      {activeDecklistModal && (
+        <DecklistModal
+          decklist={activeDecklistModal.decklist}
+          playerName={player.name}
+          defaultDeckName={activeDecklistModal.deckName}
+          readOnly={activeDecklistModal.readOnly}
+          onClose={() => setActiveDecklistModal(null)}
+          onSave={(newDecklist) => {
+            if (!onUpdatePlayer) return;
+            const updatedSaved = [...(player.savedDecklists || [])];
+            if (activeDecklistModal.savedIndex !== undefined && activeDecklistModal.savedIndex >= 0) {
+              updatedSaved[activeDecklistModal.savedIndex] = newDecklist;
+            } else {
+              const existingIdx = updatedSaved.findIndex(
+                (d) => d.deckName.toLowerCase() === newDecklist.deckName.toLowerCase()
+              );
+              if (existingIdx >= 0) {
+                updatedSaved[existingIdx] = newDecklist;
+              } else {
+                updatedSaved.push(newDecklist);
+              }
+            }
+            onUpdatePlayer({
+              ...player,
+              savedDecklists: updatedSaved,
+            });
+            setActiveDecklistModal(null);
+          }}
+        />
+      )}
     </div>
   );
 };
