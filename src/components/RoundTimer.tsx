@@ -99,6 +99,18 @@ export const RoundTimer: React.FC<RoundTimerProps> = ({ tournamentId, roundNumbe
     }
   }, [storageKey]);
 
+  // Fecha modal com Escape
+  useEffect(() => {
+    if (!showEditModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowEditModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showEditModal]);
+
   // Salva estado sempre que houver alteração
   const saveStateRef = useRef({ initialMinutes, remainingSeconds, isRunning, targetEndTime });
   saveStateRef.current = { initialMinutes, remainingSeconds, isRunning, targetEndTime };
@@ -323,13 +335,12 @@ export const RoundTimer: React.FC<RoundTimerProps> = ({ tournamentId, roundNumbe
 
       {/* Modal de Configuração / Edição de Minutos da Rodada */}
       {showEditModal && (
-        <div className="modal-backdrop" onClick={() => setShowEditModal(false)} style={{ zIndex: 1400 }}>
+        <div className="modal-backdrop" onClick={() => setShowEditModal(false)} style={{ zIndex: 1500 }}>
           <div
-            className="modal-card"
+            className="modal-card round-timer-modal-card"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '420px', padding: '20px' }}
           >
-            <div className="modal-header" style={{ marginBottom: '14px' }}>
+            <div className="modal-header" style={{ marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Clock size={18} className="text-gold" />
                 <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', fontWeight: 800 }}>
@@ -338,90 +349,91 @@ export const RoundTimer: React.FC<RoundTimerProps> = ({ tournamentId, roundNumbe
               </div>
               <button
                 type="button"
-                className="btn-icon"
+                className="btn-modal-close"
                 onClick={() => setShowEditModal(false)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                title="Fechar"
+                aria-label="Fechar"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#cbd5e1', lineHeight: '1.5' }}>
-              O tempo padrão oficial de torneios de Yu-Gi-Oh Edison é de <strong>40 minutos</strong>. Você pode selecionar um atalho rápido ou definir um tempo customizado para esta rodada.
+            <p style={{ margin: '0 0 14px', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.4' }}>
+              Toque em um atalho para aplicar imediatamente ou digite um tempo específico para casos excepcionais.
             </p>
 
-            {/* Presets Rápidos */}
+            {/* Presets Rápidos com Aplicação Imediata em 1 Toque */}
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '6px' }}>
-                Atalhos Rápidos:
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                Atalhos Rápidos (1 toque para aplicar):
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 {[30, 35, 40, 45, 50, 60].map((preset) => (
                   <button
                     key={preset}
                     type="button"
-                    onClick={() => setCustomMinutesInput(String(preset))}
-                    style={{
-                      padding: '8px',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      background: customMinutesInput === String(preset) ? '#f59e0b' : 'rgba(255, 255, 255, 0.05)',
-                      color: customMinutesInput === String(preset) ? '#000' : '#e2e8f0',
-                      border: customMinutesInput === String(preset) ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                      cursor: 'pointer',
-                    }}
+                    onClick={() => handleSaveCustomMinutes(preset)}
+                    className={`timer-preset-btn ${initialMinutes === preset ? 'active' : ''}`}
+                    title={`Aplicar ${preset} minutos`}
                   >
-                    {preset} min {preset === 40 ? '(Padrão)' : ''}
+                    <span style={{ fontSize: '14px' }}>{preset} min</span>
+                    {preset === 40 && <span className="timer-preset-tag">Padrão TCG</span>}
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Input Manual de Minutos */}
-            <div style={{ marginBottom: '18px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '6px' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
                 Ou Digite os Minutos:
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="number"
-                  min="1"
-                  max="180"
-                  value={customMinutesInput}
-                  onChange={(e) => setCustomMinutesInput(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '10px 12px',
-                    background: '#0f172a',
-                    border: '1px solid #334155',
-                    borderRadius: '6px',
-                    color: '#fff',
-                    fontSize: '16px',
-                    fontWeight: 700,
-                  }}
-                  autoFocus
-                />
-                <span style={{ fontSize: '13px', color: '#94a3b8' }}>minutos</span>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="180"
+                    value={customMinutesInput}
+                    onChange={(e) => setCustomMinutesInput(e.target.value)}
+                    placeholder="Ex: 40"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      paddingRight: '62px',
+                      background: '#090d16',
+                      border: '1px solid #334155',
+                      borderRadius: '8px',
+                      color: '#fff',
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#64748b', pointerEvents: 'none', fontWeight: 600 }}>
+                    minutos
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-primary-gold"
+                  onClick={() => handleSaveCustomMinutes(parseInt(customMinutesInput) || 40)}
+                  style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', borderRadius: '8px', flexShrink: 0 }}
+                >
+                  Aplicar
+                </button>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
               <button
                 type="button"
                 className="btn-secondary-action"
                 onClick={() => setShowEditModal(false)}
-                style={{ padding: '8px 16px', fontSize: '13px' }}
+                style={{ padding: '8px 18px', fontSize: '13px' }}
               >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="btn-primary-gold"
-                onClick={() => handleSaveCustomMinutes(parseInt(customMinutesInput) || 40)}
-                style={{ padding: '8px 20px', fontSize: '13px' }}
-              >
-                Salvar e Aplicar
+                Cancelar / Fechar
               </button>
             </div>
           </div>
