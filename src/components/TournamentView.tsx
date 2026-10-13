@@ -610,20 +610,19 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
                       {/* Escolha do Deck específico deste Torneio */}
                       <div className="roster-deck-selector">
-                        <label className="roster-deck-label" htmlFor={`input-deck-${player.id}`}>
-                          <Shield size={13} className="text-gold" />
-                          <span>Deck neste Torneio:</span>
+                        <label className="roster-deck-label" htmlFor={`input-deck-${player.id}`} title="Deck neste Torneio">
+                          <Shield size={13} className="text-gold" style={{ flexShrink: 0 }} />
+                          <span className="roster-deck-label-text">Deck:</span>
                         </label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                        <div className="roster-deck-input-group">
                           <input
                             id={`input-deck-${player.id}`}
                             type="text"
                             value={currentDeck}
                             disabled={!isSelected}
                             onChange={(e) => handleDeckChange(player.id, e.target.value)}
-                            placeholder="Digite o nome do deck..."
+                            placeholder="Nome do deck..."
                             className="input-roster-deck"
-                            style={{ flex: 1 }}
                           />
                           {isSelected && (() => {
                             const dl = tournamentPlayerDecklists[player.id];
@@ -646,7 +645,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                                 className={hasDl ? 'badge-decklist-has' : 'btn-decklist-add'}
                                 title="Montar ou visualizar Decklist (opcional)"
                               >
-                                <Layers size={11} />
+                                <Layers size={11} style={{ flexShrink: 0 }} />
                                 <span>{hasDl ? `Decklist (${countTotal})` : '+ Decklist'}</span>
                               </button>
                             );
@@ -1218,45 +1217,51 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                         </span>
                       )}
                     </td>
-                    <td>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                        <span
-                          className="player-deck-badge"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleUpdateActiveDeck(s.playerId)}
-                          title="Clique para editar o nome do deck deste jogador"
-                        >
-                          <Shield size={11} />
-                          <span>{playerDecks[s.playerId] || 'Edison'}</span>
-                          <Edit2 size={10} style={{ opacity: 0.6, marginLeft: '3px' }} />
-                        </span>
+                    <td className="text-center">
+                      <div className="standings-deck-cell">
+                        <div className="standings-deck-name-row">
+                          <span
+                            className="player-deck-badge"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => handleUpdateActiveDeck(s.playerId)}
+                            title="Clique para editar o nome do deck deste jogador"
+                          >
+                            <Shield size={11} style={{ flexShrink: 0 }} />
+                            <span className="standings-deck-name-text">
+                              {playerDecks[s.playerId] || 'Edison'}
+                            </span>
+                            <Edit2 size={10} style={{ opacity: 0.7, marginLeft: '3px', flexShrink: 0 }} />
+                          </span>
+                        </div>
 
-                        {(() => {
-                          const dl = activeTournament.playerDecklists?.[s.playerId];
-                          const hasDl = dl && ((dl.mainDeck?.length || 0) > 0 || (dl.extraDeck?.length || 0) > 0);
-                          const countTotal = hasDl
-                            ? dl.mainDeck.reduce((a, b) => a + (b.count || 1), 0)
-                            : 0;
-                          return (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setActiveDecklistModal({
-                                  playerId: s.playerId,
-                                  playerName: s.playerName,
-                                  deckName: playerDecks[s.playerId] || 'Edison Deck',
-                                  decklist: dl || null,
-                                  isPreTournament: false,
-                                })
-                              }
-                              className={hasDl ? 'badge-decklist-has' : 'btn-decklist-add'}
-                              title={hasDl ? `Ver Decklist (${countTotal} cartas)` : 'Adicionar Decklist (opcional)'}
-                            >
-                              <Layers size={11} />
-                              <span>{hasDl ? `Decklist (${countTotal})` : '+ Decklist'}</span>
-                            </button>
-                          );
-                        })()}
+                        <div className="standings-deck-actions-row">
+                          {(() => {
+                            const dl = activeTournament.playerDecklists?.[s.playerId];
+                            const hasDl = dl && ((dl.mainDeck?.length || 0) > 0 || (dl.extraDeck?.length || 0) > 0);
+                            const countTotal = hasDl
+                              ? dl.mainDeck.reduce((a, b) => a + (b.count || 1), 0)
+                              : 0;
+                            return (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActiveDecklistModal({
+                                    playerId: s.playerId,
+                                    playerName: s.playerName,
+                                    deckName: playerDecks[s.playerId] || 'Edison Deck',
+                                    decklist: dl || null,
+                                    isPreTournament: false,
+                                  })
+                                }
+                                className={hasDl ? 'badge-decklist-has' : 'btn-decklist-add'}
+                                title={hasDl ? `Ver Decklist (${countTotal} cartas)` : 'Adicionar Decklist (opcional)'}
+                              >
+                                <Layers size={11} style={{ flexShrink: 0 }} />
+                                <span>{hasDl ? `Decklist (${countTotal})` : '+ Decklist'}</span>
+                              </button>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </td>
                     <td>

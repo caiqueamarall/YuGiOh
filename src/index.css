@@ -256,6 +256,86 @@ select option {
   transform: translateY(-1px);
 }
 
+/* Standings Table - Alinhamento Perfeito e Simétrico da Coluna Deck */
+.standings-deck-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 110px;
+}
+
+.standings-deck-name-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.standings-deck-name-row .player-deck-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 105px;
+  white-space: nowrap;
+}
+
+.standings-deck-name-text {
+  max-width: 82px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.btn-deck-edit-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.btn-deck-edit-inline:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+
+.standings-deck-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.standings-deck-actions-row .btn-decklist-add,
+.standings-deck-actions-row .badge-decklist-has {
+  width: 100%;
+  max-width: 108px;
+  padding: 3px 6px;
+  font-size: 10.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
 /* Responsividade do grid do Deck Builder */
 @media (max-width: 768px) {
   .deck-builder-grid {

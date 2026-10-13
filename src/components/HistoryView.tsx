@@ -411,63 +411,80 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                                     <td className="text-left">
                                       <strong>{s.playerName}</strong>
                                     </td>
-                                    <td>
-                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                        <span className="player-deck-badge">
-                                          <Shield size={11} />
-                                          {playerDecks[s.playerId] || 'Edison'}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          className="btn-deck-edit-inline"
-                                          onClick={() =>
-                                            openQuickDeckEdit(
-                                              tournament,
-                                              s.playerId,
-                                              playerDecks[s.playerId] || ''
-                                            )
-                                          }
-                                          title={`Editar deck de ${s.playerName}`}
-                                        >
-                                          <Edit2 size={10} />
-                                        </button>
-                                        {tournament.playerDecklists?.[s.playerId] ? (
+                                    <td className="text-center">
+                                      <div className="standings-deck-cell">
+                                        <div className="standings-deck-name-row">
+                                          <span
+                                            className="player-deck-badge"
+                                            title={playerDecks[s.playerId] || 'Edison'}
+                                            onClick={() =>
+                                              openQuickDeckEdit(
+                                                tournament,
+                                                s.playerId,
+                                                playerDecks[s.playerId] || ''
+                                              )
+                                            }
+                                            style={{ cursor: 'pointer' }}
+                                          >
+                                            <Shield size={11} style={{ flexShrink: 0 }} />
+                                            <span className="standings-deck-name-text">
+                                              {playerDecks[s.playerId] || 'Edison'}
+                                            </span>
+                                          </span>
                                           <button
                                             type="button"
-                                            className="badge-decklist-has"
+                                            className="btn-deck-edit-inline"
                                             onClick={() =>
-                                              setHistoryDecklistModal({
+                                              openQuickDeckEdit(
                                                 tournament,
-                                                playerId: s.playerId,
-                                                playerName: s.playerName,
-                                                deckName: playerDecks[s.playerId] || 'Edison Deck',
-                                                decklist: tournament.playerDecklists?.[s.playerId] || null,
-                                              })
+                                                s.playerId,
+                                                playerDecks[s.playerId] || ''
+                                              )
                                             }
-                                            title="Ver / Editar Decklist completa"
+                                            title={`Editar deck de ${s.playerName}`}
                                           >
-                                            <Layers size={10} />
-                                            Decklist ({getDeckCardCounts(tournament.playerDecklists[s.playerId]).totalCount})
+                                            <Edit2 size={10} />
                                           </button>
-                                        ) : (
-                                          <button
-                                            type="button"
-                                            className="btn-decklist-add"
-                                            onClick={() =>
-                                              setHistoryDecklistModal({
-                                                tournament,
-                                                playerId: s.playerId,
-                                                playerName: s.playerName,
-                                                deckName: playerDecks[s.playerId] || 'Edison Deck',
-                                                decklist: null,
-                                              })
-                                            }
-                                            title="Adicionar Decklist para este jogador"
-                                          >
-                                            <Layers size={10} />
-                                            + Decklist
-                                          </button>
-                                        )}
+                                        </div>
+                                        <div className="standings-deck-actions-row">
+                                          {tournament.playerDecklists?.[s.playerId] ? (
+                                            <button
+                                              type="button"
+                                              className="badge-decklist-has"
+                                              onClick={() =>
+                                                setHistoryDecklistModal({
+                                                  tournament,
+                                                  playerId: s.playerId,
+                                                  playerName: s.playerName,
+                                                  deckName: playerDecks[s.playerId] || 'Edison Deck',
+                                                  decklist: tournament.playerDecklists?.[s.playerId] || null,
+                                                })
+                                              }
+                                              title="Ver / Editar Decklist completa"
+                                            >
+                                              <Layers size={10} style={{ flexShrink: 0 }} />
+                                              <span>Decklist ({getDeckCardCounts(tournament.playerDecklists[s.playerId]).totalCount})</span>
+                                            </button>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              className="btn-decklist-add"
+                                              onClick={() =>
+                                                setHistoryDecklistModal({
+                                                  tournament,
+                                                  playerId: s.playerId,
+                                                  playerName: s.playerName,
+                                                  deckName: playerDecks[s.playerId] || 'Edison Deck',
+                                                  decklist: null,
+                                                })
+                                              }
+                                              title="Adicionar Decklist para este jogador"
+                                            >
+                                              <Layers size={10} style={{ flexShrink: 0 }} />
+                                              <span>+ Decklist</span>
+                                            </button>
+                                          )}
+                                        </div>
                                       </div>
                                     </td>
                                     <td>
