@@ -927,3 +927,84 @@ function solveSwissPairings(
 
   return fallbackResult;
 }
+
+/**
+ * Recalcula com 100% de integridade todas as estatísticas acumuladas da Liga Edison
+ * para todos os jogadores a partir do histórico de torneios concluídos.
+ */
+export function recalculateAllPlayerStats(
+  tournaments: Tournament[],
+  currentPlayers: Player[]
+): Player[] {
+  // 1. Reseta os acumuladores de todos os jogadores
+  const playerStatsMap = new Map<string, Player>();
+  for (const p of currentPlayers) {
+    playerStatsMap.set(p.id, {
+      ...p,
+      points: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      participations: 0,
+      trophies: 0,
+      tournamentTitles: 0,
+      byCount: 0,
+      decksHistory: [],
+    });
+  }
+
+  // 2. Ordena os torneios finalizados em ordem cronológica de realização
+  const completedTournaments = tournaments
+    .filter((t) => t.status === 'completed')
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // 3. Itera em cada torneio e acumula as estatísticas
+  for (const tourn of completedTournaments) {
+    const isLeague = tourn.countsForLeague !== false;
+    const standings = calculateTournamentStandings(tourn, currentPlayers);
+    const championId = tourn.championId || standings[0]?.playerId;
+    const playerDecks = tourn.playerDecks || {};
+    const droppedSet = new Set(tourn.droppedPlayerIds || []);
+
+    for (const standing of standings) {
+      const p = playerStatsMap.get(standing.playerId);
+      if (!p) continue;
+
+      const deckName = playerDecks[standing.playerId] || 'Edison Deck';
+      const isChampion = standing.playerId === championId;
+      const isDropped = droppedSet.has(standing.playerId);
+
+      const historyEntry = {
+        tournamentId: tourn.id,
+        tournamentName: tourn.name,
+        date: tourn.date,
+        deckName,
+        rank: standing.rank,
+        matchPoints: standing.matchPoints,
+        matchWins: standing.matchWins,
+        matchDraws: standing.matchDraws,
+        matchLosses: standing.matchLosses,
+        hadBy: standing.hadBy,
+        countsForLeague: isLeague,
+        isDropped,
+      };
+
+      // Adiciona ao histórico do jogador (mais recentes primeiro)
+      p.decksHistory = [historyEntry, ...(p.decksHistory || [])];
+
+      // Se for torneio oficial da liga, acumula pontuações
+      if (isLeague) {
+        p.points += standing.matchPoints;
+        p.wins += standing.matchWins;
+        p.draws += standing.matchDraws;
+        p.losses += standing.matchLosses;
+        p.participations += 1;
+        p.trophies += standing.matchWins;
+        p.tournamentTitles = (p.tournamentTitles || 0) + (isChampion ? 1 : 0);
+        p.byCount = (p.byCount || 0) + (standing.hadBy ? 1 : 0);
+      }
+    }
+  }
+
+  return Array.from(playerStatsMap.values());
+}

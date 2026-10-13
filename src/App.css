@@ -149,9 +149,20 @@
 }
 
 @keyframes pulse-live {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.3); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.8; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
 }
 
 .live-info {
@@ -535,7 +546,8 @@
   border-color: rgba(205, 127, 50, 0.3);
 }
 
-.podium-crown, .podium-badge {
+.podium-crown,
+.podium-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -607,7 +619,8 @@
 /* ========================================================
    TOOLBAR & SEARCH
    ======================================================== */
-.ranking-toolbar, .list-toolbar {
+.ranking-toolbar,
+.list-toolbar {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -615,7 +628,9 @@
 }
 
 @media (min-width: 640px) {
-  .ranking-toolbar, .list-toolbar {
+
+  .ranking-toolbar,
+  .list-toolbar {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -717,11 +732,13 @@
   background: rgba(245, 158, 11, 0.02);
 }
 
-.th-center, .td-center {
+.th-center,
+.td-center {
   text-align: center;
 }
 
-.th-left, .td-left {
+.th-left,
+.td-left {
   text-align: left;
 }
 
@@ -1220,7 +1237,8 @@
   transition: all var(--transition-fast);
 }
 
-.btn-secondary-action:hover, .btn-secondary-action.active {
+.btn-secondary-action:hover,
+.btn-secondary-action.active {
   background: var(--bg-card-hover);
   border-color: var(--gold-400);
   color: var(--gold-400);
@@ -1248,8 +1266,15 @@
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .drawer-header {
@@ -1674,7 +1699,8 @@
   justify-content: center;
 }
 
-.btn-advance-round-main, .btn-finish-tournament-main {
+.btn-advance-round-main,
+.btn-finish-tournament-main {
   width: 100%;
   max-width: 500px;
   padding: 16px 24px;
@@ -1696,7 +1722,8 @@
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
-.btn-advance-round-main:hover, .btn-finish-tournament-main:hover {
+.btn-advance-round-main:hover,
+.btn-finish-tournament-main:hover {
   filter: brightness(1.1);
   transform: translateY(-2px);
 }
@@ -3265,18 +3292,54 @@
 }
 
 /* Helpers */
-.text-gold { color: var(--gold-400); }
-.text-green { color: var(--emerald-400); }
-.text-red { color: var(--rose-400); }
-.text-silver { color: #cbd5e1; }
-.text-bronze { color: #fdba74; }
-.text-muted { color: var(--text-muted); }
-.text-xs { font-size: 12px; }
-.text-sm { font-size: 13px; }
-.w-full { width: 100%; }
-.mt-2 { margin-top: 8px; }
-.mb-4 { margin-bottom: 16px; }
-.points-bold { font-weight: 800; color: var(--gold-400); }
+.text-gold {
+  color: var(--gold-400);
+}
+
+.text-green {
+  color: var(--emerald-400);
+}
+
+.text-red {
+  color: var(--rose-400);
+}
+
+.text-silver {
+  color: #cbd5e1;
+}
+
+.text-bronze {
+  color: #fdba74;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-xs {
+  font-size: 12px;
+}
+
+.text-sm {
+  font-size: 13px;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.points-bold {
+  font-weight: 800;
+  color: var(--gold-400);
+}
 
 /* ==========================================================================
    SETTINGS TABS & EDISON FORMAT RULES & BANLIST
@@ -3559,17 +3622,44 @@
   transform: translateY(-2px);
 }
 
-.banlist-count-box.forbidden { border-color: rgba(239, 68, 68, 0.4); }
-.banlist-count-box.forbidden.active { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; }
-.banlist-count-box.forbidden .count-num { color: #f87171; }
+.banlist-count-box.forbidden {
+  border-color: rgba(239, 68, 68, 0.4);
+}
 
-.banlist-count-box.limited { border-color: rgba(245, 158, 11, 0.4); }
-.banlist-count-box.limited.active { background: rgba(245, 158, 11, 0.15); border-color: #f59e0b; }
-.banlist-count-box.limited .count-num { color: #fbbf24; }
+.banlist-count-box.forbidden.active {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+}
 
-.banlist-count-box.semi-limited { border-color: rgba(59, 130, 246, 0.4); }
-.banlist-count-box.semi-limited.active { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
-.banlist-count-box.semi-limited .count-num { color: #60a5fa; }
+.banlist-count-box.forbidden .count-num {
+  color: #f87171;
+}
+
+.banlist-count-box.limited {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.banlist-count-box.limited.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+}
+
+.banlist-count-box.limited .count-num {
+  color: #fbbf24;
+}
+
+.banlist-count-box.semi-limited {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.banlist-count-box.semi-limited.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+}
+
+.banlist-count-box.semi-limited .count-num {
+  color: #60a5fa;
+}
 
 .count-num {
   font-size: 20px;
@@ -3770,9 +3860,17 @@
   text-transform: uppercase;
 }
 
-.card-forbidden .status-indicator-tag { color: #f87171; }
-.card-limited .status-indicator-tag { color: #fbbf24; }
-.card-semi .status-indicator-tag { color: #60a5fa; }
+.card-forbidden .status-indicator-tag {
+  color: #f87171;
+}
+
+.card-limited .status-indicator-tag {
+  color: #fbbf24;
+}
+
+.card-semi .status-indicator-tag {
+  color: #60a5fa;
+}
 
 .type-badge {
   font-size: 10px;
@@ -3971,6 +4069,7 @@
     opacity: 0;
     transform: translateY(-6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -4521,13 +4620,11 @@
   right: 0;
   top: 50%;
   height: 2px;
-  background: repeating-linear-gradient(
-    to right,
-    rgba(245, 158, 11, 0.6) 0,
-    rgba(245, 158, 11, 0.6) 8px,
-    transparent 8px,
-    transparent 16px
-  );
+  background: repeating-linear-gradient(to right,
+      rgba(245, 158, 11, 0.6) 0,
+      rgba(245, 158, 11, 0.6) 8px,
+      transparent 8px,
+      transparent 16px);
 }
 
 .topcut-divider-badge {
@@ -4555,27 +4652,33 @@
     align-items: end;
     margin-bottom: 16px;
   }
+
   .podium-card {
     padding: 10px 6px;
   }
+
   .podium-avatar {
     width: 38px;
     height: 38px;
     font-size: 13px;
     margin-bottom: 6px;
   }
+
   .main-avatar {
     width: 46px;
     height: 46px;
     font-size: 15px;
   }
+
   .podium-name {
     font-size: 11px;
     margin-bottom: 2px;
   }
+
   .main-name {
     font-size: 13px;
   }
+
   .podium-deck {
     font-size: 9px;
     margin-bottom: 4px;
@@ -4584,9 +4687,11 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .stat-highlight {
     font-size: 13px;
   }
+
   .stat-sub {
     font-size: 8px;
   }
@@ -5199,5 +5304,28 @@
   border-radius: 4px;
 }
 
+/* Botão Informativo de Desempate (i) */
+.btn-tb-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
 
-
+.btn-tb-info:hover {
+  background: rgba(245, 158, 11, 0.4);
+  border-color: #f59e0b;
+  color: #fff;
+  transform: scale(1.12);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.55);
+}

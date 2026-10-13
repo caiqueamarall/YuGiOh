@@ -18,6 +18,9 @@ import {
   Medal,
   Award,
   UserMinus,
+  UserPlus,
+  Users,
+  RotateCcw,
   X,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -30,6 +33,7 @@ import {
 import { CustomDatePicker } from './CustomDatePicker';
 import { exportTournamentResultsPDF } from '../utils/pdfGenerator';
 import { exportTournamentResultsPNG } from '../utils/imageExporter';
+import { StatInfoModal, type TiebreakStatType } from './StatInfoModal';
 
 interface TournamentViewProps {
   players: Player[];
@@ -116,7 +120,11 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
   // Controle de abas internas no torneio ativo
   const [showStandings, setShowStandings] = useState(false);
-  const [showDropModal, setShowDropModal] = useState(false);
+  const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+  const [participantsModalTab, setParticipantsModalTab] = useState<'drops' | 'late-entry'>('drops');
+  const [selectedLatePlayerId, setSelectedLatePlayerId] = useState<string>('');
+  const [latePlayerDeck, setLatePlayerDeck] = useState<string>('');
+  const [selectedStatModal, setSelectedStatModal] = useState<TiebreakStatType | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
 
   // Manipulação de Drop (Desistência de torneio)
@@ -148,6 +156,72 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
       ...activeTournament,
       droppedPlayerIds: currentDropped.filter((id) => id !== playerId),
     });
+  };
+
+  // Voltar para a rodada anterior (reverter rodada para correção de placares)
+  const handleRevertRound = () => {
+    if (!activeTournament || activeTournament.currentRound <= 1) return;
+    const currentRoundNum = activeTournament.currentRound;
+    const prevRoundNum = currentRoundNum - 1;
+
+    if (
+      !window.confirm(
+        `Deseja voltar para a Rodada ${prevRoundNum}?\n\n• Os pareamentos e placares da Rodada ${currentRoundNum} serão descartados.\n• A Rodada ${prevRoundNum} será reaberta para você corrigir os placares e decks das mesas.\n• Em seguida, você poderá gerar a nova rodada novamente.`
+      )
+    ) {
+      return;
+    }
+
+    const updatedRounds = activeTournament.rounds.slice(0, prevRoundNum);
+    if (updatedRounds[prevRoundNum - 1]) {
+      updatedRounds[prevRoundNum - 1].isCompleted = false;
+    }
+
+    onUpdateActiveTournament({
+      ...activeTournament,
+      currentRound: prevRoundNum,
+      rounds: updatedRounds,
+    });
+  };
+
+  // Entrada tardia: Adicionar duelista no meio do torneio
+  const handleAddLatePlayer = () => {
+    if (!activeTournament || !selectedLatePlayerId) {
+      alert('Selecione um duelista para incluir no torneio.');
+      return;
+    }
+    if (activeTournament.playerIds.includes(selectedLatePlayerId)) {
+      alert('Este duelista já está participando deste torneio.');
+      return;
+    }
+
+    const playerObj = players.find((p) => p.id === selectedLatePlayerId);
+    const playerName = playerObj ? playerObj.name : 'o duelista';
+    const sanitizedDeck = latePlayerDeck.trim() || 'Edison Deck';
+
+    if (
+      !window.confirm(
+        `Deseja incluir ${playerName} no torneio em andamento?\n\n• Ele entrará com 0 pontos pelas rodadas já finalizadas.\n• Será pareado normalmente a partir da próxima rodada.\n• Deck informado: ${sanitizedDeck}.`
+      )
+    ) {
+      return;
+    }
+
+    const updatedPlayerIds = [...activeTournament.playerIds, selectedLatePlayerId];
+    const updatedDecks = {
+      ...(activeTournament.playerDecks || {}),
+      [selectedLatePlayerId]: sanitizedDeck,
+    };
+
+    onUpdateActiveTournament({
+      ...activeTournament,
+      playerIds: updatedPlayerIds,
+      playerDecks: updatedDecks,
+    });
+
+    setSelectedLatePlayerId('');
+    setLatePlayerDeck('');
+    alert(`${playerName} foi incluído no torneio com sucesso!`);
   };
 
   // Toggle de seleção de jogador
@@ -675,25 +749,57 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 <span>Estatísticas e Porcentagens de Desempate</span>
               </div>
               <div className="tiebreaker-grid">
-                <div className="tiebreaker-item" title="Player Match Win Rate: Aproveitamento de vitórias de partidas do jogador (mínimo oficial 0.33)">
+                <div className="tiebreaker-item" title="Player Match Win Percentage">
                   <span className="tb-code">PMW%</span>
-                  <span className="tb-label">Partidas do Jogador</span>
+                  <span className="tb-label">Player Match Win %</span>
+                  <button
+                    type="button"
+                    className="btn-tb-info"
+                    onClick={() => setSelectedStatModal('PMW')}
+                    title="Clique para entender o PMW%"
+                  >
+                    <Info size={13} />
+                  </button>
                 </div>
-                <div className="tiebreaker-item" title="Opponent Match Win Rate: Média de vitórias de partidas dos oponentes enfrentados (1º critério de desempate)">
+                <div className="tiebreaker-item" title="Opponents' Match Win Percentage">
                   <span className="tb-code">OMW%</span>
-                  <span className="tb-label">Força dos Oponentes</span>
+                  <span className="tb-label">Opponents' Match Win %</span>
+                  <button
+                    type="button"
+                    className="btn-tb-info"
+                    onClick={() => setSelectedStatModal('OMW')}
+                    title="Clique para entender o OMW% (Mínimos)"
+                  >
+                    <Info size={13} />
+                  </button>
                 </div>
-                <div className="tiebreaker-item" title="Player Game Win Rate: Aproveitamento de games/duelos individuais do jogador (2º critério de desempate)">
+                <div className="tiebreaker-item" title="Player Game Win Percentage">
                   <span className="tb-code">PGW%</span>
-                  <span className="tb-label">Games do Jogador</span>
+                  <span className="tb-label">Player Game Win %</span>
+                  <button
+                    type="button"
+                    className="btn-tb-info"
+                    onClick={() => setSelectedStatModal('PGW')}
+                    title="Clique para entender o PGW%"
+                  >
+                    <Info size={13} />
+                  </button>
                 </div>
-                <div className="tiebreaker-item" title="Opponent Game Win Rate: Média de vitórias em games de todos os oponentes (3º critério de desempate)">
+                <div className="tiebreaker-item" title="Opponents' Game Win Percentage">
                   <span className="tb-code">OGW%</span>
-                  <span className="tb-label">Games dos Oponentes</span>
+                  <span className="tb-label">Opponents' Game Win %</span>
+                  <button
+                    type="button"
+                    className="btn-tb-info"
+                    onClick={() => setSelectedStatModal('OGW')}
+                    title="Clique para entender o OGW%"
+                  >
+                    <Info size={13} />
+                  </button>
                 </div>
               </div>
               <div className="tiebreaker-rule-note">
-                *Ordem de Desempate: Pontos &gt; Sem BY (prioridade para quem jogou) &gt; OMW% &gt; PGW% &gt; OGW% (Piso oficial: 0.33)
+                *Ordem de Desempate: Pontos &gt; Sem BY (prioridade para quem jogou) &gt; Mínimos (OMW%) &gt; Saldo de Games (+2 / +1 / -1 / -2) &gt; Confronto Direto &gt; PGW% &gt; OGW% (Piso: 0.33)
               </div>
             </div>
 
@@ -906,18 +1012,30 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
             <Eye size={18} />
             <span>{showStandings ? 'Ocultar Classificação' : 'Ver Classificação'}</span>
           </button>
+          {activeTournament.currentRound > 1 && (
+            <button
+              id="btn-revert-round"
+              className="btn-secondary-action"
+              onClick={handleRevertRound}
+              title="Voltar para a rodada anterior para corrigir placares e mesas"
+              style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24' }}
+            >
+              <RotateCcw size={16} />
+              <span>Voltar Rodada</span>
+            </button>
+          )}
           <button
             id="btn-manage-drops"
             className="btn-secondary-action"
-            onClick={() => setShowDropModal(true)}
+            onClick={() => setShowParticipantsModal(true)}
             style={{
               borderColor: (activeTournament.droppedPlayerIds?.length || 0) > 0 ? '#ef4444' : undefined,
               color: (activeTournament.droppedPlayerIds?.length || 0) > 0 ? '#fca5a5' : undefined,
             }}
-            title="Gerenciar desistências (Drops) no torneio"
+            title="Gerenciar participantes, desistências (Drops) e entradas tardias"
           >
-            <UserMinus size={18} />
-            <span>Drops ({(activeTournament.droppedPlayerIds?.length || 0)})</span>
+            <Users size={18} />
+            <span>Participantes ({(activeTournament.droppedPlayerIds?.length || 0)} drops)</span>
           </button>
           <button
             id="btn-cancel-tournament"
@@ -951,21 +1069,53 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
               <span>Estatísticas de Desempate (Padrão Oficial Suíço)</span>
             </div>
             <div className="tiebreaker-grid">
-              <div className="tiebreaker-item" title="Player Match Win Rate: Aproveitamento de vitórias de partidas do jogador">
+              <div className="tiebreaker-item" title="Player Match Win Percentage">
                 <span className="tb-code">PMW%</span>
-                <span className="tb-label">Partidas do Jogador</span>
+                <span className="tb-label">Player Match Win %</span>
+                <button
+                  type="button"
+                  className="btn-tb-info"
+                  onClick={() => setSelectedStatModal('PMW')}
+                  title="Clique para entender o PMW%"
+                >
+                  <Info size={13} />
+                </button>
               </div>
-              <div className="tiebreaker-item" title="Opponent Match Win Rate: Média de vitórias de partidas dos oponentes enfrentados (1º critério de desempate)">
+              <div className="tiebreaker-item" title="Opponents' Match Win Percentage">
                 <span className="tb-code">OMW%</span>
-                <span className="tb-label">Força dos Oponentes</span>
+                <span className="tb-label">Opponents' Match Win %</span>
+                <button
+                  type="button"
+                  className="btn-tb-info"
+                  onClick={() => setSelectedStatModal('OMW')}
+                  title="Clique para entender o OMW% (Mínimos)"
+                >
+                  <Info size={13} />
+                </button>
               </div>
-              <div className="tiebreaker-item" title="Player Game Win Rate: Aproveitamento de games/duelos individuais do jogador (2º critério de desempate)">
+              <div className="tiebreaker-item" title="Player Game Win Percentage">
                 <span className="tb-code">PGW%</span>
-                <span className="tb-label">Games do Jogador</span>
+                <span className="tb-label">Player Game Win %</span>
+                <button
+                  type="button"
+                  className="btn-tb-info"
+                  onClick={() => setSelectedStatModal('PGW')}
+                  title="Clique para entender o PGW%"
+                >
+                  <Info size={13} />
+                </button>
               </div>
-              <div className="tiebreaker-item" title="Opponent Game Win Rate: Média de vitórias em games de todos os oponentes (3º critério de desempate)">
+              <div className="tiebreaker-item" title="Opponents' Game Win Percentage">
                 <span className="tb-code">OGW%</span>
-                <span className="tb-label">Games dos Oponentes</span>
+                <span className="tb-label">Opponents' Game Win %</span>
+                <button
+                  type="button"
+                  className="btn-tb-info"
+                  onClick={() => setSelectedStatModal('OGW')}
+                  title="Clique para entender o OGW%"
+                >
+                  <Info size={13} />
+                </button>
               </div>
             </div>
             <div className="tiebreaker-rule-note">
@@ -1366,152 +1516,346 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
         )}
       </div>
 
-      {/* Modal de Gerenciamento de Drops (Desistências) */}
-      {showDropModal && (
-        <div className="modal-backdrop" onClick={() => setShowDropModal(false)}>
+      {/* Modal de Gerenciamento de Participantes (Drops e Entrada Tardia) */}
+      {showParticipantsModal && (
+        <div className="modal-backdrop" onClick={() => setShowParticipantsModal(false)}>
           <div
             className="modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '520px', width: '92%' }}
+            style={{ maxWidth: '540px', width: '92%' }}
           >
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <UserMinus size={20} className="text-gold" />
-                <h3 className="modal-title">Gerenciar Drops (Desistências)</h3>
+                <Users size={20} className="text-gold" />
+                <h3 className="modal-title">Participantes do Torneio</h3>
               </div>
               <button
                 type="button"
                 className="btn-icon"
-                onClick={() => setShowDropModal(false)}
+                onClick={() => setShowParticipantsModal(false)}
                 title="Fechar"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ padding: '16px' }}>
-              <div
+            {/* Abas do Modal */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                padding: '12px 16px 0',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setParticipantsModalTab('drops')}
                 style={{
-                  background: 'rgba(245, 158, 11, 0.08)',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
-                  borderRadius: '8px',
-                  padding: '10px 14px',
-                  marginBottom: '16px',
-                  fontSize: '12px',
-                  lineHeight: '1.5',
-                  color: '#fde68a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  background: participantsModalTab === 'drops' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                  color: participantsModalTab === 'drops' ? '#f87171' : '#94a3b8',
+                  border: 'none',
+                  borderBottom: participantsModalTab === 'drops' ? '2px solid #ef4444' : '2px solid transparent',
+                  cursor: 'pointer',
+                  borderRadius: '6px 6px 0 0',
                 }}
               >
-                <strong>ℹ️ Como funciona o Drop:</strong>
-                <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>
-                  O duelista que dropar <strong>mantém todos os pontos conquistados</strong> até agora e continuará na classificação final com sua pontuação. Ele apenas não será pareado nas próximas rodadas.
-                </p>
-              </div>
+                <UserMinus size={15} />
+                <span>Desistências (Drops)</span>
+                {(activeTournament.droppedPlayerIds?.length || 0) > 0 && (
+                  <span
+                    style={{
+                      background: '#ef4444',
+                      color: '#fff',
+                      fontSize: '10px',
+                      padding: '1px 6px',
+                      borderRadius: '10px',
+                    }}
+                  >
+                    {activeTournament.droppedPlayerIds?.length}
+                  </span>
+                )}
+              </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '380px', overflowY: 'auto' }}>
-                {activeTournament.playerIds.map((pid) => {
-                  const p = playerMap.get(pid);
-                  const isDropped = (activeTournament.droppedPlayerIds || []).includes(pid);
-                  const playerStanding = standings.find((s) => s.playerId === pid);
-                  const pts = playerStanding ? playerStanding.matchPoints : 0;
-                  const currentDeck = playerDecks[pid] || 'Edison Deck';
+              <button
+                type="button"
+                onClick={() => setParticipantsModalTab('late-entry')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  background: participantsModalTab === 'late-entry' ? 'rgba(52, 211, 153, 0.15)' : 'transparent',
+                  color: participantsModalTab === 'late-entry' ? '#34d399' : '#94a3b8',
+                  border: 'none',
+                  borderBottom: participantsModalTab === 'late-entry' ? '2px solid #34d399' : '2px solid transparent',
+                  cursor: 'pointer',
+                  borderRadius: '6px 6px 0 0',
+                }}
+              >
+                <UserPlus size={15} />
+                <span>Entrada Tardia (+ Jogador)</span>
+              </button>
+            </div>
 
-                  return (
-                    <div
-                      key={pid}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 12px',
-                        background: isDropped ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.03)',
-                        border: isDropped ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
-                        borderRadius: '8px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ padding: '16px' }}>
+              {participantsModalTab === 'drops' ? (
+                <>
+                  <div
+                    style={{
+                      background: 'rgba(245, 158, 11, 0.08)',
+                      border: '1px solid rgba(245, 158, 11, 0.25)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      marginBottom: '16px',
+                      fontSize: '12px',
+                      lineHeight: '1.5',
+                      color: '#fde68a',
+                    }}
+                  >
+                    <strong>ℹ️ Como funciona o Drop:</strong>
+                    <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>
+                      O duelista que dropar <strong>mantém todos os pontos conquistados</strong> até agora e continuará na classificação final com sua pontuação. Ele apenas não será pareado nas próximas rodadas.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '360px', overflowY: 'auto' }}>
+                    {activeTournament.playerIds.map((pid) => {
+                      const p = playerMap.get(pid);
+                      const isDropped = (activeTournament.droppedPlayerIds || []).includes(pid);
+                      const playerStanding = standings.find((s) => s.playerId === pid);
+                      const pts = playerStanding ? playerStanding.matchPoints : 0;
+                      const currentDeck = playerDecks[pid] || 'Edison Deck';
+
+                      return (
                         <div
-                          className="player-avatar-sm"
+                          key={pid}
                           style={{
-                            backgroundColor: p?.avatarColor || '#3B82F6',
-                            opacity: isDropped ? 0.6 : 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '10px 12px',
+                            background: isDropped ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                            border: isDropped ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '8px',
                           }}
                         >
-                          {p?.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontWeight: 'bold', fontSize: '14px', color: isDropped ? '#fca5a5' : '#ffffff' }}>
-                              {p?.name}
-                            </span>
-                            {isDropped && (
-                              <span
-                                style={{
-                                  fontSize: '10px',
-                                  background: 'rgba(239, 68, 68, 0.25)',
-                                  color: '#f87171',
-                                  padding: '1px 5px',
-                                  borderRadius: '4px',
-                                  fontWeight: 'bold',
-                                }}
-                              >
-                                DROPADO
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div
+                              className="player-avatar-sm"
+                              style={{
+                                backgroundColor: p?.avatarColor || '#3B82F6',
+                                opacity: isDropped ? 0.6 : 1,
+                              }}
+                            >
+                              {p?.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontWeight: 'bold', fontSize: '14px', color: isDropped ? '#fca5a5' : '#ffffff' }}>
+                                  {p?.name}
+                                </span>
+                                {isDropped && (
+                                  <span
+                                    style={{
+                                      fontSize: '10px',
+                                      background: 'rgba(239, 68, 68, 0.25)',
+                                      color: '#f87171',
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                      fontWeight: 'bold',
+                                    }}
+                                  >
+                                    DROPADO
+                                  </span>
+                                )}
+                              </div>
+                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                {currentDeck} • {pts} pts
                               </span>
-                            )}
+                            </div>
                           </div>
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                            {currentDeck} • {pts} pts
-                          </span>
+
+                          {isDropped ? (
+                            <button
+                              type="button"
+                              className="btn-secondary-action"
+                              onClick={() => handleUndropPlayer(pid)}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '12px',
+                                borderColor: '#34d399',
+                                color: '#34d399',
+                              }}
+                            >
+                              Reintegrar
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-danger-ghost"
+                              onClick={() => handleDropPlayer(pid)}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '12px',
+                                color: '#f87171',
+                                borderColor: 'rgba(239, 68, 68, 0.3)',
+                              }}
+                            >
+                              Dropar
+                            </button>
+                          )}
                         </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                /* Aba de Entrada Tardia */
+                <div>
+                  <div
+                    style={{
+                      background: 'rgba(52, 211, 153, 0.08)',
+                      border: '1px solid rgba(52, 211, 153, 0.25)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      marginBottom: '16px',
+                      fontSize: '12px',
+                      lineHeight: '1.5',
+                      color: '#a7f3d0',
+                    }}
+                  >
+                    <strong>ℹ️ Como funciona a Entrada Tardia (Late Entry):</strong>
+                    <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>
+                      Adicione um duelista no meio do torneio. Ele entrará com <strong>0 pontos</strong> pelas rodadas anteriores e começará a ser pareado normalmente a partir da próxima rodada.
+                    </p>
+                  </div>
+
+                  {(() => {
+                    const availableLatePlayers = players.filter(
+                      (p) => !activeTournament.playerIds.includes(p.id)
+                    );
+
+                    if (availableLatePlayers.length === 0) {
+                      return (
+                        <div style={{ textAlign: 'center', padding: '24px 16px', color: '#94a3b8', fontSize: '13px' }}>
+                          <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                          <p>Todos os duelistas cadastrados já estão inscritos neste torneio.</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>
+                            Selecione o Duelista para Incluir:
+                          </label>
+                          <select
+                            value={selectedLatePlayerId}
+                            onChange={(e) => {
+                              const chosenId = e.target.value;
+                              setSelectedLatePlayerId(chosenId);
+                              const p = players.find((x) => x.id === chosenId);
+                              const lastDeck = p?.decksHistory && p.decksHistory.length > 0
+                                ? p.decksHistory[p.decksHistory.length - 1].deckName
+                                : '';
+                              setLatePlayerDeck(lastDeck);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              background: '#0f172a',
+                              border: '1px solid #334155',
+                              borderRadius: '8px',
+                              color: '#fff',
+                              fontSize: '13px',
+                            }}
+                          >
+                            <option value="">-- Escolha um jogador cadastrado --</option>
+                            {availableLatePlayers.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} {!p.active ? '(Inativo)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {selectedLatePlayerId && (
+                          <div>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>
+                              Nome do Deck para este Torneio:
+                            </label>
+                            <input
+                              type="text"
+                              value={latePlayerDeck}
+                              onChange={(e) => setLatePlayerDeck(e.target.value)}
+                              placeholder="Ex: Diva Zombie, Blackwing, Machina Gadget..."
+                              style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                background: '#0f172a',
+                                border: '1px solid #334155',
+                                borderRadius: '8px',
+                                color: '#fff',
+                                fontSize: '13px',
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          className="btn-primary-gold"
+                          onClick={handleAddLatePlayer}
+                          disabled={!selectedLatePlayerId}
+                          style={{
+                            marginTop: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            opacity: selectedLatePlayerId ? 1 : 0.5,
+                          }}
+                        >
+                          <UserPlus size={16} />
+                          <span>Confirmar Entrada no Torneio</span>
+                        </button>
                       </div>
+                    );
+                  })()}
+                </div>
+              )}
 
-                      {isDropped ? (
-                        <button
-                          type="button"
-                          className="btn-secondary-action"
-                          onClick={() => handleUndropPlayer(pid)}
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: '12px',
-                            borderColor: '#34d399',
-                            color: '#34d399',
-                          }}
-                        >
-                          Reintegrar
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn-danger-ghost"
-                          onClick={() => handleDropPlayer(pid)}
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: '12px',
-                            color: '#f87171',
-                            borderColor: 'rgba(239, 68, 68, 0.3)',
-                          }}
-                        >
-                          Dropar
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
-                  className="btn-primary-gold"
-                  onClick={() => setShowDropModal(false)}
+                  className="btn-secondary-action"
+                  onClick={() => setShowParticipantsModal(false)}
                   style={{ padding: '8px 20px', fontSize: '13px' }}
                 >
-                  Concluído
+                  Fechar
                 </button>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal explicativo com regras oficiais de desempate Suíço (PMW, OMW, PGW, OGW) */}
+      {selectedStatModal && (
+        <StatInfoModal
+          statType={selectedStatModal}
+          onClose={() => setSelectedStatModal(null)}
+        />
       )}
     </div>
   );

@@ -17,7 +17,11 @@ import {
   loadActiveTournament,
   saveActiveTournament,
 } from './utils/storage';
-import { calculateTournamentStandings, sortPlayersForLeague } from './utils/swissEngine';
+import {
+  calculateTournamentStandings,
+  sortPlayersForLeague,
+  recalculateAllPlayerStats,
+} from './utils/swissEngine';
 import './App.css';
 
 export function App() {
@@ -190,55 +194,24 @@ export function App() {
     }
   };
 
-  // Remove torneio do histórico e reverte as pontuações concedidas aos duelistas
+  // Remove torneio do histórico e recalcula toda a pontuação da Liga
   const handleDeleteTournament = (tournamentId: string) => {
-    const targetTournament = tournaments.find((t) => t.id === tournamentId);
-    if (!targetTournament) return;
-
-    const isLeagueTournament = targetTournament.countsForLeague !== false;
-    let updatedPlayers = players;
-
-    if (isLeagueTournament) {
-      const standings = calculateTournamentStandings(targetTournament, players);
-      const standingsMap = new Map(standings.map((s) => [s.playerId, s]));
-      const championId = targetTournament.championId || standings[0]?.playerId;
-
-      updatedPlayers = players.map((player) => {
-        const standing = standingsMap.get(player.id);
-        const historyEntry = player.decksHistory?.find((h) => h.tournamentId === tournamentId);
-
-        if (!standing && !historyEntry) {
-          return player;
-        }
-
-        const ptsToRemove = historyEntry?.matchPoints ?? standing?.matchPoints ?? 0;
-        const winsToRemove = historyEntry?.matchWins ?? standing?.matchWins ?? 0;
-        const drawsToRemove = historyEntry?.matchDraws ?? standing?.matchDraws ?? 0;
-        const lossesToRemove = historyEntry?.matchLosses ?? standing?.matchLosses ?? 0;
-        const hadBy = historyEntry?.hadBy ?? standing?.hadBy ?? false;
-        const isChampion = player.id === championId;
-
-        return {
-          ...player,
-          points: Math.max(0, player.points - ptsToRemove),
-          wins: Math.max(0, player.wins - winsToRemove),
-          draws: Math.max(0, player.draws - drawsToRemove),
-          losses: Math.max(0, player.losses - lossesToRemove),
-          participations: Math.max(0, player.participations - 1),
-          trophies: Math.max(0, player.trophies - winsToRemove),
-          tournamentTitles: Math.max(0, (player.tournamentTitles || 0) - (isChampion ? 1 : 0)),
-          byCount: Math.max(0, (player.byCount || 0) - (hadBy ? 1 : 0)),
-          decksHistory: (player.decksHistory || []).filter((h) => h.tournamentId !== tournamentId),
-        };
-      });
-    } else {
-      updatedPlayers = players.map((player) => ({
-        ...player,
-        decksHistory: (player.decksHistory || []).filter((h) => h.tournamentId !== tournamentId),
-      }));
-    }
-
     const updatedTournaments = tournaments.filter((t) => t.id !== tournamentId);
+    const updatedPlayers = recalculateAllPlayerStats(updatedTournaments, players);
+
+    setPlayers(updatedPlayers);
+    savePlayers(updatedPlayers);
+
+    setTournaments(updatedTournaments);
+    saveTournaments(updatedTournaments);
+  };
+
+  // Atualiza um torneio editado no histórico e recalcula toda a pontuação da Liga
+  const handleUpdateTournament = (updatedTournament: Tournament) => {
+    const updatedTournaments = tournaments.map((t) =>
+      t.id === updatedTournament.id ? updatedTournament : t
+    );
+    const updatedPlayers = recalculateAllPlayerStats(updatedTournaments, players);
 
     setPlayers(updatedPlayers);
     savePlayers(updatedPlayers);
@@ -315,6 +288,7 @@ export function App() {
               tournaments={tournaments}
               players={players}
               onDeleteTournament={handleDeleteTournament}
+              onUpdateTournament={handleUpdateTournament}
             />
           )}
 
