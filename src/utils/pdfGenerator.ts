@@ -1,5 +1,10 @@
 import type { Player, Tournament } from '../types';
-import { calculateTournamentStandings, getTiebreakExplanations } from './swissEngine';
+import {
+  calculateTournamentStandings,
+  getTiebreakExplanations,
+  sortPlayersForLeague,
+  getLeagueTiebreakExplanations,
+} from './swissEngine';
 
 const PRINT_CSS = `
   @page {
@@ -480,15 +485,8 @@ function triggerPrintWindow(title: string, bodyContent: string) {
  * Exporta o Ranking Geral da Liga em formato PDF
  */
 export function exportLeagueRankingPDF(players: Player[]): void {
-  const activePlayers = players
-    .filter((p) => p.active)
-    .sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      if (a.losses !== b.losses) return a.losses - b.losses;
-      if (b.participations !== a.participations) return b.participations - a.participations;
-      return a.name.localeCompare(b.name);
-    });
+  const activePlayers = sortPlayersForLeague(players);
+  const tiebreakNotes = getLeagueTiebreakExplanations(activePlayers);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('pt-BR');
@@ -575,6 +573,28 @@ export function exportLeagueRankingPDF(players: Player[]): void {
         ${rowsHtml.join('')}
       </tbody>
     </table>
+    <div style="font-size: 10px; color: #64748b; margin-top: -6px; margin-bottom: 12px;">
+      * Critérios de Desempate da Liga: Pontos &gt; Títulos de Campeão &gt; Medalhas/Pico Histórico em Torneios &gt; Vitórias &gt; Menos Derrotas &gt; Sem BY &gt; Aproveitamento (Win Rate).
+    </div>
+
+    ${tiebreakNotes.length > 0 ? `
+      <div class="tiebreak-pdf-box">
+        <div class="tiebreak-pdf-title">📌 Observações de Desempate da Liga (Duelistas com mesma pontuação):</div>
+        <div class="tiebreak-pdf-list">
+          ${tiebreakNotes.map((note) => `
+            <div class="tiebreak-pdf-item">
+              <span class="tiebreak-pdf-badge">${note.points} Pts</span>
+              <div class="tiebreak-pdf-text">
+                <strong>Empate entre: ${note.players.join(', ')}</strong>
+                <ul>
+                  ${note.reasons.map((r) => `<li>${r}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
 
     <div class="pdf-footer">
       <span>Edison League Manager • Sistema de Torneios Edison Format</span>

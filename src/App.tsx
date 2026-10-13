@@ -17,7 +17,7 @@ import {
   loadActiveTournament,
   saveActiveTournament,
 } from './utils/storage';
-import { calculateTournamentStandings } from './utils/swissEngine';
+import { calculateTournamentStandings, sortPlayersForLeague } from './utils/swissEngine';
 import './App.css';
 
 export function App() {
@@ -254,9 +254,7 @@ export function App() {
 
   // Calcula posição do jogador selecionado para o modal de stats
   const getPlayerLeagueRank = (playerId: string) => {
-    const sorted = [...players]
-      .filter((p) => p.active)
-      .sort((a, b) => b.points - a.points);
+    const sorted = sortPlayersForLeague(players);
     const idx = sorted.findIndex((p) => p.id === playerId);
     return idx >= 0 ? idx + 1 : undefined;
   };

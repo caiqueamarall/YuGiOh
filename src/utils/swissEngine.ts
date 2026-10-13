@@ -387,6 +387,194 @@ export function getTiebreakExplanations(standings: TournamentStanding[]): Tiebre
 }
 
 /**
+ * Ordena os duelistas para o Ranking Geral Oficial da Liga Edison.
+ *
+ * CRITÉRIOS DE CLASSIFICAÇÃO E DESEMPATE OFICIAIS DA LIGA:
+ * 1. Pontuação Geral da Liga (Points): mais pontos = melhor posição.
+ * 2. Títulos de Campeão de Torneio (tournamentTitles): quem venceu torneios fica na frente.
+ * 3. Critério Olímpico de Colocações nos Torneios Oficiais da Liga (decksHistory):
+ *    - Mais 1º lugares nos torneios
+ *    - Mais 2º lugares nos torneios
+ *    - Mais 3º lugares nos torneios
+ *    - Melhor pico de colocação histórica (menor rank)
+ * 4. Total de Vitórias em Partidas (Wins): maior número de vitórias.
+ * 5. Menor Número de Derrotas (Losses): menos derrotas acumuladas.
+ * 6. Penalidade de BY (byCount): quem pontuou jogando partidas na mesa tem prioridade sobre BY automático.
+ * 7. Troféus Acumulados (Trophies).
+ * 8. Aproveitamento Geral (Win Rate): % de vitórias sobre partidas disputadas.
+ * 9. Menor Número de Participações (eficiência de pontos por torneio).
+ * 10. Desempate Alfabético por Nome (apenas se rigorosamente empatados em todos os anteriores).
+ */
+export function sortPlayersForLeague(players: Player[]): Player[] {
+  return [...players]
+    .filter((p) => p.active)
+    .sort((a, b) => {
+      // 1. Pontuação Geral da Liga
+      if (b.points !== a.points) {
+        return b.points - a.points;
+      }
+
+      // 2. Títulos de Campeão de Torneio Oficial
+      const titlesA = a.tournamentTitles || 0;
+      const titlesB = b.tournamentTitles || 0;
+      if (titlesB !== titlesA) {
+        return titlesB - titlesA;
+      }
+
+      // 3. Critério Olímpico de Colocações nos Torneios Oficiais da Liga
+      const getHistoryRanks = (p: Player) => {
+        return (p.decksHistory || [])
+          .filter((h) => h.countsForLeague !== false && h.rank > 0)
+          .map((h) => h.rank)
+          .sort((r1, r2) => r1 - r2); // Ordenado do melhor rank (1º) para o pior
+      };
+
+      const ranksA = getHistoryRanks(a);
+      const ranksB = getHistoryRanks(b);
+
+      const maxRankCount = Math.max(ranksA.length, ranksB.length);
+      for (let i = 0; i < maxRankCount; i++) {
+        const rA = ranksA[i];
+        const rB = ranksB[i];
+        if (rA !== undefined && rB !== undefined && rA !== rB) {
+          return rA - rB; // Menor rank é melhor (1º supera 2º)
+        }
+        if (rA !== undefined && rB === undefined) {
+          return -1; // Jogador A tem mais presenças em posições altas
+        }
+        if (rA === undefined && rB !== undefined) {
+          return 1; // Jogador B tem mais presenças em posições altas
+        }
+      }
+
+      // 4. Total de Vitórias em Partidas (Matches)
+      if (b.wins !== a.wins) {
+        return b.wins - a.wins;
+      }
+
+      // 5. Menos Derrotas
+      if (a.losses !== b.losses) {
+        return a.losses - b.losses;
+      }
+
+      // 6. Penalidade de BY (menos BYs = prioridade)
+      const byA = a.byCount || 0;
+      const byB = b.byCount || 0;
+      if (byA !== byB) {
+        return byA - byB;
+      }
+
+      // 7. Troféus Acumulados
+      const trophiesA = a.trophies || 0;
+      const trophiesB = b.trophies || 0;
+      if (trophiesB !== trophiesA) {
+        return trophiesB - trophiesA;
+      }
+
+      // 8. Win Rate Geral (Aproveitamento)
+      const totalMatchesA = a.wins + a.draws + a.losses;
+      const totalMatchesB = b.wins + b.draws + b.losses;
+      const wrA = totalMatchesA > 0 ? a.wins / totalMatchesA : 0;
+      const wrB = totalMatchesB > 0 ? b.wins / totalMatchesB : 0;
+      if (Math.abs(wrB - wrA) > 0.0001) {
+        return wrB - wrA;
+      }
+
+      // 9. Participações
+      if (b.participations !== a.participations) {
+        return b.participations - a.participations;
+      }
+
+      // 10. Fallback alfabético
+      return a.name.localeCompare(b.name);
+    });
+}
+
+/**
+ * Analisa a classificação da Liga e gera observações oficiais de desempate para jogadores empatados em pontos.
+ */
+export function getLeagueTiebreakExplanations(sortedPlayers: Player[]): TiebreakNote[] {
+  const groupsByPoints = new Map<number, Player[]>();
+  for (const p of sortedPlayers) {
+    const list = groupsByPoints.get(p.points) || [];
+    list.push(p);
+    groupsByPoints.set(p.points, list);
+  }
+
+  const results: TiebreakNote[] = [];
+
+  for (const [points, group] of groupsByPoints.entries()) {
+    if (group.length <= 1) continue;
+
+    const reasons: string[] = [];
+
+    const getPlayerPeakRank = (p: Player) => {
+      const ranks = (p.decksHistory || [])
+        .filter((h) => h.countsForLeague !== false && h.rank > 0)
+        .map((h) => h.rank)
+        .sort((r1, r2) => r1 - r2);
+      return ranks.length > 0 ? ranks[0] : null;
+    };
+
+    for (let i = 0; i < group.length - 1; i++) {
+      const a = group[i];
+      const b = group[i + 1];
+      const rankA = sortedPlayers.findIndex((p) => p.id === a.id) + 1;
+      const rankB = sortedPlayers.findIndex((p) => p.id === b.id) + 1;
+
+      const titlesA = a.tournamentTitles || 0;
+      const titlesB = b.tournamentTitles || 0;
+      const peakA = getPlayerPeakRank(a);
+      const peakB = getPlayerPeakRank(b);
+
+      if (titlesA !== titlesB) {
+        reasons.push(
+          `${a.name} (${rankA}º) superou ${b.name} (${rankB}º) por possuir Título de Campeão de Torneio Oficial (${titlesA} vs ${titlesB} títulos).`
+        );
+      } else if (peakA !== null && peakB !== null && peakA !== peakB) {
+        reasons.push(
+          `${a.name} (${rankA}º) superou ${b.name} (${rankB}º) pelo critério de melhor colocação em torneios oficiais (${peakA}º lugar vs ${peakB}º lugar).`
+        );
+      } else if (a.wins !== b.wins) {
+        reasons.push(
+          `${a.name} (${rankA}º) superou ${b.name} (${rankB}º) por maior número de vitórias em partidas (${a.wins} vs ${b.wins} vitórias).`
+        );
+      } else if (a.losses !== b.losses) {
+        reasons.push(
+          `${a.name} (${rankA}º) superou ${b.name} (${rankB}º) por menor número de derrotas (${a.losses} vs ${b.losses} derrotas).`
+        );
+      } else if ((a.byCount || 0) !== (b.byCount || 0)) {
+        reasons.push(
+          `${a.name} (${rankA}º) superou ${b.name} (${rankB}º) por ter pontuado sem BY na mesa (${a.byCount || 0} vs ${b.byCount || 0} BYs).`
+        );
+      } else {
+        const totalMatchesA = a.wins + a.draws + a.losses;
+        const totalMatchesB = b.wins + b.draws + b.losses;
+        const wrA = totalMatchesA > 0 ? ((a.wins / totalMatchesA) * 100).toFixed(1) : '0.0';
+        const wrB = totalMatchesB > 0 ? ((b.wins / totalMatchesB) * 100).toFixed(1) : '0.0';
+        if (wrA !== wrB) {
+          reasons.push(
+            `${a.name} (${rankA}º) superou ${b.name} (${rankB}º) por maior aproveitamento de vitórias (${wrA}% vs ${wrB}%).`
+          );
+        } else {
+          reasons.push(
+            `${a.name} (${rankA}º) e ${b.name} (${rankB}º) empataram rigorosamente em todos os critérios estatísticos; ordem alfabética.`
+          );
+        }
+      }
+    }
+
+    results.push({
+      points,
+      players: group.map((p) => p.name),
+      reasons,
+    });
+  }
+
+  return results.sort((a, b) => b.points - a.points);
+}
+
+/**
  * Embaralha um array aleatoriamente (Fisher-Yates)
  */
 function shuffle<T>(array: T[]): T[] {

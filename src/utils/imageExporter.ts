@@ -1,5 +1,10 @@
 import type { Player, Tournament } from '../types';
-import { calculateTournamentStandings, getTiebreakExplanations } from './swissEngine';
+import {
+  calculateTournamentStandings,
+  getTiebreakExplanations,
+  sortPlayersForLeague,
+  getLeagueTiebreakExplanations,
+} from './swissEngine';
 
 /**
  * Utilitário para desenhar retângulos com cantos arredondados no Canvas
@@ -485,13 +490,8 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
  * Exporta o Ranking Geral da Liga Oficial como imagem PNG em página única
  */
 export function exportLeagueRankingPNG(players: Player[]): void {
-  const activePlayers = [...players]
-    .filter((p) => p.active)
-    .sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      return a.losses - b.losses;
-    });
+  const activePlayers = sortPlayersForLeague(players.filter((p) => p.active));
+  const tiebreakNotes = getLeagueTiebreakExplanations(activePlayers);
 
   const width = 1200;
   const padding = 40;
@@ -501,9 +501,10 @@ export function exportLeagueRankingPNG(players: Player[]): void {
   const tableHeaderHeight = 44;
   const rowHeight = 36;
   const tableHeight = tableHeaderHeight + activePlayers.length * rowHeight;
+  const tiebreakHeight = tiebreakNotes.length > 0 ? 32 + tiebreakNotes.length * 28 : 0;
   const footerHeight = 60;
 
-  const totalHeight = padding + headerHeight + tableHeight + footerHeight + padding;
+  const totalHeight = padding + headerHeight + tableHeight + (tiebreakHeight > 0 ? tiebreakHeight + 16 : 0) + footerHeight + padding;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -663,6 +664,32 @@ export function exportLeagueRankingPNG(players: Player[]): void {
   });
 
   curY += 16;
+
+  // Observações de Desempate da Liga (se houver empates)
+  if (tiebreakNotes.length > 0) {
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 8);
+    ctx.stroke();
+
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
+    ctx.fillText('📌 Critérios Oficiais de Desempate da Liga (Duelistas com mesma pontuação):', padding + 16, curY + 20);
+
+    let noteY = curY + 44;
+    tiebreakNotes.forEach((note) => {
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '12px system-ui, -apple-system, sans-serif';
+      const text = `• [${note.points} Pts] Empate entre ${note.players.join(', ')}: ${note.reasons.join(' | ')}`;
+      ctx.fillText(text.length > 130 ? text.substring(0, 127) + '...' : text, padding + 16, noteY);
+      noteY += 26;
+    });
+
+    curY += tiebreakHeight + 16;
+  }
 
   // Rodapé
   ctx.fillStyle = '#64748b';

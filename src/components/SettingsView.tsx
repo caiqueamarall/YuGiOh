@@ -560,6 +560,41 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </p>
                 </div>
               </div>
+
+              <div className="rule-item">
+                <span className="rule-badge">TCG Tie</span>
+                <div>
+                  <strong>Desempate Oficial de Torneio (Regras Oficiais TCG):</strong>
+                  <p>
+                    Quando dois ou mais duelistas terminam um torneio com a mesma pontuação, a ordem é definida estritamente por:<br />
+                    1. <strong>Pontuação Total de Partidas</strong><br />
+                    2. <strong>Penalidade de BY:</strong> Jogador que não recebeu BY supera quem folgou com BY<br />
+                    3. <strong>OMW% (Opponents' Match Win %):</strong> Aproveitamento dos adversários enfrentados (força do calendário, piso de 33%)<br />
+                    4. <strong>PGW% (Player Game Win %):</strong> Porcentagem de games ganhos pelo próprio jogador<br />
+                    5. <strong>OGW% (Opponents' Game Win %):</strong> Porcentagem de games ganhos pelos adversários<br />
+                    6. <strong>Confronto Direto (Head-to-head)</strong> e Saldo de Games
+                  </p>
+                </div>
+              </div>
+
+              <div className="rule-item highlight-rule">
+                <span className="rule-badge" style={{ background: '#f59e0b', color: '#000' }}>Liga Geral</span>
+                <div>
+                  <strong>Critérios Oficiais de Desempate da Classificação Geral da Liga:</strong>
+                  <p>
+                    Quando duelistas acumulam os mesmos pontos na tabela geral da temporada, o desempate premia conquistas e qualidade histórica de torneio:<br />
+                    1. <strong>Pontos Acumulados na Liga</strong><br />
+                    2. <strong>Títulos de Campeão de Torneio:</strong> Mais 1º lugares conquistados na temporada<br />
+                    3. <strong>Critério Olímpico de Colocações em Torneios:</strong> Mais 2º lugares, mais 3º lugares ou melhor colocação máxima de pico registrada<br />
+                    4. <strong>Mais Vitórias em Partidas (Matches)</strong><br />
+                    5. <strong>Menos Derrotas</strong><br />
+                    6. <strong>Menor Quantidade de BYs recebidos</strong><br />
+                    7. <strong>Maior Win Rate Geral (% de vitórias)</strong><br />
+                    8. <strong>Mais Participações em Torneios</strong><br />
+                    9. <strong>Ordem Alfabética:</strong> Aplicada exclusivamente como último recurso se todos os critérios anteriores forem 100% idênticos.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -10,11 +10,13 @@ import {
   FileDown,
   ImageDown,
   Users,
-  UserPlus
+  UserPlus,
+  Info
 } from 'lucide-react';
 import type { Player } from '../types';
 import { exportLeagueRankingPDF } from '../utils/pdfGenerator';
 import { exportLeagueRankingPNG } from '../utils/imageExporter';
+import { sortPlayersForLeague, getLeagueTiebreakExplanations } from '../utils/swissEngine';
 
 interface RankingViewProps {
   players: Player[];
@@ -31,16 +33,9 @@ export const RankingView: React.FC<RankingViewProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Ordena os jogadores para o ranking geral da liga
-  const sortedPlayers = [...players]
-    .filter((p) => p.active)
-    .sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
-      if (b.wins !== a.wins) return b.wins - a.wins;
-      if (a.losses !== b.losses) return a.losses - b.losses;
-      if (b.participations !== a.participations) return b.participations - a.participations;
-      return a.name.localeCompare(b.name);
-    });
+  // Ordena os jogadores para o ranking geral da liga usando os critérios oficiais de desempate
+  const sortedPlayers = sortPlayersForLeague(players);
+  const tiebreakNotes = getLeagueTiebreakExplanations(sortedPlayers);
 
   const getMostUsedDeck = (p: Player) => {
     if (!p.decksHistory || p.decksHistory.length === 0) return null;
@@ -431,6 +426,33 @@ export const RankingView: React.FC<RankingViewProps> = ({
               </tbody>
             </table>
           </div>
+
+          {/* Observações de Desempate da Liga */}
+          {tiebreakNotes.length > 0 && (
+            <div className="tiebreak-explanations-card" style={{ marginTop: '16px' }}>
+              <div className="tiebreak-explanations-title">
+                <Info size={15} className="text-gold" />
+                <span>Observações de Desempate da Liga (Duelistas com mesma pontuação):</span>
+              </div>
+              <div className="tiebreak-explanations-list">
+                {tiebreakNotes.map((note) => (
+                  <div key={note.points} className="tiebreak-note-group">
+                    <span className="tiebreak-note-badge">{note.points} Pts</span>
+                    <div className="tiebreak-note-content">
+                      <span className="tiebreak-tied-names">
+                        Empate entre: <strong>{note.players.join(', ')}</strong>
+                      </span>
+                      <ul className="tiebreak-reasons-list">
+                        {note.reasons.map((r, idx) => (
+                          <li key={idx}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
