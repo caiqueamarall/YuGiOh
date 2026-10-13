@@ -263,4 +263,319 @@ select option {
   }
 }
 
+/* ==========================================================================
+   ESTILOS DO SIMULADOR DE DECKLIST EDISON (Layout Estilo Simulador Oficial)
+   ========================================================================== */
+
+.deck-modal-box {
+  max-width: 980px;
+  width: 96%;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  background: #141416;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+}
+
+.deck-header-top {
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deck-header-badges-row {
+  padding: 8px 18px;
+  background: #101012;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.deck-tabs-nav {
+  display: flex;
+  gap: 6px;
+  padding: 6px 14px 0;
+  background: #121214;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.deck-tabs-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.deck-tab-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.15s ease;
+}
+
+.deck-tab-button:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.deck-tab-button.active {
+  color: #fbbf24;
+  border-bottom-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+/* Área do Simulador (Print 3 Reference) */
+.simulator-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #0f0e13;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.simulator-section {
+  display: flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 8px;
+  position: relative;
+}
+
+.simulator-rail {
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.simulator-count-box {
+  width: 100%;
+  height: 30px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 15px;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.simulator-count-box.total {
+  background: #000;
+  border: 1px solid #3f3f46;
+}
+
+.simulator-count-box.monsters {
+  background: #c26715;
+}
+
+.simulator-count-box.spells {
+  background: #159847;
+}
+
+.simulator-count-box.traps {
+  background: #be185d;
+}
+
+.simulator-count-box.side-extra {
+  background: #1e1b4b;
+  border: 1px solid #4338ca;
+}
+
+.simulator-vertical-strip {
+  flex: 1;
+  min-height: 80px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  letter-spacing: 5px;
+  font-size: 13px;
+  color: #fff;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.simulator-vertical-strip.deck {
+  background: linear-gradient(180deg, #6b21a8 0%, #4c1d95 100%);
+}
+
+.simulator-vertical-strip.side {
+  background: linear-gradient(180deg, #0891b2 0%, #0e7490 100%);
+}
+
+.simulator-vertical-strip.extra {
+  background: linear-gradient(180deg, #ea580c 0%, #c2410c 100%);
+}
+
+.simulator-grid-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.simulator-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px;
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.simulator-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+@media (max-width: 900px) {
+  .simulator-grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .simulator-grid {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+  }
+  .simulator-rail {
+    width: 36px;
+  }
+  .simulator-count-box {
+    font-size: 13px;
+    height: 26px;
+  }
+  .simulator-vertical-strip {
+    font-size: 11px;
+    letter-spacing: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .simulator-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+  }
+  .simulator-rail {
+    width: 32px;
+  }
+  .simulator-count-box {
+    font-size: 12px;
+    height: 24px;
+  }
+}
+
+.simulator-card-slot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 59 / 86;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+
+.simulator-card-slot:hover {
+  transform: scale(1.08);
+  z-index: 10;
+  border-color: #fbbf24;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.5);
+}
+
+.simulator-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.simulator-card-empty {
+  width: 100%;
+  aspect-ratio: 59 / 86;
+  border-radius: 4px;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.15);
+  font-size: 10px;
+}
+
+/* Badges da Banlist sobre a carta */
+.banlist-badge {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 900;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.85);
+  z-index: 2;
+  user-select: none;
+}
+
+.banlist-badge.forbidden {
+  background: #ef4444;
+  color: #fff;
+  border: 1px solid #ffffff;
+}
+
+.banlist-badge.limited {
+  background: #000;
+  color: #fff;
+  border: 1.5px solid #ef4444;
+}
+
+.banlist-badge.semi {
+  background: #000;
+  color: #fbbf24;
+  border: 1.5px solid #f59e0b;
+}
+
+
 

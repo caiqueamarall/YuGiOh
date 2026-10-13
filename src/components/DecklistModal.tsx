@@ -7,22 +7,23 @@ import {
   Minus,
   Trash2,
   Search,
-  Eye,
   Check,
   AlertTriangle,
   Copy,
   Upload,
   ArrowRightLeft,
-  Sparkles,
   Info,
   Edit2,
   Save,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import type { Decklist, DeckCardItem } from '../types';
 import {
   searchEdisonCards,
   getCardBanlistLimit,
   getCardBanlistStatus,
+  getCardCategory,
   isExtraDeckCard,
   getCardSmallImageUrl,
   getCardFullImageUrl,
@@ -41,6 +42,18 @@ interface DecklistModalProps {
   readOnly?: boolean;
 }
 
+interface SimulatorCard {
+  instanceId: string;
+  cardId: number;
+  cardName: string;
+  category: 'monster' | 'spell' | 'trap' | 'extra';
+  type: string;
+  atk?: number;
+  def?: number;
+  level?: number;
+  banLimit: number;
+}
+
 export const DecklistModal: React.FC<DecklistModalProps> = ({
   decklist,
   playerName,
@@ -49,15 +62,13 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
   onClose,
   readOnly = false,
 }) => {
-  // Estado de modo de edição (se onSave não foi fornecido, força readOnly)
   const canEdit = !!onSave && !readOnly;
-  const [isEditing, setIsEditing] = useState<boolean>(canEdit && (!decklist || (decklist.mainDeck?.length === 0)));
+  const [isEditingName, setIsEditingName] = useState<boolean>(false);
 
   const [deckName, setDeckName] = useState<string>(
     decklist?.deckName || defaultDeckName || 'Edison Deck'
   );
 
-  // Seções do Deck
   const [mainDeck, setMainDeck] = useState<DeckCardItem[]>(() =>
     decklist?.mainDeck ? JSON.parse(JSON.stringify(decklist.mainDeck)) : []
   );
@@ -68,15 +79,21 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
     decklist?.sideDeck ? JSON.parse(JSON.stringify(decklist.sideDeck)) : []
   );
 
-  // Aba ativa de visualização/edição
-  const [activeDeckTab, setActiveDeckTab] = useState<'main' | 'extra' | 'side' | 'visual'>('main');
+  // ABA ATIVA: "visual" (Visão Geral) é a PRIMEIRA e PADRÃO!
+  const [activeTab, setActiveTab] = useState<'visual' | 'search' | 'list'>('visual');
 
-  // Busca e Filtros de cartas
+  // Filtro na Lista Detalhada
+  const [listSection, setListSection] = useState<'all' | 'main' | 'extra' | 'side'>('all');
+
+  // Busca e Filtros
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | CardCategory>('all');
-  const [previewCard, setPreviewCard] = useState<EdisonCard | null>(null);
 
-  // Modal de importação/exportação em texto
+  // Modal de Detalhes da Carta expandida
+  const [previewCard, setPreviewCard] = useState<EdisonCard | null>(null);
+  const [previewSection, setPreviewSection] = useState<'main' | 'extra' | 'side' | null>(null);
+
+  // Modal de Importação / Exportação
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
   const [importText, setImportText] = useState<string>('');
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
@@ -94,18 +111,15 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
 
   const stats = useMemo(() => getDecklistStats(currentDecklistObj), [currentDecklistObj]);
 
-  // Resultados da busca de cartas
   const searchResults = useMemo(() => {
     return searchEdisonCards(searchQuery, {
       category: selectedCategory,
-      limit: searchQuery.trim().length > 0 ? 50 : 25,
+      limit: searchQuery.trim().length > 0 ? 60 : 30,
     });
   }, [searchQuery, selectedCategory]);
 
-  // Contagem de cópias já utilizadas no deck (Main + Extra + Side) por ID
   const cardCountsMap = useMemo(() => {
     const map = new Map<number, { main: number; extra: number; side: number; total: number }>();
-
     const tally = (items: DeckCardItem[], section: 'main' | 'extra' | 'side') => {
       for (const item of items) {
         const cur = map.get(item.cardId) || { main: 0, extra: 0, side: 0, total: 0 };
@@ -114,134 +128,165 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
         map.set(item.cardId, cur);
       }
     };
-
     tally(mainDeck, 'main');
     tally(extraDeck, 'extra');
     tally(sideDeck, 'side');
     return map;
   }, [mainDeck, extraDeck, sideDeck]);
 
-  // Adiciona carta ao deck
+  // Prepara as cartas expandidas por cópia individual e ordenadas como no simulador oficial (Print 3)
+  const simulatorData = useMemo(() => {
+    // 1. MAIN DECK
+    const mainList: SimulatorCard[] = [];
+    (mainDeck || []).forEach((item, itemIdx) => {
+      const cardObj = getEdisonCardByName(item.cardName);
+      const cat = cardObj ? getCardCategory(cardObj) : 'monster';
+      const banLimit = getCardBanlistLimit(item.cardName);
+      const count = item.count || 1;
+
+      for (let c = 0; c < count; c++) {
+        mainList.push({
+          instanceId: `main-${item.cardId}-${itemIdx}-${c}`,
+          cardId: item.cardId,
+          cardName: item.cardName,
+          category: cat === 'extra' ? 'monster' : cat,
+          type: cardObj?.type || 'Monster',
+          atk: cardObj?.atk,
+          def: cardObj?.def,
+          level: cardObj?.level,
+          banLimit,
+        });
+      }
+    });
+
+    // Ordenação do Main Deck: 1º Monstros, 2º Magias, 3º Armadilhas, e por nome em cada grupo
+    const catWeight = { monster: 1, spell: 2, trap: 3, extra: 4 };
+    mainList.sort((a, b) => {
+      if (catWeight[a.category] !== catWeight[b.category]) {
+        return catWeight[a.category] - catWeight[b.category];
+      }
+      return a.cardName.localeCompare(b.cardName);
+    });
+
+    // 2. EXTRA DECK
+    const extraList: SimulatorCard[] = [];
+    (extraDeck || []).forEach((item, itemIdx) => {
+      const cardObj = getEdisonCardByName(item.cardName);
+      const banLimit = getCardBanlistLimit(item.cardName);
+      const count = item.count || 1;
+
+      for (let c = 0; c < count; c++) {
+        extraList.push({
+          instanceId: `extra-${item.cardId}-${itemIdx}-${c}`,
+          cardId: item.cardId,
+          cardName: item.cardName,
+          category: 'extra',
+          type: cardObj?.type || 'Fusion / Synchro',
+          atk: cardObj?.atk,
+          def: cardObj?.def,
+          level: cardObj?.level,
+          banLimit,
+        });
+      }
+    });
+
+    // Ordena Extra: Synchros primeiro, depois Fusões, alfabético
+    extraList.sort((a, b) => {
+      const isASynchro = a.type.toLowerCase().includes('synchro');
+      const isBSynchro = b.type.toLowerCase().includes('synchro');
+      if (isASynchro && !isBSynchro) return -1;
+      if (!isASynchro && isBSynchro) return 1;
+      return a.cardName.localeCompare(b.cardName);
+    });
+
+    // 3. SIDE DECK
+    const sideList: SimulatorCard[] = [];
+    (sideDeck || []).forEach((item, itemIdx) => {
+      const cardObj = getEdisonCardByName(item.cardName);
+      const cat = cardObj ? getCardCategory(cardObj) : 'monster';
+      const banLimit = getCardBanlistLimit(item.cardName);
+      const count = item.count || 1;
+
+      for (let c = 0; c < count; c++) {
+        sideList.push({
+          instanceId: `side-${item.cardId}-${itemIdx}-${c}`,
+          cardId: item.cardId,
+          cardName: item.cardName,
+          category: cat,
+          type: cardObj?.type || 'Card',
+          atk: cardObj?.atk,
+          def: cardObj?.def,
+          level: cardObj?.level,
+          banLimit,
+        });
+      }
+    });
+
+    sideList.sort((a, b) => {
+      if (catWeight[a.category] !== catWeight[b.category]) {
+        return catWeight[a.category] - catWeight[b.category];
+      }
+      return a.cardName.localeCompare(b.cardName);
+    });
+
+    return { mainList, extraList, sideList };
+  }, [mainDeck, extraDeck, sideDeck]);
+
+  // Ações de Manipulação
   const handleAddCard = (card: EdisonCard, destination: 'main' | 'extra' | 'side') => {
     const banLimit = getCardBanlistLimit(card.name);
     const counts = cardCountsMap.get(card.id) || { main: 0, extra: 0, side: 0, total: 0 };
 
     if (counts.total >= banLimit) {
-      alert(`"${card.name}" já atingiu o limite máximo permitido (${banLimit} cópia(s)) para o formato Edison.`);
+      alert(`"${card.name}" já atingiu o limite de ${banLimit} cópia(s) para o formato Edison.`);
       return;
     }
 
-    if (destination === 'extra' && !['Synchro Monster', 'Fusion Monster'].includes(card.type)) {
+    if (destination === 'extra' && !isExtraDeckCard(card)) {
       alert('Apenas monstros de Fusão ou Synchro podem ser colocados no Extra Deck.');
       return;
     }
 
-    if (destination === 'main' && ['Synchro Monster', 'Fusion Monster'].includes(card.type)) {
+    if (destination === 'main' && isExtraDeckCard(card)) {
       alert('Monstros do Extra Deck (Synchro/Fusão) devem ser adicionados ao Extra Deck.');
       return;
     }
 
-    if (destination === 'main') {
-      setMainDeck((prev) => {
-        const existingIdx = prev.findIndex((i) => i.cardId === card.id);
-        if (existingIdx >= 0) {
-          const updated = [...prev];
-          updated[existingIdx] = {
-            ...updated[existingIdx],
-            count: (updated[existingIdx].count || 1) + 1,
-          };
-          return updated;
-        }
-        return [
-          ...prev,
-          {
-            cardId: card.id,
-            cardName: card.name,
-            count: 1,
-            type: card.type,
-            frameType: card.frameType,
-            attribute: card.attribute,
-            race: card.race,
-            level: card.level,
-            atk: card.atk,
-            def: card.def,
-            desc: card.desc,
-          },
-        ];
-      });
-    } else if (destination === 'extra') {
-      setExtraDeck((prev) => {
-        const existingIdx = prev.findIndex((i) => i.cardId === card.id);
-        if (existingIdx >= 0) {
-          const updated = [...prev];
-          updated[existingIdx] = {
-            ...updated[existingIdx],
-            count: (updated[existingIdx].count || 1) + 1,
-          };
-          return updated;
-        }
-        return [
-          ...prev,
-          {
-            cardId: card.id,
-            cardName: card.name,
-            count: 1,
-            type: card.type,
-            frameType: card.frameType,
-            attribute: card.attribute,
-            race: card.race,
-            level: card.level,
-            atk: card.atk,
-            def: card.def,
-            desc: card.desc,
-          },
-        ];
-      });
-    } else {
-      setSideDeck((prev) => {
-        const existingIdx = prev.findIndex((i) => i.cardId === card.id);
-        if (existingIdx >= 0) {
-          const updated = [...prev];
-          updated[existingIdx] = {
-            ...updated[existingIdx],
-            count: (updated[existingIdx].count || 1) + 1,
-          };
-          return updated;
-        }
-        return [
-          ...prev,
-          {
-            cardId: card.id,
-            cardName: card.name,
-            count: 1,
-            type: card.type,
-            frameType: card.frameType,
-            attribute: card.attribute,
-            race: card.race,
-            level: card.level,
-            atk: card.atk,
-            def: card.def,
-            desc: card.desc,
-          },
-        ];
-      });
-    }
+    const updater = (prev: DeckCardItem[]) => {
+      const idx = prev.findIndex((i) => i.cardId === card.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], count: (copy[idx].count || 1) + 1 };
+        return copy;
+      }
+      return [
+        ...prev,
+        {
+          cardId: card.id,
+          cardName: card.name,
+          count: 1,
+          type: card.type,
+          atk: card.atk,
+          def: card.def,
+          level: card.level,
+          desc: card.desc,
+        },
+      ];
+    };
+
+    if (destination === 'main') setMainDeck(updater);
+    else if (destination === 'extra') setExtraDeck(updater);
+    else setSideDeck(updater);
   };
 
-  // Altera quantidade de uma carta (+1 ou -1)
   const handleChangeCount = (cardId: number, section: 'main' | 'extra' | 'side', delta: number) => {
-    const updateList = (list: DeckCardItem[]) => {
+    const updater = (list: DeckCardItem[]) => {
       const idx = list.findIndex((i) => i.cardId === cardId);
-      if (idx < 0) return list;
-
+      if (idx === -1) return list;
       const item = list[idx];
       const newCount = (item.count || 1) + delta;
+      if (newCount <= 0) return list.filter((i) => i.cardId !== cardId);
 
-      if (newCount <= 0) {
-        return list.filter((i) => i.cardId !== cardId);
-      }
-
-      // Validação de limite máximo
       if (delta > 0) {
         const banLimit = getCardBanlistLimit(item.cardName);
         const counts = cardCountsMap.get(cardId) || { main: 0, extra: 0, side: 0, total: 0 };
@@ -250,25 +295,22 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
           return list;
         }
       }
-
-      const updated = [...list];
-      updated[idx] = { ...item, count: newCount };
-      return updated;
+      const copy = [...list];
+      copy[idx] = { ...item, count: newCount };
+      return copy;
     };
 
-    if (section === 'main') setMainDeck(updateList);
-    else if (section === 'extra') setExtraDeck(updateList);
-    else setSideDeck(updateList);
+    if (section === 'main') setMainDeck(updater);
+    else if (section === 'extra') setExtraDeck(updater);
+    else setSideDeck(updater);
   };
 
-  // Remove carta totalmente
   const handleRemoveCard = (cardId: number, section: 'main' | 'extra' | 'side') => {
     if (section === 'main') setMainDeck((prev) => prev.filter((i) => i.cardId !== cardId));
     else if (section === 'extra') setExtraDeck((prev) => prev.filter((i) => i.cardId !== cardId));
     else setSideDeck((prev) => prev.filter((i) => i.cardId !== cardId));
   };
 
-  // Move uma cópia entre seções (ex: Main <-> Side)
   const handleMoveCard = (item: DeckCardItem, from: 'main' | 'extra' | 'side', to: 'main' | 'extra' | 'side') => {
     handleChangeCount(item.cardId, from, -1);
     const cardObj = getEdisonCardByName(item.cardName);
@@ -277,7 +319,6 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
     }
   };
 
-  // Salva a decklist
   const handleSaveDecklist = () => {
     if (!onSave) return;
     const finalDecklist: Decklist = {
@@ -291,10 +332,9 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
       updatedAt: new Date().toISOString(),
     };
     onSave(finalDecklist);
-    setIsEditing(false);
+    setIsEditingName(false);
   };
 
-  // Exportar texto do deck
   const handleCopyDecklistText = () => {
     let text = `=== DECKLIST: ${deckName} (${playerName}) ===\n\n`;
 
@@ -318,7 +358,6 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
-  // Importar texto do deck
   const handleImportText = () => {
     if (!importText.trim()) return;
 
@@ -329,7 +368,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
     const newExtra: DeckCardItem[] = [];
     const newSide: DeckCardItem[] = [];
 
-    for (let rawLine of lines) {
+    for (const rawLine of lines) {
       const line = rawLine.trim();
       if (!line) continue;
 
@@ -347,13 +386,12 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
         continue;
       }
 
-      // Reconhece formatos como "3x Cyber Dragon", "3 Cyber Dragon" ou apenas "Cyber Dragon"
       const match = line.match(/^(\d+)[xX\s]+(.*)$/);
       let count = 1;
       let cardName = line;
 
       if (match) {
-        count = Math.min(3, Math.max(1, parseInt(match[1])));
+        count = Math.min(3, Math.max(1, parseInt(match[1], 10)));
         cardName = match[2].trim();
       }
 
@@ -364,12 +402,9 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
           cardName: found.name,
           count,
           type: found.type,
-          frameType: found.frameType,
-          attribute: found.attribute,
-          race: found.race,
-          level: found.level,
           atk: found.atk,
           def: found.def,
+          level: found.level,
           desc: found.desc,
         };
 
@@ -395,42 +430,42 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
     }
   };
 
+  // Renderizador de um slot de carta na Visão Geral (Print 3 Reference)
+  const renderCardSlot = (c: SimulatorCard, section: 'main' | 'extra' | 'side') => (
+    <div
+      key={c.instanceId}
+      className="simulator-card-slot"
+      onClick={() => {
+        const found = getEdisonCardByName(c.cardName);
+        if (found) {
+          setPreviewCard(found);
+          setPreviewSection(section);
+        }
+      }}
+      title={`${c.cardName}\n${c.type}\nClique para ver detalhes expandidos`}
+    >
+      <img
+        src={getCardSmallImageUrl(c.cardId)}
+        alt={c.cardName}
+        className="simulator-card-img"
+        loading="lazy"
+      />
+      {c.banLimit === 0 && <span className="banlist-badge forbidden" title="Proibida">🚫</span>}
+      {c.banLimit === 1 && <span className="banlist-badge limited" title="Limitada (1)">1</span>}
+      {c.banLimit === 2 && <span className="banlist-badge semi" title="Semi-Limitada (2)">2</span>}
+    </div>
+  );
+
   return (
     <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 1250 }}>
-      <div
-        className="modal-content"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: '960px',
-          width: '96%',
-          maxHeight: '94vh',
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#161619',
-          border: '1px solid rgba(245, 158, 11, 0.4)',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.9)',
-        }}
-      >
-        {/* Header do Decklist */}
-        <div
-          style={{
-            padding: '14px 18px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '220px' }}>
+      <div className="deck-modal-box" onClick={(e) => e.stopPropagation()}>
+        {/* Topo do Header: Título & Ações Principais */}
+        <div className="deck-header-top">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '200px' }}>
             <div
               style={{
-                width: '38px',
-                height: '38px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '8px',
                 background: 'rgba(245, 158, 11, 0.2)',
                 border: '1px solid rgba(245, 158, 11, 0.4)',
@@ -445,96 +480,70 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {isEditing ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {isEditingName && canEdit ? (
                   <input
                     type="text"
                     value={deckName}
                     onChange={(e) => setDeckName(e.target.value)}
-                    placeholder="Nome do Deck (ex: Blackwing)"
+                    onBlur={() => setIsEditingName(false)}
+                    placeholder="Nome do Deck"
+                    autoFocus
                     style={{
-                      fontSize: '16px',
+                      fontSize: '15px',
                       fontWeight: 800,
                       color: '#fff',
                       background: '#121214',
-                      border: '1px solid #3f3f46',
+                      border: '1px solid #f59e0b',
                       borderRadius: '6px',
-                      padding: '4px 8px',
-                      maxWidth: '220px',
+                      padding: '3px 8px',
+                      maxWidth: '200px',
                     }}
                   />
                 ) : (
-                  <h3 style={{ margin: 0, fontSize: '17px', color: '#fff', fontWeight: 800 }}>
-                    {deckName}
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h3
+                      style={{ margin: 0, fontSize: '16px', color: '#fff', fontWeight: 800, cursor: canEdit ? 'pointer' : 'default' }}
+                      onClick={() => canEdit && setIsEditingName(true)}
+                      title={canEdit ? 'Clique para editar o nome do deck' : undefined}
+                    >
+                      {deckName}
+                    </h3>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingName(true)}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                        title="Editar nome do deck"
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                    )}
+                  </div>
                 )}
                 <span
                   style={{
                     fontSize: '11px',
-                    color: '#94a3b8',
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    padding: '2px 6px',
+                    color: '#cbd5e1',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    padding: '2px 8px',
                     borderRadius: '4px',
+                    fontWeight: 600,
                   }}
                 >
                   {playerName}
                 </span>
               </div>
-              <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+              <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                 Decklist Oficial • Formato Edison (2010)
               </span>
             </div>
           </div>
 
-          {/* Badges de Contagem de Cartas */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                padding: '4px 8px',
-                borderRadius: '6px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                background: stats.mainTotal >= 40 && stats.mainTotal <= 60 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                color: stats.mainTotal >= 40 && stats.mainTotal <= 60 ? '#34d399' : '#fbbf24',
-                border: '1px solid currentColor',
-              }}
-              title={`Monstros: ${stats.mainMonsters} | Magias: ${stats.mainSpells} | Armadilhas: ${stats.mainTraps}`}
-            >
-              Main: {stats.mainTotal}
-            </span>
-
-            <span
-              style={{
-                padding: '4px 8px',
-                borderRadius: '6px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                background: stats.extraTotal <= 15 ? 'rgba(168, 85, 247, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                color: stats.extraTotal <= 15 ? '#c084fc' : '#f87171',
-                border: '1px solid currentColor',
-              }}
-            >
-              Extra: {stats.extraTotal}
-            </span>
-
-            <span
-              style={{
-                padding: '4px 8px',
-                borderRadius: '6px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                background: stats.sideTotal <= 15 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                color: stats.sideTotal <= 15 ? '#60a5fa' : '#f87171',
-                border: '1px solid currentColor',
-              }}
-            >
-              Side: {stats.sideTotal}
-            </span>
-
-            {/* Ações de Importar/Exportar e Modo de Edição */}
+          {/* Botões do Topo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               type="button"
-              className="btn-icon"
               onClick={handleCopyDecklistText}
               title="Copiar decklist em texto"
               style={{
@@ -543,7 +552,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 padding: '6px 10px',
                 borderRadius: '6px',
-                fontSize: '11px',
+                fontSize: '11.5px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -551,7 +560,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
               }}
             >
               {copySuccess ? <Check size={13} /> : <Copy size={13} />}
-              <span>{copySuccess ? 'Copiado!' : 'Copiar'}</span>
+              <span>{copySuccess ? 'Copiado' : 'Copiar'}</span>
             </button>
 
             {canEdit && (
@@ -565,7 +574,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   padding: '6px 10px',
                   borderRadius: '6px',
-                  fontSize: '11px',
+                  fontSize: '11.5px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
@@ -577,32 +586,8 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
               </button>
             )}
 
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => setIsEditing(!isEditing)}
-                style={{
-                  background: isEditing ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                  color: isEditing ? '#fbbf24' : '#cbd5e1',
-                  border: isEditing ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.1)',
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                }}
-              >
-                <Edit2 size={13} />
-                <span>{isEditing ? 'Modo Visual' : 'Editar Cartas'}</span>
-              </button>
-            )}
-
             <button
               type="button"
-              className="btn-icon"
               onClick={onClose}
               title="Fechar"
               style={{
@@ -616,6 +601,59 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
             >
               <X size={20} />
             </button>
+          </div>
+        </div>
+
+        {/* Faixa de Contadores e Categorias */}
+        <div className="deck-header-badges-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 800,
+                background: stats.mainTotal >= 40 && stats.mainTotal <= 60 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                color: stats.mainTotal >= 40 && stats.mainTotal <= 60 ? '#34d399' : '#fbbf24',
+                border: '1px solid currentColor',
+              }}
+            >
+              Main: {stats.mainTotal} / 40-60
+            </span>
+
+            <span
+              style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 800,
+                background: stats.extraTotal <= 15 ? 'rgba(168, 85, 247, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: stats.extraTotal <= 15 ? '#c084fc' : '#f87171',
+                border: '1px solid currentColor',
+              }}
+            >
+              Extra: {stats.extraTotal} / 15
+            </span>
+
+            <span
+              style={{
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: 800,
+                background: stats.sideTotal <= 15 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: stats.sideTotal <= 15 ? '#60a5fa' : '#f87171',
+                border: '1px solid currentColor',
+              }}
+            >
+              Side: {stats.sideTotal} / 15
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: '#94a3b8' }}>
+            <span style={{ color: '#fbbf24' }}>🐉 Monstros: <strong>{stats.mainMonsters}</strong></span>
+            <span style={{ color: '#34d399' }}>📜 Magias: <strong>{stats.mainSpells}</strong></span>
+            <span style={{ color: '#f472b6' }}>⚡ Armadilhas: <strong>{stats.mainTraps}</strong></span>
           </div>
         </div>
 
@@ -638,837 +676,667 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
           </div>
         )}
 
-        {/* Abas das Seções do Deck */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            padding: '8px 16px 0',
-            background: '#121214',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            overflowX: 'auto',
-          }}
-        >
+        {/* Abas Principais - VISÃO GERAL EM PRIMEIRO LUGAR */}
+        <div className="deck-tabs-nav">
           <button
             type="button"
-            onClick={() => setActiveDeckTab('main')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              background: activeDeckTab === 'main' ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
-              color: activeDeckTab === 'main' ? '#fbbf24' : '#94a3b8',
-              border: 'none',
-              borderBottom: activeDeckTab === 'main' ? '2px solid #f59e0b' : '2px solid transparent',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              borderRadius: '6px 6px 0 0',
-            }}
+            className={`deck-tab-button ${activeTab === 'visual' ? 'active' : ''}`}
+            onClick={() => setActiveTab('visual')}
           >
-            <Layers size={14} />
-            <span>Main Deck ({stats.mainTotal})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveDeckTab('extra')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              background: activeDeckTab === 'extra' ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
-              color: activeDeckTab === 'extra' ? '#c084fc' : '#94a3b8',
-              border: 'none',
-              borderBottom: activeDeckTab === 'extra' ? '2px solid #a855f7' : '2px solid transparent',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              borderRadius: '6px 6px 0 0',
-            }}
-          >
-            <Sparkles size={14} />
-            <span>Extra Deck ({stats.extraTotal})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveDeckTab('side')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              background: activeDeckTab === 'side' ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-              color: activeDeckTab === 'side' ? '#60a5fa' : '#94a3b8',
-              border: 'none',
-              borderBottom: activeDeckTab === 'side' ? '2px solid #3b82f6' : '2px solid transparent',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              borderRadius: '6px 6px 0 0',
-            }}
-          >
-            <Shield size={14} />
-            <span>Side Deck ({stats.sideTotal})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveDeckTab('visual')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 14px',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              background: activeDeckTab === 'visual' ? 'rgba(52, 211, 153, 0.15)' : 'transparent',
-              color: activeDeckTab === 'visual' ? '#34d399' : '#94a3b8',
-              border: 'none',
-              borderBottom: activeDeckTab === 'visual' ? '2px solid #34d399' : '2px solid transparent',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              borderRadius: '6px 6px 0 0',
-            }}
-          >
-            <Eye size={14} />
+            <LayoutGrid size={15} />
             <span>Visão Geral do Deck</span>
+          </button>
+
+          {canEdit && (
+            <button
+              type="button"
+              className={`deck-tab-button ${activeTab === 'search' ? 'active' : ''}`}
+              onClick={() => setActiveTab('search')}
+            >
+              <Search size={15} />
+              <span>Buscar &amp; Adicionar Cartas</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={`deck-tab-button ${activeTab === 'list' ? 'active' : ''}`}
+            onClick={() => setActiveTab('list')}
+          >
+            <List size={15} />
+            <span>Lista Detalhada ({stats.mainTotal + stats.extraTotal + stats.sideTotal})</span>
           </button>
         </div>
 
-        {/* Corpo Principal com Visualização ou Edição */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* MODO 1: EDITOR / CONSTRUTOR DECK COM BUSCA (quando isEditing = true) */}
-          {isEditing && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(280px, 1fr) minmax(280px, 1.2fr)',
-                gap: '16px',
-                minHeight: '440px',
-              }}
-              className="deck-builder-grid"
-            >
-              {/* Painel Esquerdo: Busca no Repositório de 3.660 Cartas */}
-              <div
-                style={{
-                  background: '#121214',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '10px',
-                  padding: '12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fbbf24', fontSize: '13px', fontWeight: 800 }}>
-                  <Search size={15} />
-                  <span>Repositório Edison (3.660 Cartas)</span>
+        {/* CONTEÚDO DA ABA ATIVA */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px', background: '#0e0e11' }}>
+          {/* ========================================================== */}
+          {/* ABA 1: VISÃO GERAL DO DECK (LAYOUT ESTILO PRINT 3)        */}
+          {/* ========================================================== */}
+          {activeTab === 'visual' && (
+            <div className="simulator-container">
+              {/* Barra de ação rápida para adicionar cartas */}
+              {canEdit && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '4px' }}>
+                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    💡 Toque em qualquer carta para expandir detalhes, ver efeito e ajustar cópias.
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-decklist-add"
+                    onClick={() => setActiveTab('search')}
+                    style={{ fontSize: '11.5px', padding: '4px 10px', color: '#fbbf24', borderColor: '#f59e0b' }}
+                  >
+                    <Plus size={13} />
+                    <span>Adicionar Cartas (+Banco)</span>
+                  </button>
+                </div>
+              )}
+
+              {/* SEÇÃO 1: MAIN DECK (Com Rail Lateral e Grid Estilo Print 3) */}
+              <div className="simulator-section">
+                {/* Coluna / Rail Lateral com Contadores e Banner DECK */}
+                <div className="simulator-rail">
+                  <div className="simulator-count-box total" title="Total no Main Deck">
+                    {stats.mainTotal}
+                  </div>
+                  <div className="simulator-count-box monsters" title="Monstros">
+                    {stats.mainMonsters}
+                  </div>
+                  <div className="simulator-count-box spells" title="Magias">
+                    {stats.mainSpells}
+                  </div>
+                  <div className="simulator-count-box traps" title="Armadilhas">
+                    {stats.mainTraps}
+                  </div>
+                  <div className="simulator-count-box side-extra" title="Extra Deck">
+                    {stats.extraTotal}
+                  </div>
+
+                  <div className="simulator-vertical-strip deck">
+                    DECK
+                  </div>
                 </div>
 
-                {/* Input de Busca */}
-                <div style={{ position: 'relative' }}>
+                {/* Grid das Cartas do Main Deck */}
+                <div className="simulator-grid-content">
+                  <div className="simulator-section-header">
+                    <span>MAIN DECK ({stats.mainTotal} CARTAS)</span>
+                    <span style={{ fontSize: '11px', color: '#cbd5e1' }}>
+                      Mín. 40 • Máx. 60
+                    </span>
+                  </div>
+
+                  {simulatorData.mainList.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '40px 20px',
+                        textAlign: 'center',
+                        color: '#64748b',
+                        background: 'rgba(0,0,0,0.3)',
+                        borderRadius: '6px',
+                        border: '1px dashed rgba(255,255,255,0.1)',
+                      }}
+                    >
+                      <Layers size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                      <p style={{ margin: '0 0 10px', fontSize: '13px' }}>Main Deck vazio.</p>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          className="btn-primary-gold"
+                          onClick={() => setActiveTab('search')}
+                          style={{ fontSize: '12px', padding: '6px 14px' }}
+                        >
+                          <Plus size={14} /> Buscar cartas para adicionar
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="simulator-grid">
+                      {simulatorData.mainList.map((c) => renderCardSlot(c, 'main'))}
+
+                      {/* Slots vazios para preencher a linha ou indicar espaço */}
+                      {(() => {
+                        const count = simulatorData.mainList.length;
+                        const remainder = count % 10;
+                        const emptySlotsCount = remainder > 0 ? 10 - remainder : (count < 40 ? 40 - count : 0);
+                        return Array.from({ length: Math.min(emptySlotsCount, 10) }).map((_, i) => (
+                          <div key={`empty-main-${i}`} className="simulator-card-empty">
+                            +
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SEÇÃO 2: SIDE DECK */}
+              <div className="simulator-section" style={{ borderLeft: '3px solid #06b6d4' }}>
+                <div className="simulator-rail">
+                  <div className="simulator-vertical-strip side" style={{ minHeight: '60px' }}>
+                    SIDE
+                  </div>
+                </div>
+
+                <div className="simulator-grid-content">
+                  <div className="simulator-section-header">
+                    <span style={{ color: '#22d3ee' }}>SIDE DECK ({stats.sideTotal} CARTAS)</span>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Máximo 15</span>
+                  </div>
+
+                  {simulatorData.sideList.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '16px',
+                        textAlign: 'center',
+                        color: '#64748b',
+                        fontSize: '12px',
+                        background: 'rgba(0,0,0,0.2)',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      Nenhuma carta no Side Deck.
+                    </div>
+                  ) : (
+                    <div className="simulator-grid">
+                      {simulatorData.sideList.map((c) => renderCardSlot(c, 'side'))}
+
+                      {/* Slots vazios do Side até 10 slots na primeira linha se menor */}
+                      {simulatorData.sideList.length < 10 &&
+                        Array.from({ length: 10 - simulatorData.sideList.length }).map((_, i) => (
+                          <div key={`empty-side-${i}`} className="simulator-card-empty">
+                            +
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SEÇÃO 3: EXTRA DECK */}
+              <div className="simulator-section" style={{ borderLeft: '3px solid #f97316' }}>
+                <div className="simulator-rail">
+                  <div className="simulator-vertical-strip extra" style={{ minHeight: '60px' }}>
+                    EXTRA
+                  </div>
+                </div>
+
+                <div className="simulator-grid-content">
+                  <div className="simulator-section-header">
+                    <span style={{ color: '#fb923c' }}>
+                      EXTRA DECK ({stats.extraTotal} CARTAS) • {stats.extraSynchro} Synchro • {stats.extraFusion} Fusão
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Máximo 15</span>
+                  </div>
+
+                  {simulatorData.extraList.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '16px',
+                        textAlign: 'center',
+                        color: '#64748b',
+                        fontSize: '12px',
+                        background: 'rgba(0,0,0,0.2)',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      Nenhum monstro Synchro ou Fusão no Extra Deck.
+                    </div>
+                  ) : (
+                    <div className="simulator-grid">
+                      {simulatorData.extraList.map((c) => renderCardSlot(c, 'extra'))}
+
+                      {/* Slots vazios do Extra até 10 slots na primeira linha se menor */}
+                      {simulatorData.extraList.length < 10 &&
+                        Array.from({ length: 10 - simulatorData.extraList.length }).map((_, i) => (
+                          <div key={`empty-extra-${i}`} className="simulator-card-empty">
+                            +
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* ABA 2: BUSCAR & ADICIONAR CARTAS                          */}
+          {/* ========================================================== */}
+          {activeTab === 'search' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Barra de Pesquisa */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: '#161619',
+                    border: '1px solid #3f3f46',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                  }}
+                >
+                  <Search size={16} className="text-muted" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Digite o nome da carta (ex: Gale, Cyber...)"
+                    placeholder="Buscar entre as 3.660 cartas de Edison (ex: Cyber Dragon, Dustshoot, Dandy...)"
                     style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      background: '#1c1c20',
-                      border: '1px solid #3f3f46',
-                      borderRadius: '6px',
+                      background: 'transparent',
+                      border: 'none',
                       color: '#fff',
-                      fontSize: '13px',
-                      boxSizing: 'border-box',
+                      fontSize: '13.5px',
+                      width: '100%',
+                      outline: 'none',
                     }}
+                    autoFocus
                   />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      style={{
-                        position: 'absolute',
-                        right: '8px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                        padding: '4px',
-                      }}
+                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
                     >
                       <X size={14} />
                     </button>
                   )}
                 </div>
+              </div>
 
-                {/* Filtros de Categoria */}
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  {[
-                    { key: 'all', label: 'Todas' },
-                    { key: 'monster', label: 'Monstros' },
-                    { key: 'spell', label: 'Magias' },
-                    { key: 'trap', label: 'Armadilhas' },
-                    { key: 'extra', label: 'Extra' },
-                  ].map((cat) => (
-                    <button
-                      key={cat.key}
-                      type="button"
-                      onClick={() => setSelectedCategory(cat.key as any)}
+              {/* Filtros de Categoria */}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {(
+                  [
+                    { key: 'all', label: 'Todas as Cartas' },
+                    { key: 'monster', label: '🐉 Monstros' },
+                    { key: 'spell', label: '📜 Magias' },
+                    { key: 'trap', label: '⚡ Armadilhas' },
+                    { key: 'extra', label: '🔮 Extra Deck' },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setSelectedCategory(tab.key)}
+                    style={{
+                      padding: '5px 12px',
+                      fontSize: '12px',
+                      borderRadius: '20px',
+                      fontWeight: selectedCategory === tab.key ? 700 : 500,
+                      background: selectedCategory === tab.key ? '#f59e0b' : 'rgba(255, 255, 255, 0.05)',
+                      color: selectedCategory === tab.key ? '#000' : '#cbd5e1',
+                      border: '1px solid',
+                      borderColor: selectedCategory === tab.key ? '#f59e0b' : 'rgba(255, 255, 255, 0.1)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Lista de Resultados da Busca */}
+              <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                {searchResults.length} cartas encontradas no repositório Edison:
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                  gap: '8px',
+                }}
+              >
+                {searchResults.map((card) => {
+                  const banLimit = getCardBanlistLimit(card.name);
+                  const isExtra = isExtraDeckCard(card);
+                  const counts = cardCountsMap.get(card.id) || { main: 0, extra: 0, side: 0, total: 0 };
+                  const canAddMore = counts.total < banLimit;
+
+                  return (
+                    <div
+                      key={card.id}
                       style={{
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        fontSize: '10.5px',
-                        fontWeight: 700,
-                        background: selectedCategory === cat.key ? '#f59e0b' : 'rgba(255, 255, 255, 0.05)',
-                        color: selectedCategory === cat.key ? '#000' : '#cbd5e1',
-                        border: 'none',
-                        cursor: 'pointer',
+                        background: '#161619',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        display: 'flex',
+                        gap: '8px',
+                        alignItems: 'center',
                       }}
                     >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Lista de Cartas Encontradas */}
-                <div style={{ flex: 1, overflowY: 'auto', maxHeight: '350px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {searchResults.map((card) => {
-                    const banLimit = getCardBanlistLimit(card.name);
-                    const banStatus = getCardBanlistStatus(card.name);
-                    const counts = cardCountsMap.get(card.id) || { main: 0, extra: 0, side: 0, total: 0 };
-                    const isExtra = ['Synchro Monster', 'Fusion Monster'].includes(card.type);
-
-                    return (
+                      {/* Imagem da Carta Reduzida (ao clicar abre preview) */}
                       <div
-                        key={card.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '8px',
-                          padding: '6px 8px',
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255, 255, 255, 0.06)',
-                          borderRadius: '6px',
+                        onClick={() => {
+                          setPreviewCard(card);
+                          setPreviewSection(null);
                         }}
+                        style={{
+                          width: '46px',
+                          aspectRatio: '59 / 86',
+                          borderRadius: '4px',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          cursor: 'pointer',
+                          position: 'relative',
+                        }}
+                        title="Clique para ver carta expandida"
                       >
+                        <img
+                          src={getCardSmallImageUrl(card.id)}
+                          alt={card.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          loading="lazy"
+                        />
+                        {banLimit === 0 && <span className="banlist-badge forbidden">🚫</span>}
+                        {banLimit === 1 && <span className="banlist-badge limited">1</span>}
+                        {banLimit === 2 && <span className="banlist-badge semi">2</span>}
+                      </div>
+
+                      {/* Informações & Botões de Adicionar */}
+                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         <div
-                          style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, cursor: 'pointer' }}
-                          onClick={() => setPreviewCard(card)}
-                          title="Clique para ver detalhes e efeito da carta"
+                          onClick={() => {
+                            setPreviewCard(card);
+                            setPreviewSection(null);
+                          }}
+                          style={{
+                            fontSize: '12.5px',
+                            fontWeight: 700,
+                            color: '#fff',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            cursor: 'pointer',
+                          }}
+                          title={card.name}
                         >
-                          <img
-                            src={getCardSmallImageUrl(card.id)}
-                            alt={card.name}
-                            style={{ width: '28px', height: '41px', objectFit: 'cover', borderRadius: '3px' }}
-                            loading="lazy"
-                          />
-                          <div style={{ minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                color: '#fff',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {card.name}
-                            </div>
-                            <div style={{ fontSize: '10px', color: '#94a3b8' }}>
-                              {card.type}
-                              {banStatus !== 'unlimited' && (
-                                <span
-                                  style={{
-                                    marginLeft: '4px',
-                                    color: banStatus === 'forbidden' ? '#f87171' : '#fbbf24',
-                                    fontWeight: 800,
-                                  }}
-                                >
-                                  [{banStatus === 'forbidden' ? 'Proibida' : banStatus === 'limited' ? 'Limitada (1)' : 'Semi (2)'}]
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                          {card.name}
                         </div>
 
-                        {/* Botões de Adição Rápida */}
-                        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                          {!isExtra ? (
+                        <div style={{ fontSize: '10.5px', color: '#94a3b8' }}>
+                          {card.atk !== undefined ? `${card.atk}/${card.def}` : card.type}
+                          {counts.total > 0 && (
+                            <span style={{ color: '#fbbf24', marginLeft: '6px', fontWeight: 700 }}>
+                              ({counts.total} no deck)
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Botões de Ação */}
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                          {!isExtra && (
                             <button
                               type="button"
+                              disabled={!canAddMore}
                               onClick={() => handleAddCard(card, 'main')}
-                              disabled={counts.total >= banLimit}
-                              title={`Adicionar ao Main Deck (${counts.main}/${banLimit})`}
                               style={{
-                                padding: '3px 6px',
-                                fontSize: '10px',
+                                padding: '3px 8px',
+                                fontSize: '10.5px',
                                 fontWeight: 700,
-                                background: counts.total >= banLimit ? 'rgba(255, 255, 255, 0.05)' : '#f59e0b',
-                                color: counts.total >= banLimit ? '#64748b' : '#000',
-                                border: 'none',
+                                background: canAddMore ? 'rgba(52, 211, 153, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                color: canAddMore ? '#34d399' : '#64748b',
+                                border: '1px solid',
+                                borderColor: canAddMore ? '#34d399' : 'transparent',
                                 borderRadius: '4px',
-                                cursor: counts.total >= banLimit ? 'not-allowed' : 'pointer',
+                                cursor: canAddMore ? 'pointer' : 'not-allowed',
                               }}
                             >
-                              + Main {counts.main > 0 && `(${counts.main})`}
+                              + Main
                             </button>
-                          ) : (
+                          )}
+
+                          {isExtra && (
                             <button
                               type="button"
+                              disabled={!canAddMore}
                               onClick={() => handleAddCard(card, 'extra')}
-                              disabled={counts.total >= banLimit}
-                              title={`Adicionar ao Extra Deck (${counts.extra}/${banLimit})`}
                               style={{
-                                padding: '3px 6px',
-                                fontSize: '10px',
+                                padding: '3px 8px',
+                                fontSize: '10.5px',
                                 fontWeight: 700,
-                                background: counts.total >= banLimit ? 'rgba(255, 255, 255, 0.05)' : '#a855f7',
-                                color: counts.total >= banLimit ? '#64748b' : '#fff',
-                                border: 'none',
+                                background: canAddMore ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                color: canAddMore ? '#c084fc' : '#64748b',
+                                border: '1px solid',
+                                borderColor: canAddMore ? '#c084fc' : 'transparent',
                                 borderRadius: '4px',
-                                cursor: counts.total >= banLimit ? 'not-allowed' : 'pointer',
+                                cursor: canAddMore ? 'pointer' : 'not-allowed',
                               }}
                             >
-                              + Extra {counts.extra > 0 && `(${counts.extra})`}
+                              + Extra
                             </button>
                           )}
 
                           <button
                             type="button"
+                            disabled={!canAddMore}
                             onClick={() => handleAddCard(card, 'side')}
-                            disabled={counts.total >= banLimit}
-                            title={`Adicionar ao Side Deck (${counts.side}/${banLimit})`}
                             style={{
-                              padding: '3px 6px',
-                              fontSize: '10px',
+                              padding: '3px 8px',
+                              fontSize: '10.5px',
                               fontWeight: 700,
-                              background: counts.total >= banLimit ? 'rgba(255, 255, 255, 0.05)' : 'rgba(59, 130, 246, 0.25)',
-                              color: counts.total >= banLimit ? '#64748b' : '#60a5fa',
-                              border: '1px solid rgba(59, 130, 246, 0.4)',
+                              background: canAddMore ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                              color: canAddMore ? '#60a5fa' : '#64748b',
+                              border: '1px solid',
+                              borderColor: canAddMore ? '#60a5fa' : 'transparent',
                               borderRadius: '4px',
-                              cursor: counts.total >= banLimit ? 'not-allowed' : 'pointer',
+                              cursor: canAddMore ? 'pointer' : 'not-allowed',
                             }}
                           >
-                            + Side {counts.side > 0 && `(${counts.side})`}
+                            + Side
                           </button>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Painel Direito: Cartas Inclusas na Seção Selecionada */}
-              <div
-                style={{
-                  background: '#121214',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '10px',
-                  padding: '12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fff', fontSize: '13px', fontWeight: 800 }}>
-                    <Layers size={15} className="text-gold" />
-                    <span>
-                      {activeDeckTab === 'main'
-                        ? `Main Deck (${stats.mainTotal} cartas)`
-                        : activeDeckTab === 'extra'
-                        ? `Extra Deck (${stats.extraTotal} cartas)`
-                        : `Side Deck (${stats.sideTotal} cartas)`}
-                    </span>
-                  </div>
-
-                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                    {activeDeckTab === 'main'
-                      ? `${stats.mainMonsters}M • ${stats.mainSpells}S • ${stats.mainTraps}T`
-                      : activeDeckTab === 'extra'
-                      ? `${stats.extraSynchro} Synchro • ${stats.extraFusion} Fusão`
-                      : `${stats.sideTotal}/15`}
-                  </span>
-                </div>
-
-                {/* Lista de Cartas da Seção Ativa */}
-                <div style={{ flex: 1, overflowY: 'auto', maxHeight: '380px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {(() => {
-                    const list =
-                      activeDeckTab === 'main'
-                        ? mainDeck
-                        : activeDeckTab === 'extra'
-                        ? extraDeck
-                        : sideDeck;
-
-                    if (list.length === 0) {
-                      return (
-                        <div style={{ padding: '30px 10px', textAlign: 'center', color: '#64748b', fontSize: '12.5px' }}>
-                          Nenhuma carta nesta seção ainda. Busque e adicione cartas pelo painel à esquerda.
-                        </div>
-                      );
-                    }
-
-                    return list.map((item) => (
-                      <div
-                        key={item.cardId}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '8px',
-                          padding: '6px 10px',
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255, 255, 255, 0.06)',
-                          borderRadius: '6px',
-                        }}
-                      >
-                        <div
-                          style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, cursor: 'pointer' }}
-                          onClick={() => {
-                            const found = getEdisonCardByName(item.cardName);
-                            if (found) setPreviewCard(found);
-                          }}
-                        >
-                          <img
-                            src={getCardSmallImageUrl(item.cardId)}
-                            alt={item.cardName}
-                            style={{ width: '28px', height: '41px', objectFit: 'cover', borderRadius: '3px' }}
-                            loading="lazy"
-                          />
-                          <div style={{ minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontSize: '12.5px',
-                                fontWeight: 700,
-                                color: '#fff',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {item.cardName}
-                            </div>
-                            <span style={{ fontSize: '10px', color: '#94a3b8' }}>{item.type}</span>
-                          </div>
-                        </div>
-
-                        {/* Controles de Quantidade */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                          <button
-                            type="button"
-                            onClick={() => handleChangeCount(item.cardId, activeDeckTab as any, -1)}
-                            style={{
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '4px',
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              color: '#fff',
-                              border: 'none',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                            title="Diminuir cópia"
-                          >
-                            <Minus size={12} />
-                          </button>
-
-                          <span style={{ fontSize: '13px', fontWeight: 800, color: '#fbbf24', minWidth: '16px', textAlign: 'center' }}>
-                            {item.count}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() => handleChangeCount(item.cardId, activeDeckTab as any, 1)}
-                            style={{
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '4px',
-                              background: 'rgba(255, 255, 255, 0.08)',
-                              color: '#fff',
-                              border: 'none',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                            title="Aumentar cópia"
-                          >
-                            <Plus size={12} />
-                          </button>
-
-                          {/* Mover para Side / Main */}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleMoveCard(
-                                item,
-                                activeDeckTab as any,
-                                activeDeckTab === 'side' ? (isExtraDeckCard(item) ? 'extra' : 'main') : 'side'
-                              )
-                            }
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#94a3b8',
-                              cursor: 'pointer',
-                              padding: '4px',
-                            }}
-                            title={activeDeckTab === 'side' ? 'Mover para Main/Extra' : 'Mover para Side'}
-                          >
-                            <ArrowRightLeft size={13} />
-                          </button>
-
-                          {/* Excluir totalmente */}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveCard(item.cardId, activeDeckTab as any)}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#f87171',
-                              cursor: 'pointer',
-                              padding: '4px',
-                            }}
-                            title="Remover carta do deck"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* MODO 2: VISUALIZAÇÃO COMPLETA DA DECKLIST */}
-          {(!isEditing || activeDeckTab === 'visual') && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Seção 1: Main Deck */}
-              <div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: '8px',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Layers size={16} className="text-gold" />
-                    <h4 style={{ margin: 0, fontSize: '15px', color: '#fff', fontWeight: 800 }}>
-                      Main Deck ({stats.mainTotal} cartas)
-                    </h4>
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                    {stats.mainMonsters} Monstros • {stats.mainSpells} Magias • {stats.mainTraps} Armadilhas
-                  </span>
-                </div>
-
-                {mainDeck.length === 0 ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                    Nenhuma carta cadastrada no Main Deck.
-                  </div>
-                ) : (
-                  <div
+          {/* ========================================================== */}
+          {/* ABA 3: LISTA DETALHADA COM CONTADORES (+ / -)             */}
+          {/* ========================================================== */}
+          {activeTab === 'list' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {(
+                  [
+                    { key: 'all', label: `Todas (${stats.mainTotal + stats.extraTotal + stats.sideTotal})` },
+                    { key: 'main', label: `Main Deck (${stats.mainTotal})` },
+                    { key: 'extra', label: `Extra Deck (${stats.extraTotal})` },
+                    { key: 'side', label: `Side Deck (${stats.sideTotal})` },
+                  ] as const
+                ).map((sec) => (
+                  <button
+                    key={sec.key}
+                    type="button"
+                    onClick={() => setListSection(sec.key)}
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                      gap: '10px',
+                      padding: '5px 12px',
+                      fontSize: '12px',
+                      borderRadius: '6px',
+                      fontWeight: listSection === sec.key ? 700 : 500,
+                      background: listSection === sec.key ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                      color: listSection === sec.key ? '#fbbf24' : '#cbd5e1',
+                      border: '1px solid',
+                      borderColor: listSection === sec.key ? '#f59e0b' : 'rgba(255, 255, 255, 0.08)',
+                      cursor: 'pointer',
                     }}
                   >
-                    {mainDeck.map((item) => (
-                      <div
-                        key={item.cardId}
-                        onClick={() => {
-                          const found = getEdisonCardByName(item.cardName);
-                          if (found) setPreviewCard(found);
-                        }}
-                        style={{
-                          background: '#121214',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          borderRadius: '8px',
-                          padding: '6px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '6px',
-                          cursor: 'pointer',
-                          transition: 'transform 0.15s ease',
-                          position: 'relative',
-                        }}
-                      >
-                        <div style={{ position: 'relative', width: '100%', aspectRatio: '28/41' }}>
-                          <img
-                            src={getCardSmallImageUrl(item.cardId)}
-                            alt={item.cardName}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                            loading="lazy"
-                          />
-                          <span
-                            style={{
-                              position: 'absolute',
-                              top: '4px',
-                              right: '4px',
-                              background: '#f59e0b',
-                              color: '#000',
-                              fontSize: '11px',
-                              fontWeight: 900,
-                              borderRadius: '4px',
-                              padding: '1px 5px',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.6)',
-                            }}
-                          >
-                            x{item.count}
-                          </span>
-                        </div>
-                        <span
-                          style={{
-                            fontSize: '11.5px',
-                            fontWeight: 700,
-                            color: '#fff',
-                            textAlign: 'center',
-                            lineHeight: '1.2',
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                          }}
-                          title={item.cardName}
-                        >
-                          {item.cardName}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                    {sec.label}
+                  </button>
+                ))}
               </div>
 
-              {/* Seção 2: Extra Deck */}
-              <div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: '8px',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sparkles size={16} style={{ color: '#c084fc' }} />
-                    <h4 style={{ margin: 0, fontSize: '15px', color: '#fff', fontWeight: 800 }}>
-                      Extra Deck ({stats.extraTotal} cartas)
-                    </h4>
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                    {stats.extraSynchro} Synchro • {stats.extraFusion} Fusão
-                  </span>
-                </div>
+              {/* Tabela de Cartas da Seção Selecionada */}
+              {([
+                { id: 'main', title: 'Main Deck', list: mainDeck, color: '#fbbf24' },
+                { id: 'extra', title: 'Extra Deck', list: extraDeck, color: '#c084fc' },
+                { id: 'side', title: 'Side Deck', list: sideDeck, color: '#60a5fa' },
+              ] as const)
+                .filter((sec) => listSection === 'all' || listSection === sec.id)
+                .map((sec) => (
+                  <div key={sec.id} style={{ background: '#141417', borderRadius: '8px', padding: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <strong style={{ color: sec.color, fontSize: '13px' }}>
+                        {sec.title} ({sec.list.reduce((acc, i) => acc + (i.count || 1), 0)} cartas)
+                      </strong>
+                    </div>
 
-                {extraDeck.length === 0 ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                    Nenhuma carta cadastrada no Extra Deck.
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                      gap: '10px',
-                    }}
-                  >
-                    {extraDeck.map((item) => (
-                      <div
-                        key={item.cardId}
-                        onClick={() => {
-                          const found = getEdisonCardByName(item.cardName);
-                          if (found) setPreviewCard(found);
-                        }}
-                        style={{
-                          background: '#121214',
-                          border: '1px solid rgba(168, 85, 247, 0.25)',
-                          borderRadius: '8px',
-                          padding: '6px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '6px',
-                          cursor: 'pointer',
-                          position: 'relative',
-                        }}
-                      >
-                        <div style={{ position: 'relative', width: '100%', aspectRatio: '28/41' }}>
-                          <img
-                            src={getCardSmallImageUrl(item.cardId)}
-                            alt={item.cardName}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                            loading="lazy"
-                          />
-                          <span
-                            style={{
-                              position: 'absolute',
-                              top: '4px',
-                              right: '4px',
-                              background: '#a855f7',
-                              color: '#fff',
-                              fontSize: '11px',
-                              fontWeight: 900,
-                              borderRadius: '4px',
-                              padding: '1px 5px',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.6)',
-                            }}
-                          >
-                            x{item.count}
-                          </span>
-                        </div>
-                        <span
-                          style={{
-                            fontSize: '11.5px',
-                            fontWeight: 700,
-                            color: '#fff',
-                            textAlign: 'center',
-                            lineHeight: '1.2',
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                          }}
-                          title={item.cardName}
-                        >
-                          {item.cardName}
-                        </span>
+                    {sec.list.length === 0 ? (
+                      <p style={{ color: '#64748b', fontSize: '12px', margin: 0, fontStyle: 'italic' }}>
+                        Nenhuma carta nesta seção.
+                      </p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {sec.list.map((item) => {
+                          const banLimit = getCardBanlistLimit(item.cardName);
+                          return (
+                            <div
+                              key={`${sec.id}-${item.cardId}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid rgba(255, 255, 255, 0.04)',
+                                borderRadius: '6px',
+                                padding: '6px 10px',
+                              }}
+                            >
+                              <div
+                                onClick={() => {
+                                  const found = getEdisonCardByName(item.cardName);
+                                  if (found) {
+                                    setPreviewCard(found);
+                                    setPreviewSection(sec.id);
+                                  }
+                                }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+                              >
+                                <img
+                                  src={getCardSmallImageUrl(item.cardId)}
+                                  alt={item.cardName}
+                                  style={{ width: '28px', aspectRatio: '59 / 86', borderRadius: '3px', objectFit: 'cover' }}
+                                />
+                                <div>
+                                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>
+                                    {item.cardName}
+                                  </span>
+                                  {banLimit < 3 && (
+                                    <span style={{ marginLeft: '6px', fontSize: '10.5px', color: '#fbbf24', fontWeight: 700 }}>
+                                      ({banLimit === 0 ? 'Proibida' : banLimit === 1 ? 'Limitada' : 'Semi'})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {canEdit && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleChangeCount(item.cardId, sec.id, -1)}
+                                    style={{
+                                      width: '26px',
+                                      height: '26px',
+                                      borderRadius: '4px',
+                                      background: '#27272a',
+                                      border: 'none',
+                                      color: '#fff',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    <Minus size={13} />
+                                  </button>
+
+                                  <span style={{ minWidth: '22px', textAlign: 'center', fontWeight: 800, fontSize: '13px', color: '#fbbf24' }}>
+                                    {item.count}
+                                  </span>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleChangeCount(item.cardId, sec.id, 1)}
+                                    style={{
+                                      width: '26px',
+                                      height: '26px',
+                                      borderRadius: '4px',
+                                      background: '#27272a',
+                                      border: 'none',
+                                      color: '#fff',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    <Plus size={13} />
+                                  </button>
+
+                                  {(sec.id === 'main' || sec.id === 'side') && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMoveCard(item, sec.id, sec.id === 'main' ? 'side' : 'main')}
+                                      title={sec.id === 'main' ? 'Mover para Side' : 'Mover para Main'}
+                                      style={{
+                                        padding: '4px 6px',
+                                        borderRadius: '4px',
+                                        background: 'rgba(255, 255, 255, 0.05)',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        color: '#cbd5e1',
+                                        cursor: 'pointer',
+                                        fontSize: '11px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                      }}
+                                    >
+                                      <ArrowRightLeft size={11} />
+                                      {sec.id === 'main' ? 'Side' : 'Main'}
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveCard(item.cardId, sec.id)}
+                                    title="Remover carta do deck"
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#ef4444',
+                                      cursor: 'pointer',
+                                      padding: '4px',
+                                    }}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-
-              {/* Seção 3: Side Deck */}
-              <div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingBottom: '8px',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Shield size={16} style={{ color: '#60a5fa' }} />
-                    <h4 style={{ margin: 0, fontSize: '15px', color: '#fff', fontWeight: 800 }}>
-                      Side Deck ({stats.sideTotal} cartas)
-                    </h4>
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>Máximo de 15 cartas</span>
-                </div>
-
-                {sideDeck.length === 0 ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                    Nenhuma carta cadastrada no Side Deck.
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                      gap: '10px',
-                    }}
-                  >
-                    {sideDeck.map((item) => (
-                      <div
-                        key={item.cardId}
-                        onClick={() => {
-                          const found = getEdisonCardByName(item.cardName);
-                          if (found) setPreviewCard(found);
-                        }}
-                        style={{
-                          background: '#121214',
-                          border: '1px solid rgba(59, 130, 246, 0.25)',
-                          borderRadius: '8px',
-                          padding: '6px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '6px',
-                          cursor: 'pointer',
-                          position: 'relative',
-                        }}
-                      >
-                        <div style={{ position: 'relative', width: '100%', aspectRatio: '28/41' }}>
-                          <img
-                            src={getCardSmallImageUrl(item.cardId)}
-                            alt={item.cardName}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
-                            loading="lazy"
-                          />
-                          <span
-                            style={{
-                              position: 'absolute',
-                              top: '4px',
-                              right: '4px',
-                              background: '#3b82f6',
-                              color: '#fff',
-                              fontSize: '11px',
-                              fontWeight: 900,
-                              borderRadius: '4px',
-                              padding: '1px 5px',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.6)',
-                            }}
-                          >
-                            x{item.count}
-                          </span>
-                        </div>
-                        <span
-                          style={{
-                            fontSize: '11.5px',
-                            fontWeight: 700,
-                            color: '#fff',
-                            textAlign: 'center',
-                            lineHeight: '1.2',
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                          }}
-                          title={item.cardName}
-                        >
-                          {item.cardName}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                ))}
             </div>
           )}
         </div>
 
-        {/* Rodapé com Ações */}
+        {/* Rodapé com Totais e Salvar */}
         <div
           style={{
-            padding: '14px 20px',
+            padding: '12px 18px',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             background: '#121214',
             display: 'flex',
@@ -1506,12 +1374,6 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#000',
-                  fontWeight: 800,
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: 'pointer',
                 }}
               >
                 <Save size={15} />
@@ -1522,29 +1384,35 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
         </div>
       </div>
 
-      {/* MODAL DE DETALHES DA CARTA (Card Artwork, Stats & Text) */}
+      {/* ========================================================== */}
+      {/* MODAL DE DETALHES DA CARTA (EXPANDE AO CLICAR NA CARTA)   */}
+      {/* ========================================================== */}
       {previewCard && (
         <div
           className="modal-backdrop"
-          onClick={() => setPreviewCard(null)}
-          style={{ zIndex: 1300 }}
+          onClick={() => {
+            setPreviewCard(null);
+            setPreviewSection(null);
+          }}
+          style={{ zIndex: 1350 }}
         >
           <div
-            className="modal-content"
+            className="modal-card"
             onClick={(e) => e.stopPropagation()}
             style={{
               maxWidth: '460px',
-              width: '90%',
+              width: '92%',
               background: '#18181b',
               border: '1px solid rgba(245, 158, 11, 0.4)',
               borderRadius: '12px',
-              padding: '18px',
+              padding: '16px',
               display: 'flex',
               flexDirection: 'column',
               gap: '12px',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.9)',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.95)',
             }}
           >
+            {/* Header do Card Detail */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', fontWeight: 800 }}>
@@ -1556,13 +1424,17 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => setPreviewCard(null)}
+                onClick={() => {
+                  setPreviewCard(null);
+                  setPreviewSection(null);
+                }}
                 style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
             </div>
 
+            {/* Imagem em alta resolução e dados */}
             <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
               <img
                 src={getCardFullImageUrl(previewCard.id)}
@@ -1570,7 +1442,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                 style={{
                   width: '120px',
                   borderRadius: '6px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.7)',
                   flexShrink: 0,
                 }}
               />
@@ -1590,13 +1462,23 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                 </span>
                 <span style={{ color: '#cbd5e1' }}>
                   Status Edison:{' '}
-                  <strong style={{ color: getCardBanlistStatus(previewCard.name) === 'forbidden' ? '#f87171' : '#fbbf24' }}>
+                  <strong
+                    style={{
+                      color:
+                        getCardBanlistStatus(previewCard.name) === 'forbidden'
+                          ? '#f87171'
+                          : getCardBanlistStatus(previewCard.name) === 'unlimited'
+                          ? '#34d399'
+                          : '#fbbf24',
+                    }}
+                  >
                     {getCardBanlistStatus(previewCard.name).toUpperCase()} ({getCardBanlistLimit(previewCard.name)} máx)
                   </strong>
                 </span>
               </div>
             </div>
 
+            {/* Texto de Efeito / Descrição */}
             <div
               style={{
                 background: '#121214',
@@ -1606,103 +1488,148 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                 fontSize: '12px',
                 color: '#e2e8f0',
                 lineHeight: '1.5',
-                maxHeight: '160px',
+                maxHeight: '140px',
                 overflowY: 'auto',
               }}
             >
               {previewCard.desc || 'Sem descrição cadastrada.'}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                className="btn-secondary-action"
-                onClick={() => setPreviewCard(null)}
-                style={{ padding: '6px 16px', fontSize: '12px' }}
+            {/* Ações interativas da carta (Adicionar cópia, remover, mover) */}
+            {canEdit && (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  paddingTop: '10px',
+                  borderTop: '1px solid #27272a',
+                  justifyContent: 'space-between',
+                }}
               >
-                Fechar
-              </button>
-            </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn-primary-gold"
+                    style={{ padding: '6px 12px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    onClick={() => {
+                      const dest =
+                        previewSection ||
+                        (isExtraDeckCard(previewCard) ? 'extra' : 'main');
+                      handleAddCard(previewCard, dest);
+                    }}
+                  >
+                    <Plus size={13} /> + Cópia
+                  </button>
+
+                  {previewSection && (
+                    <button
+                      type="button"
+                      className="btn-secondary-action"
+                      style={{ padding: '6px 10px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      onClick={() => {
+                        handleChangeCount(previewCard.id, previewSection, -1);
+                        setPreviewCard(null);
+                        setPreviewSection(null);
+                      }}
+                    >
+                      <Minus size={13} /> - 1
+                    </button>
+                  )}
+
+                  {previewSection && (previewSection === 'main' || previewSection === 'side') && !isExtraDeckCard(previewCard) && (
+                    <button
+                      type="button"
+                      className="btn-secondary-action"
+                      style={{ padding: '6px 10px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      onClick={() => {
+                        const target = previewSection === 'main' ? 'side' : 'main';
+                        handleMoveCard(
+                          { cardId: previewCard.id, cardName: previewCard.name, count: 1 },
+                          previewSection,
+                          target
+                        );
+                        setPreviewCard(null);
+                        setPreviewSection(null);
+                      }}
+                    >
+                      <ArrowRightLeft size={12} />
+                      {previewSection === 'main' ? 'Mover Side' : 'Mover Main'}
+                    </button>
+                  )}
+                </div>
+
+                {previewSection && (
+                  <button
+                    type="button"
+                    className="btn-danger-ghost"
+                    style={{ padding: '6px 10px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    onClick={() => {
+                      handleRemoveCard(previewCard.id, previewSection);
+                      setPreviewCard(null);
+                      setPreviewSection(null);
+                    }}
+                  >
+                    <Trash2 size={13} /> Remover
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* MODAL DE IMPORTAÇÃO DE DECK POR TEXTO */}
+      {/* ========================================================== */}
+      {/* MODAL DE IMPORTAÇÃO DE DECK POR TEXTO                     */}
+      {/* ========================================================== */}
       {showImportModal && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setShowImportModal(false)}
-          style={{ zIndex: 1300 }}
-        >
+        <div className="modal-backdrop" onClick={() => setShowImportModal(false)} style={{ zIndex: 1350 }}>
           <div
-            className="modal-content"
+            className="modal-card"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: '520px',
-              width: '92%',
-              background: '#18181b',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              borderRadius: '12px',
-              padding: '18px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.9)',
-            }}
+            style={{ maxWidth: '500px', width: '92%', background: '#18181b', borderRadius: '12px', padding: '18px' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24' }}>
-                <Upload size={18} />
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Upload size={18} className="text-gold" />
                 <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', fontWeight: 800 }}>
-                  Importar Decklist por Texto
+                  Importar Decklist Edison por Texto
                 </h3>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowImportModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-              >
+              <button type="button" className="btn-modal-close" onClick={() => setShowImportModal(false)}>
                 <X size={18} />
               </button>
             </div>
 
-            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', lineHeight: '1.4' }}>
-              Cole a lista de cartas abaixo. Aceita formatos como <code>3x Cyber Dragon</code>, <code>2 Gale</code> ou separadores <code>#main</code>, <code>#extra</code> e <code>#side</code>:
-            </p>
+            <div style={{ padding: '12px 0' }}>
+              <p style={{ fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.5', margin: '0 0 10px' }}>
+                Cole a lista de cartas no formato padrão de simuladores (ex: <code>3x Cyber Dragon</code>, <code>#extra</code>, <code>#side</code>):
+              </p>
+              <textarea
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                placeholder="3x Cyber Dragon&#10;1x Heavy Storm&#10;1x Mirror Force&#10;#extra&#10;1x Stardust Dragon&#10;#side&#10;2x D.D. Crow"
+                rows={10}
+                style={{
+                  width: '100%',
+                  background: '#121214',
+                  border: '1px solid #3f3f46',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  padding: '10px',
+                  fontSize: '12.5px',
+                  fontFamily: 'monospace',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
 
-            <textarea
-              rows={10}
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              placeholder={`#main\n3 Blackwing - Bora the Spear\n1 Blackwing - Gale the Whirlwind\n1 Heavy Storm\n\n#extra\n1 Stardust Dragon\n1 Black Rose Dragon\n\n#side\n2 Cyber Dragon`}
-              style={{
-                width: '100%',
-                background: '#121214',
-                border: '1px solid #3f3f46',
-                borderRadius: '8px',
-                color: '#fff',
-                padding: '10px',
-                fontSize: '12.5px',
-                fontFamily: 'monospace',
-                boxSizing: 'border-box',
-              }}
-            />
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                type="button"
-                className="btn-secondary-action"
-                onClick={() => setShowImportModal(false)}
-              >
+            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button type="button" className="btn-secondary-action" onClick={() => setShowImportModal(false)}>
                 Cancelar
               </button>
-              <button
-                type="button"
-                className="btn-primary-gold"
-                onClick={handleImportText}
-                style={{ padding: '8px 18px', fontSize: '13px' }}
-              >
-                Processar e Carregar
+              <button type="button" className="btn-primary-gold" onClick={handleImportText}>
+                Importar Cartas
               </button>
             </div>
           </div>
