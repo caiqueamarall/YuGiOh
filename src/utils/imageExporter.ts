@@ -161,7 +161,7 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
       // Fundo do Card Ouro
       const goldBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
       goldBg.addColorStop(0, 'rgba(245, 158, 11, 0.22)');
-      goldBg.addColorStop(1, 'rgba(15, 20, 34, 0.95)');
+      goldBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
       ctx.fillStyle = goldBg;
       roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
       ctx.fill();
@@ -220,7 +220,7 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
       // Fundo do Card Prata
       const silverBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
       silverBg.addColorStop(0, 'rgba(148, 163, 184, 0.20)');
-      silverBg.addColorStop(1, 'rgba(15, 20, 34, 0.95)');
+      silverBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
       ctx.fillStyle = silverBg;
       roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
       ctx.fill();
@@ -278,7 +278,7 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
       // Fundo do Card Bronze (Tons quentes de cobre avermelhado)
       const bronzeBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
       bronzeBg.addColorStop(0, 'rgba(234, 88, 12, 0.22)');
-      bronzeBg.addColorStop(1, 'rgba(15, 20, 34, 0.95)');
+      bronzeBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
       ctx.fillStyle = bronzeBg;
       roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
       ctx.fill();
@@ -380,7 +380,7 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
     } else if (idx <= 2) {
       ctx.fillStyle = idx === 1 ? 'rgba(148, 163, 184, 0.08)' : 'rgba(234, 88, 12, 0.08)';
     } else {
-      ctx.fillStyle = isEven ? 'rgba(21, 27, 44, 0.7)' : 'rgba(16, 20, 32, 0.5)';
+      ctx.fillStyle = isEven ? 'rgba(32, 32, 36, 0.7)' : 'rgba(24, 24, 28, 0.5)';
     }
     ctx.fillRect(padding, rowY, contentWidth, rowHeight);
 
@@ -609,7 +609,7 @@ export function exportLeagueRankingPNG(players: Player[]): void {
     } else if (rank === 3) {
       ctx.fillStyle = 'rgba(234, 88, 12, 0.08)';
     } else {
-      ctx.fillStyle = isEven ? 'rgba(21, 27, 44, 0.7)' : 'rgba(16, 20, 32, 0.5)';
+      ctx.fillStyle = isEven ? 'rgba(32, 32, 36, 0.7)' : 'rgba(24, 24, 28, 0.5)';
     }
     ctx.fillRect(padding, rowY, contentWidth, rowHeight);
 

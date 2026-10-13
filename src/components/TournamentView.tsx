@@ -1780,8 +1780,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                             style={{
                               width: '100%',
                               padding: '10px 12px',
-                              background: '#0f172a',
-                              border: '1px solid #334155',
+                              background: '#161619',
+                              border: '1px solid #3f3f46',
                               borderRadius: '8px',
                               color: '#fff',
                               fontSize: '13px',
@@ -1809,8 +1809,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                               style={{
                                 width: '100%',
                                 padding: '10px 12px',
-                                background: '#0f172a',
-                                border: '1px solid #334155',
+                                background: '#161619',
+                                border: '1px solid #3f3f46',
                                 borderRadius: '8px',
                                 color: '#fff',
                                 fontSize: '13px',

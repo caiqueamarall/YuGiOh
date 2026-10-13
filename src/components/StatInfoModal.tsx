@@ -113,7 +113,7 @@ export const StatInfoModal: React.FC<StatInfoModalProps> = ({ statType, onClose 
         <div
           style={{
             padding: '16px 20px',
-            background: `linear-gradient(135deg, ${info.badgeColor}18 0%, rgba(15, 23, 42, 0.9) 100%)`,
+            background: `linear-gradient(135deg, ${info.badgeColor}18 0%, rgba(24, 24, 28, 0.95) 100%)`,
             borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
             alignItems: 'center',
@@ -229,7 +229,7 @@ export const StatInfoModal: React.FC<StatInfoModalProps> = ({ statType, onClose 
           {/* Fórmula e Piso TCG */}
           <div
             style={{
-              background: 'rgba(15, 23, 42, 0.7)',
+              background: 'rgba(28, 28, 32, 0.85)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
               borderRadius: '8px',
               padding: '12px 14px',
@@ -288,7 +288,7 @@ export const StatInfoModal: React.FC<StatInfoModalProps> = ({ statType, onClose 
         <div
           style={{
             padding: '12px 20px',
-            background: 'rgba(15, 23, 42, 0.6)',
+            background: 'rgba(24, 24, 28, 0.85)',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
             justifyContent: 'flex-end',

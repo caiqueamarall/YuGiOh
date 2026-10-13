@@ -607,8 +607,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 style={{
                   width: '100%',
                   padding: '10px 12px',
-                  background: '#0f172a',
-                  border: '1px solid #334155',
+                  background: '#161619',
+                  border: '1px solid #3f3f46',
                   borderRadius: '6px',
                   color: '#fff',
                   fontSize: '14px',

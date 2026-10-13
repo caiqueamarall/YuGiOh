@@ -369,7 +369,7 @@
    HERO BANNER
    ======================================================== */
 .hero-banner {
-  background: linear-gradient(135deg, rgba(21, 27, 44, 0.85) 0%, rgba(16, 20, 32, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(32, 32, 36, 0.9) 0%, rgba(24, 24, 28, 0.96) 100%);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
@@ -1162,7 +1162,7 @@
    ACTIVE TOURNAMENT VIEW & MATCHES
    ======================================================== */
 .round-hero-card {
-  background: linear-gradient(135deg, rgba(21, 27, 44, 0.9) 0%, rgba(16, 20, 32, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(32, 32, 36, 0.92) 0%, rgba(24, 24, 28, 0.96) 100%);
   border: 1px solid var(--border-gold);
   border-radius: var(--radius-lg);
   padding: 20px;
@@ -1719,7 +1719,7 @@
   position: sticky;
   bottom: 70px;
   z-index: 90;
-  background: rgba(16, 20, 32, 0.95);
+  background: rgba(24, 24, 28, 0.96);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-lg);
@@ -2106,7 +2106,7 @@
 
 /* Tiebreaker Info Box */
 .tiebreaker-info-card {
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(28, 28, 32, 0.85);
   border: 1px solid rgba(245, 158, 11, 0.2);
   border-radius: var(--radius-md);
   padding: 12px 14px;
@@ -2208,7 +2208,7 @@
 
 /* Tiebreak Explanations Card */
 .tiebreak-explanations-card {
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(28, 28, 32, 0.85);
   border: 1px solid rgba(245, 158, 11, 0.25);
   border-left: 3px solid var(--gold-400);
   border-radius: var(--radius-md);
@@ -2663,7 +2663,7 @@
 }
 
 .highlight-deck-card {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(21, 27, 44, 0.8) 100%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(32, 32, 36, 0.9) 100%);
   border: 1px solid var(--border-gold);
   border-radius: var(--radius-md);
   padding: 16px;
@@ -3488,7 +3488,7 @@
 
 /* Edison Source Card */
 .edison-source-card {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95));
+  background: linear-gradient(135deg, rgba(36, 36, 42, 0.9), rgba(24, 24, 28, 0.96));
   border: 1px solid rgba(245, 158, 11, 0.3);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -3601,7 +3601,7 @@
 
 .edison-rule-card.highlight-card {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgba(30, 41, 59, 0.7));
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(36, 36, 42, 0.85));
   border-color: rgba(245, 158, 11, 0.4);
 }
 
@@ -4151,7 +4151,7 @@
   z-index: 120;
   width: 310px;
   max-width: calc(100vw - 32px);
-  background: rgba(17, 24, 39, 0.98);
+  background: rgba(24, 24, 28, 0.98);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(245, 158, 11, 0.45);
   border-radius: var(--radius-lg, 14px);
@@ -4343,18 +4343,18 @@
 }
 
 .league-option-card:hover {
-  background: var(--bg-card-hover, #1e293b);
-  border-color: var(--border-medium, #475569);
+  background: var(--bg-card-hover, #28282e);
+  border-color: var(--border-medium);
 }
 
 .league-option-card.selected-league {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(17, 24, 39, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(28, 28, 32, 0.96) 100%);
   border-color: rgba(245, 158, 11, 0.5);
   box-shadow: 0 4px 16px rgba(245, 158, 11, 0.08);
 }
 
 .league-option-card.selected-freeplay {
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(17, 24, 39, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(28, 28, 32, 0.96) 100%);
   border-color: rgba(6, 182, 212, 0.45);
   box-shadow: 0 4px 16px rgba(6, 182, 212, 0.08);
 }
@@ -4589,7 +4589,7 @@
 
 /* Banner Informativo do Top Cut (Top 12) */
 .topcut-info-banner {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(28, 28, 32, 0.85) 100%);
   border: 1px solid rgba(245, 158, 11, 0.4);
   border-radius: var(--radius-lg, 14px);
   padding: 16px 20px;
@@ -4993,14 +4993,14 @@
    ======================================================== */
 .simulator-backdrop {
   min-height: 100vh;
-  background: radial-gradient(circle at 50% 30%, #101626 0%, #06080d 100%);
+  background: radial-gradient(circle at 50% 30%, #161619 0%, #0b0b0d 100%);
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
 }
 
 .simulator-topbar {
-  background: rgba(15, 20, 34, 0.9);
+  background: rgba(22, 22, 26, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
@@ -5430,7 +5430,7 @@
    CRONÔMETRO DA RODADA (ROUND TIMER)
    ======================================================== */
 .round-timer-card {
-  background: rgba(15, 23, 42, 0.85);
+  background: linear-gradient(135deg, rgba(32, 32, 36, 0.95) 0%, rgba(24, 24, 28, 0.98) 100%);
   border: 1px solid rgba(245, 158, 11, 0.28);
   border-radius: var(--radius-lg);
   padding: 14px 18px;
@@ -5444,20 +5444,20 @@
 
 .round-timer-card.timer-warning {
   border-color: rgba(245, 158, 11, 0.65);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(24, 24, 28, 0.96) 100%);
   box-shadow: 0 0 25px rgba(245, 158, 11, 0.2);
 }
 
 .round-timer-card.timer-critical {
   border-color: rgba(239, 68, 68, 0.75);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(15, 23, 42, 0.9) 100%);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(24, 24, 28, 0.96) 100%);
   box-shadow: 0 0 30px rgba(239, 68, 68, 0.28);
   animation: timerPulse 1.5s infinite alternate;
 }
 
 .round-timer-card.timer-time-up {
   border-color: #ef4444;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(15, 23, 42, 0.92) 100%);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, rgba(24, 24, 28, 0.96) 100%);
   box-shadow: 0 0 35px rgba(239, 68, 68, 0.45);
 }
 
@@ -5584,8 +5584,8 @@
 }
 
 .digits-normal {
-  color: #38bdf8;
-  text-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+  color: #fbbf24;
+  text-shadow: 0 0 16px rgba(251, 191, 36, 0.45);
 }
 
 .digits-yellow {
