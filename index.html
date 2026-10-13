@@ -10,14 +10,35 @@
     <title>Edison League - Yu-Gi-Oh! Tournament Manager</title>
 
     <!-- PWA & iOS Safari Home Screen Meta Tags -->
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" href="./apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="./apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Edison League" />
+
+    <script>
+      (function() {
+        // Garantir trailing slash para evitar que o iOS abra a raiz do GitHub Pages
+        if (!window.location.pathname.endsWith('/') && !window.location.pathname.includes('.')) {
+          window.location.replace(window.location.pathname + '/' + window.location.search + window.location.hash);
+          return;
+        }
+        // Assegurar URL absoluta exata para os links de ícone do iOS
+        try {
+          var base = window.location.origin + window.location.pathname;
+          if (!base.endsWith('/')) {
+            base = base.substring(0, base.lastIndexOf('/') + 1);
+          }
+          var touchIcons = document.querySelectorAll('link[rel*="apple-touch-icon"]');
+          touchIcons.forEach(function(el) {
+            el.href = base + 'apple-touch-icon.png';
+          });
+        } catch (e) {}
+      })();
+    </script>
 
     <!-- Google Fonts: Cinzel & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
