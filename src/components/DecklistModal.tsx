@@ -461,12 +461,12 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
       <div className="deck-modal-box" onClick={(e) => e.stopPropagation()}>
         {/* Topo do Header: Título & Ações Principais */}
         <div className="deck-header-top">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '200px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, overflow: 'hidden' }}>
             <div
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
+                width: '30px',
+                height: '30px',
+                borderRadius: '6px',
                 background: 'rgba(245, 158, 11, 0.2)',
                 border: '1px solid rgba(245, 158, 11, 0.4)',
                 display: 'flex',
@@ -476,11 +476,11 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                 flexShrink: 0,
               }}
             >
-              <Shield size={20} />
+              <Shield size={16} />
             </div>
 
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
                 {isEditingName && canEdit ? (
                   <input
                     type="text"
@@ -490,20 +490,30 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                     placeholder="Nome do Deck"
                     autoFocus
                     style={{
-                      fontSize: '15px',
+                      fontSize: '14px',
                       fontWeight: 800,
                       color: '#fff',
                       background: '#121214',
                       border: '1px solid #f59e0b',
                       borderRadius: '6px',
-                      padding: '3px 8px',
-                      maxWidth: '200px',
+                      padding: '2px 6px',
+                      maxWidth: '140px',
                     }}
                   />
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden' }}>
                     <h3
-                      style={{ margin: 0, fontSize: '16px', color: '#fff', fontWeight: 800, cursor: canEdit ? 'pointer' : 'default' }}
+                      style={{
+                        margin: 0,
+                        fontSize: '14px',
+                        color: '#fff',
+                        fontWeight: 800,
+                        cursor: canEdit ? 'pointer' : 'default',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '130px',
+                      }}
                       onClick={() => canEdit && setIsEditingName(true)}
                       title={canEdit ? 'Clique para editar o nome do deck' : undefined}
                     >
@@ -513,35 +523,37 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setIsEditingName(true)}
-                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0, flexShrink: 0 }}
                         title="Editar nome do deck"
                       >
-                        <Edit2 size={12} />
+                        <Edit2 size={11} />
                       </button>
                     )}
                   </div>
                 )}
                 <span
                   style={{
-                    fontSize: '11px',
+                    fontSize: '10px',
                     color: '#cbd5e1',
                     background: 'rgba(255, 255, 255, 0.08)',
-                    padding: '2px 8px',
+                    padding: '1px 6px',
                     borderRadius: '4px',
                     fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
                   {playerName}
                 </span>
               </div>
-              <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+              <span style={{ fontSize: '10px', color: '#94a3b8', whiteSpace: 'nowrap', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Decklist Oficial • Formato Edison (2010)
               </span>
             </div>
           </div>
 
           {/* Botões do Topo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
             <button
               type="button"
               onClick={handleCopyDecklistText}
@@ -550,16 +562,17 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                 background: 'rgba(255, 255, 255, 0.05)',
                 color: copySuccess ? '#34d399' : '#cbd5e1',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
-                padding: '6px 10px',
+                padding: '4px 8px',
                 borderRadius: '6px',
-                fontSize: '11.5px',
+                fontSize: '11px',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
-              {copySuccess ? <Check size={13} /> : <Copy size={13} />}
+              {copySuccess ? <Check size={12} /> : <Copy size={12} />}
               <span>{copySuccess ? 'Copiado' : 'Copiar'}</span>
             </button>
 
@@ -572,16 +585,17 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                   background: 'rgba(255, 255, 255, 0.05)',
                   color: '#cbd5e1',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
-                  padding: '6px 10px',
+                  padding: '4px 8px',
                   borderRadius: '6px',
-                  fontSize: '11.5px',
+                  fontSize: '11px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <Upload size={13} />
+                <Upload size={12} />
                 <span>Importar</span>
               </button>
             )}
@@ -591,31 +605,36 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
               onClick={onClose}
               title="Fechar"
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#94a3b8',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#cbd5e1',
                 cursor: 'pointer',
-                padding: '6px',
+                padding: '4px 6px',
                 borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
-              <X size={20} />
+              <X size={16} />
             </button>
           </div>
         </div>
 
         {/* Faixa de Contadores e Categorias */}
         <div className="deck-header-badges-row">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <span
               style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
-                fontSize: '12px',
+                padding: '3px 8px',
+                borderRadius: '5px',
+                fontSize: '11px',
                 fontWeight: 800,
                 background: stats.mainTotal >= 40 && stats.mainTotal <= 60 ? 'rgba(52, 211, 153, 0.15)' : 'rgba(245, 158, 11, 0.15)',
                 color: stats.mainTotal >= 40 && stats.mainTotal <= 60 ? '#34d399' : '#fbbf24',
                 border: '1px solid currentColor',
+                whiteSpace: 'nowrap',
               }}
             >
               Main: {stats.mainTotal} / 40-60
@@ -623,13 +642,14 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
 
             <span
               style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
-                fontSize: '12px',
+                padding: '3px 8px',
+                borderRadius: '5px',
+                fontSize: '11px',
                 fontWeight: 800,
                 background: stats.extraTotal <= 15 ? 'rgba(168, 85, 247, 0.15)' : 'rgba(239, 68, 68, 0.15)',
                 color: stats.extraTotal <= 15 ? '#c084fc' : '#f87171',
                 border: '1px solid currentColor',
+                whiteSpace: 'nowrap',
               }}
             >
               Extra: {stats.extraTotal} / 15
@@ -637,23 +657,24 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
 
             <span
               style={{
-                padding: '4px 10px',
-                borderRadius: '6px',
-                fontSize: '12px',
+                padding: '3px 8px',
+                borderRadius: '5px',
+                fontSize: '11px',
                 fontWeight: 800,
                 background: stats.sideTotal <= 15 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(239, 68, 68, 0.15)',
                 color: stats.sideTotal <= 15 ? '#60a5fa' : '#f87171',
                 border: '1px solid currentColor',
+                whiteSpace: 'nowrap',
               }}
             >
               Side: {stats.sideTotal} / 15
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: '#94a3b8' }}>
-            <span style={{ color: '#fbbf24' }}>🐉 Monstros: <strong>{stats.mainMonsters}</strong></span>
-            <span style={{ color: '#34d399' }}>📜 Magias: <strong>{stats.mainSpells}</strong></span>
-            <span style={{ color: '#f472b6' }}>⚡ Armadilhas: <strong>{stats.mainTraps}</strong></span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#94a3b8', flexWrap: 'wrap' }}>
+            <span style={{ color: '#fbbf24', whiteSpace: 'nowrap' }}>🐉 Monstros: <strong>{stats.mainMonsters}</strong></span>
+            <span style={{ color: '#34d399', whiteSpace: 'nowrap' }}>📜 Magias: <strong>{stats.mainSpells}</strong></span>
+            <span style={{ color: '#f472b6', whiteSpace: 'nowrap' }}>⚡ Armadilhas: <strong>{stats.mainTraps}</strong></span>
           </div>
         </div>
 
@@ -661,17 +682,17 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
         {stats.warnings.length > 0 && (
           <div
             style={{
-              padding: '8px 16px',
+              padding: '6px 12px',
               background: 'rgba(245, 158, 11, 0.08)',
               borderBottom: '1px solid rgba(245, 158, 11, 0.2)',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              fontSize: '11.5px',
+              gap: '6px',
+              fontSize: '11px',
               color: '#fde68a',
             }}
           >
-            <AlertTriangle size={15} style={{ color: '#fbbf24', flexShrink: 0 }} />
+            <AlertTriangle size={13} style={{ color: '#fbbf24', flexShrink: 0 }} />
             <span>{stats.warnings.join(' • ')}</span>
           </div>
         )}
@@ -864,9 +885,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
 
                 <div className="simulator-grid-content">
                   <div className="simulator-section-header">
-                    <span style={{ color: '#fb923c' }}>
-                      EXTRA DECK ({stats.extraTotal} CARTAS) • {stats.extraSynchro} Synchro • {stats.extraFusion} Fusão
-                    </span>
+                    <span style={{ color: '#fb923c', fontWeight: 700 }}>Extra Deck</span>
                     <span style={{ fontSize: '11px', color: '#94a3b8' }}>Máximo 15</span>
                   </div>
 
