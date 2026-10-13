@@ -243,6 +243,11 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
                           <span className={`rank-tag ${h.rank <= 3 ? 'top' : ''}`}>
                             {h.rank}º Lugar
                           </span>
+                          {h.isDropped && (
+                            <span className="badge-drop-tag" style={{ marginLeft: '6px', fontSize: '10px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '4px', padding: '1px 5px', fontWeight: 'bold' }}>
+                              Drop
+                            </span>
+                          )}
                         </td>
                         <td>
                           {h.matchWins}V - {h.matchDraws}E - {h.matchLosses}D

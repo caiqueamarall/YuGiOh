@@ -16,7 +16,9 @@ import {
   FileDown,
   ImageDown,
   Medal,
-  Award
+  Award,
+  UserMinus,
+  X,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { Player, Tournament, TournamentRound } from '../types';
@@ -114,7 +116,39 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
   // Controle de abas internas no torneio ativo
   const [showStandings, setShowStandings] = useState(false);
+  const [showDropModal, setShowDropModal] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
+
+  // Manipulação de Drop (Desistência de torneio)
+  const handleDropPlayer = (playerId: string) => {
+    if (!activeTournament) return;
+    const playerObj = players.find((p) => p.id === playerId);
+    const playerName = playerObj ? playerObj.name : 'o duelista';
+    if (
+      !window.confirm(
+        `Deseja dropar ${playerName} deste torneio?\n\n• Ele manterá todos os pontos e saldo conquistados até agora.\n• Não será mais pareado nas próximas rodadas.\n• A pontuação continuará valendo na classificação final.`
+      )
+    ) {
+      return;
+    }
+
+    const currentDropped = activeTournament.droppedPlayerIds || [];
+    if (currentDropped.includes(playerId)) return;
+
+    onUpdateActiveTournament({
+      ...activeTournament,
+      droppedPlayerIds: [...currentDropped, playerId],
+    });
+  };
+
+  const handleUndropPlayer = (playerId: string) => {
+    if (!activeTournament) return;
+    const currentDropped = activeTournament.droppedPlayerIds || [];
+    onUpdateActiveTournament({
+      ...activeTournament,
+      droppedPlayerIds: currentDropped.filter((id) => id !== playerId),
+    });
+  };
 
   // Toggle de seleção de jogador
   const togglePlayerSelection = (id: string) => {
@@ -535,7 +569,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
     const champion = standings[0];
     const runnerUp = standings[1];
     const thirdPlace = standings[2];
-    const tiebreakNotes = getTiebreakExplanations(standings);
+    const tiebreakNotes = getTiebreakExplanations(standings, activeTournament);
     const playerDecks = activeTournament.playerDecks || {};
 
     return (
@@ -689,6 +723,23 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                       </td>
                       <td className="text-left">
                         <strong>{s.playerName}</strong>
+                        {s.isDropped && (
+                          <span
+                            className="badge-drop-tag"
+                            style={{
+                              marginLeft: '6px',
+                              fontSize: '10px',
+                              background: 'rgba(239, 68, 68, 0.2)',
+                              color: '#f87171',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              borderRadius: '4px',
+                              padding: '1px 5px',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            DROP
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span className="player-deck-badge">
@@ -856,6 +907,19 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
             <span>{showStandings ? 'Ocultar Classificação' : 'Ver Classificação'}</span>
           </button>
           <button
+            id="btn-manage-drops"
+            className="btn-secondary-action"
+            onClick={() => setShowDropModal(true)}
+            style={{
+              borderColor: (activeTournament.droppedPlayerIds?.length || 0) > 0 ? '#ef4444' : undefined,
+              color: (activeTournament.droppedPlayerIds?.length || 0) > 0 ? '#fca5a5' : undefined,
+            }}
+            title="Gerenciar desistências (Drops) no torneio"
+          >
+            <UserMinus size={18} />
+            <span>Drops ({(activeTournament.droppedPlayerIds?.length || 0)})</span>
+          </button>
+          <button
             id="btn-cancel-tournament"
             className="btn-danger-ghost"
             onClick={() => {
@@ -905,7 +969,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
               </div>
             </div>
             <div className="tiebreaker-rule-note">
-              *Ordem de Desempate: Pontos &gt; Sem BY (prioridade para quem jogou) &gt; OMW% &gt; PGW% &gt; OGW% (Piso oficial: 0.33)
+              *Ordem de Desempate: Pontos &gt; Sem BY (prioridade para quem jogou) &gt; Mínimos (OMW%) &gt; Saldo de Games (+2 / +1 / -1 / -2) &gt; Confronto Direto &gt; PGW% &gt; OGW% (Piso: 0.33)
             </div>
           </div>
 
@@ -935,6 +999,23 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                     </td>
                     <td className="text-left">
                       <strong>{s.playerName}</strong>
+                      {s.isDropped && (
+                        <span
+                          className="badge-drop-tag"
+                          style={{
+                            marginLeft: '6px',
+                            fontSize: '10px',
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            color: '#f87171',
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                            borderRadius: '4px',
+                            padding: '1px 5px',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          DROP
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span
@@ -993,7 +1074,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
           {/* Observações de Desempate */}
           {(() => {
-            const liveTiebreakNotes = getTiebreakExplanations(standings);
+            const liveTiebreakNotes = getTiebreakExplanations(standings, activeTournament);
             if (liveTiebreakNotes.length === 0) return null;
             return (
               <div className="tiebreak-explanations-card" style={{ marginTop: '12px' }}>
@@ -1284,6 +1365,154 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal de Gerenciamento de Drops (Desistências) */}
+      {showDropModal && (
+        <div className="modal-backdrop" onClick={() => setShowDropModal(false)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '520px', width: '92%' }}
+          >
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <UserMinus size={20} className="text-gold" />
+                <h3 className="modal-title">Gerenciar Drops (Desistências)</h3>
+              </div>
+              <button
+                type="button"
+                className="btn-icon"
+                onClick={() => setShowDropModal(false)}
+                title="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px' }}>
+              <div
+                style={{
+                  background: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  marginBottom: '16px',
+                  fontSize: '12px',
+                  lineHeight: '1.5',
+                  color: '#fde68a',
+                }}
+              >
+                <strong>ℹ️ Como funciona o Drop:</strong>
+                <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>
+                  O duelista que dropar <strong>mantém todos os pontos conquistados</strong> até agora e continuará na classificação final com sua pontuação. Ele apenas não será pareado nas próximas rodadas.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '380px', overflowY: 'auto' }}>
+                {activeTournament.playerIds.map((pid) => {
+                  const p = playerMap.get(pid);
+                  const isDropped = (activeTournament.droppedPlayerIds || []).includes(pid);
+                  const playerStanding = standings.find((s) => s.playerId === pid);
+                  const pts = playerStanding ? playerStanding.matchPoints : 0;
+                  const currentDeck = playerDecks[pid] || 'Edison Deck';
+
+                  return (
+                    <div
+                      key={pid}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        background: isDropped ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                        border: isDropped ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div
+                          className="player-avatar-sm"
+                          style={{
+                            backgroundColor: p?.avatarColor || '#3B82F6',
+                            opacity: isDropped ? 0.6 : 1,
+                          }}
+                        >
+                          {p?.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontWeight: 'bold', fontSize: '14px', color: isDropped ? '#fca5a5' : '#ffffff' }}>
+                              {p?.name}
+                            </span>
+                            {isDropped && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  background: 'rgba(239, 68, 68, 0.25)',
+                                  color: '#f87171',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                  fontWeight: 'bold',
+                                }}
+                              >
+                                DROPADO
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                            {currentDeck} • {pts} pts
+                          </span>
+                        </div>
+                      </div>
+
+                      {isDropped ? (
+                        <button
+                          type="button"
+                          className="btn-secondary-action"
+                          onClick={() => handleUndropPlayer(pid)}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            borderColor: '#34d399',
+                            color: '#34d399',
+                          }}
+                        >
+                          Reintegrar
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn-danger-ghost"
+                          onClick={() => handleDropPlayer(pid)}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            color: '#f87171',
+                            borderColor: 'rgba(239, 68, 68, 0.3)',
+                          }}
+                        >
+                          Dropar
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn-primary-gold"
+                  onClick={() => setShowDropModal(false)}
+                  style={{ padding: '8px 20px', fontSize: '13px' }}
+                >
+                  Concluído
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

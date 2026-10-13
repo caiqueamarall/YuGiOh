@@ -614,7 +614,7 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
   const firstPlace = standings[0];
   const secondPlace = standings[1];
   const thirdPlace = standings[2];
-  const tiebreakNotes = getTiebreakExplanations(standings);
+  const tiebreakNotes = getTiebreakExplanations(standings, tournament);
   const playerDecks = tournament.playerDecks || {};
 
   const tournDate = tournament.date
@@ -625,7 +625,10 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
   const standingsRows = standings.map((s) => `
     <tr>
       <td><strong>${s.rank}º</strong></td>
-      <td class="text-left"><strong>${s.playerName}</strong></td>
+      <td class="text-left">
+        <strong>${s.playerName}</strong>
+        ${s.isDropped ? '<span style="font-size: 9px; background: #fee2e2; color: #dc2626; border: 1px solid #f87171; border-radius: 3px; padding: 1px 4px; font-weight: 700; margin-left: 4px;">DROP</span>' : ''}
+      </td>
       <td><span class="deck-pill">${playerDecks[s.playerId] || 'Edison Deck'}</span></td>
       <td><strong>${s.matchPoints} pts</strong></td>
       <td>${s.matchWins}-${s.matchDraws}-${s.matchLosses}</td>
@@ -785,7 +788,7 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
       </tbody>
     </table>
     <div style="font-size: 10px; color: #64748b; margin-top: -6px; margin-bottom: 12px;">
-      * Desempates Oficiais: Pontos &gt; Sem BY &gt; OMW% (Força dos Oponentes) &gt; PGW% (Games do Jogador) &gt; OGW% (Games dos Oponentes). Piso mínimo: 0.33.
+      * Desempates Oficiais: Pontos &gt; Sem BY &gt; Mínimos (OMW% - Força dos Oponentes) &gt; Saldo de Games (+2 / +1 / -1 / -2) &gt; Confronto Direto &gt; PGW% &gt; OGW%. Piso mínimo: 0.33.
     </div>
 
     <!-- Observações de Desempate -->

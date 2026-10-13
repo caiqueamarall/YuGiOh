@@ -253,6 +253,7 @@ export function calculateTournamentStandings(
 
     const playerObj = playerMap.get(item.playerId);
     const tournamentDeck = tournament.playerDecks?.[item.playerId];
+    const isDropped = (tournament.droppedPlayerIds || []).includes(item.playerId);
 
     return {
       rank: 0,
@@ -267,6 +268,7 @@ export function calculateTournamentStandings(
       gamesLost: item.gamesLost,
       gameDiff: item.gamesWon - item.gamesLost,
       hadBy: item.hadBy,
+      isDropped,
       pmw: Math.round(pmw * 100) / 100,
       omw: Math.round(omw * 100) / 100,
       pgw: Math.round(pgw * 100) / 100,
@@ -278,9 +280,32 @@ export function calculateTournamentStandings(
     };
   });
 
-  // Ordenação com Desempate
-  // REGRA DE OURO DO USUÁRIO:
-  // "em caso de empate de pontos ao término do torneio, quem ficou de by terá a menor prioridade."
+  // Função para verificar confronto direto entre dois jogadores no torneio
+  const getHeadToHead = (p1Id: string, p2Id: string): number => {
+    for (const round of tournament.rounds) {
+      for (const match of round.matches) {
+        if (!match.isCompleted || match.isDraw || match.isBy) continue;
+        if (match.player1Id === p1Id && match.player2Id === p2Id) {
+          if (match.winnerId === p1Id) return -1; // p1 venceu
+          if (match.winnerId === p2Id) return 1;  // p2 venceu
+        } else if (match.player1Id === p2Id && match.player2Id === p1Id) {
+          if (match.winnerId === p1Id) return -1; // p1 venceu
+          if (match.winnerId === p2Id) return 1;  // p2 venceu
+        }
+      }
+    }
+    return 0;
+  };
+
+  // Ordenação com Desempate Oficial de Torneio:
+  // 1. Pontuação de Partidas (Points)
+  // 2. Penalidade de BY (quem NÃO teve BY supera quem teve BY no empate)
+  // 3. Os Mínimos (OMW% / Força da Tabela dos Oponentes)
+  // 4. Saldo de Games direto (+2 no 2x0, +1 no 2x1, -1 no 1x2, -2 no 0x2)
+  // 5. Confronto Direto (Head-to-Head)
+  // 6. PGW% (Aproveitamento em Games Individuais)
+  // 7. OGW% (Força dos Games dos Oponentes)
+  // 8. Alfabético por nome como fallback
   standingsList.sort((a, b) => {
     // 1. Pontuação de Partidas (Points)
     if (b.matchPoints !== a.matchPoints) {
@@ -292,22 +317,33 @@ export function calculateTournamentStandings(
       return a.hadBy ? 1 : -1;
     }
 
-    // 3. OMW% (Força da Tabela dos Oponentes)
+    // 3. OMW% (Os "Mínimos" - Força da Tabela dos Oponentes)
     if (b.omw !== a.omw) {
       return b.omw - a.omw;
     }
 
-    // 4. PGW% (Aproveitamento em Games Individuais)
+    // 4. Saldo de Games direto (Vitória 2-0 dá +2; 2-1 dá +1; 1-2 dá -1; 0-2 dá -2)
+    if (b.gameDiff !== a.gameDiff) {
+      return b.gameDiff - a.gameDiff;
+    }
+
+    // 5. Confronto Direto (Head-to-Head entre os dois empatados)
+    const h2h = getHeadToHead(a.playerId, b.playerId);
+    if (h2h !== 0) {
+      return h2h;
+    }
+
+    // 6. PGW% (Aproveitamento em Games Individuais)
     if (b.pgw !== a.pgw) {
       return b.pgw - a.pgw;
     }
 
-    // 5. OGW% (Força dos Games dos Oponentes)
+    // 7. OGW% (Força dos Games dos Oponentes)
     if (b.ogw !== a.ogw) {
       return b.ogw - a.ogw;
     }
 
-    // 6. Alfabético por nome como fallback
+    // 8. Alfabético por nome como fallback
     return a.playerName.localeCompare(b.playerName);
   });
 
@@ -327,7 +363,10 @@ export interface TiebreakNote {
 /**
  * Analisa a classificação e gera observações explicativas sobre duelistas empatados em pontos.
  */
-export function getTiebreakExplanations(standings: TournamentStanding[]): TiebreakNote[] {
+export function getTiebreakExplanations(
+  standings: TournamentStanding[],
+  tournament?: Tournament
+): TiebreakNote[] {
   // Agrupa jogadores pela mesma pontuação de partidas
   const groupsByPoints = new Map<number, TournamentStanding[]>();
   for (const s of standings) {
@@ -350,7 +389,7 @@ export function getTiebreakExplanations(standings: TournamentStanding[]): Tiebre
 
       if (!a.hadBy && b.hadBy) {
         reasons.push(
-          `${a.playerName} (${a.rank}º) superou ${b.playerName} (${b.rank}º) por prioridade de duelos jogados (não teve BY).`
+          `${a.playerName} (${a.rank}º) superou ${b.playerName} (${b.rank}º) por prioridade de duelos jogados na mesa (não teve BY).`
         );
       } else if (a.hadBy && !b.hadBy) {
         reasons.push(
@@ -358,20 +397,48 @@ export function getTiebreakExplanations(standings: TournamentStanding[]): Tiebre
         );
       } else if (a.omw !== b.omw) {
         reasons.push(
-          `${a.playerName} (${a.rank}º) superou ${b.playerName} (${b.rank}º) pelo critério OMW% (${a.omwPercentage}% vs ${b.omwPercentage}%) — enfrentou adversários com melhor aproveitamento.`
+          `${a.playerName} (${a.rank}º) superou ${b.playerName} (${b.rank}º) pelo critério Mínimos / OMW% (${a.omwPercentage}% vs ${b.omwPercentage}%) — enfrentou adversários com melhor aproveitamento.`
         );
-      } else if (a.pgw !== b.pgw) {
+      } else if (a.gameDiff !== b.gameDiff) {
+        const diffA = a.gameDiff > 0 ? `+${a.gameDiff}` : `${a.gameDiff}`;
+        const diffB = b.gameDiff > 0 ? `+${b.gameDiff}` : `${b.gameDiff}`;
         reasons.push(
-          `${a.playerName} (${a.rank}º) empatou em OMW% com ${b.playerName} (${b.rank}º), desempatando pelo PGW% (${a.pgwPercentage}% vs ${b.pgwPercentage}%) — melhor aproveitamento em duelos individuais.`
-        );
-      } else if (a.ogw !== b.ogw) {
-        reasons.push(
-          `${a.playerName} (${a.rank}º) empatou em PGW% com ${b.playerName} (${b.rank}º), desempatando pelo OGW% (${a.ogwPercentage}% vs ${b.ogwPercentage}%) — adversários venceram mais games.`
+          `${a.playerName} (${a.rank}º) empatou nos Mínimos com ${b.playerName} (${b.rank}º), superando pelo Saldo de Games (${diffA} vs ${diffB}).`
         );
       } else {
-        reasons.push(
-          `${a.playerName} (${a.rank}º) e ${b.playerName} (${b.rank}º) empataram em todos os critérios estatísticos; ordem definida por critério alfabético/confronto.`
-        );
+        // Verifica confronto direto caso torneio tenha sido informado
+        let h2hReason: string | null = null;
+        if (tournament) {
+          for (const round of tournament.rounds) {
+            for (const match of round.matches) {
+              if (!match.isCompleted || match.isDraw || match.isBy) continue;
+              if (
+                (match.player1Id === a.playerId && match.player2Id === b.playerId) ||
+                (match.player1Id === b.playerId && match.player2Id === a.playerId)
+              ) {
+                if (match.winnerId === a.playerId) {
+                  h2hReason = `${a.playerName} (${a.rank}º) superou ${b.playerName} (${b.rank}º) no Confronto Direto (vitória na Rodada ${match.roundNumber}).`;
+                }
+              }
+            }
+          }
+        }
+
+        if (h2hReason) {
+          reasons.push(h2hReason);
+        } else if (a.pgw !== b.pgw) {
+          reasons.push(
+            `${a.playerName} (${a.rank}º) superou ${b.playerName} (${b.rank}º) pelo PGW% (${a.pgwPercentage}% vs ${b.pgwPercentage}%) — melhor aproveitamento em duelos individuais.`
+          );
+        } else if (a.ogw !== b.ogw) {
+          reasons.push(
+            `${a.playerName} (${a.rank}º) superou ${b.playerName} (${b.rank}º) pelo OGW% (${a.ogwPercentage}% vs ${b.ogwPercentage}%) — adversários venceram mais games.`
+          );
+        } else {
+          reasons.push(
+            `${a.playerName} (${a.rank}º) e ${b.playerName} (${b.rank}º) empataram rigorosamente em todos os critérios estatísticos; ordem alfabética.`
+          );
+        }
       }
     }
 
@@ -604,7 +671,8 @@ export function generateSwissPairings(
   tournament: Tournament,
   allPlayers: Player[]
 ): TournamentRound {
-  const playerIds = [...tournament.playerIds];
+  const droppedSet = new Set(tournament.droppedPlayerIds || []);
+  const playerIds = tournament.playerIds.filter((id) => !droppedSet.has(id));
   const previousMatchups = getPreviousMatchups(tournament.rounds);
   const playersWithBy = getPlayersWithBy(tournament.rounds);
   const standings = calculateTournamentStandings(tournament, allPlayers);

@@ -10,6 +10,7 @@ export interface PlayerTournamentHistory {
   matchLosses: number;
   hadBy: boolean;
   countsForLeague?: boolean; // Se pontua para o Ranking da Liga ou se foi Freeplay
+  isDropped?: boolean; // Se desistiu/dropou do torneio
 }
 
 export interface Player {
@@ -86,6 +87,7 @@ export interface TournamentStanding {
   omw: number; // Decimal (ex: 0.33)
   pgw: number; // Decimal (ex: 1.00)
   ogw: number; // Decimal (ex: 0.33)
+  isDropped?: boolean; // Se o jogador dropou do torneio
 }
 
 export interface Tournament {
@@ -96,6 +98,7 @@ export interface Tournament {
   currentRound: number;
   status: 'active' | 'completed';
   playerIds: string[];
+  droppedPlayerIds?: string[]; // IDs dos jogadores que droparam deste torneio
   playerDecks?: Record<string, string>; // Mapeia playerId -> Deck jogado especificamente neste torneio
   rounds: TournamentRound[];
   championId?: string;

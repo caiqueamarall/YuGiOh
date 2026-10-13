@@ -564,15 +564,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="rule-item">
                 <span className="rule-badge">TCG Tie</span>
                 <div>
-                  <strong>Desempate Oficial de Torneio (Regras Oficiais TCG):</strong>
+                  <strong>Desempate Oficial de Torneio (Regras Oficiais Edison / TCG):</strong>
                   <p>
                     Quando dois ou mais duelistas terminam um torneio com a mesma pontuação, a ordem é definida estritamente por:<br />
-                    1. <strong>Pontuação Total de Partidas</strong><br />
-                    2. <strong>Penalidade de BY:</strong> Jogador que não recebeu BY supera quem folgou com BY<br />
-                    3. <strong>OMW% (Opponents' Match Win %):</strong> Aproveitamento dos adversários enfrentados (força do calendário, piso de 33%)<br />
-                    4. <strong>PGW% (Player Game Win %):</strong> Porcentagem de games ganhos pelo próprio jogador<br />
-                    5. <strong>OGW% (Opponents' Game Win %):</strong> Porcentagem de games ganhos pelos adversários<br />
-                    6. <strong>Confronto Direto (Head-to-head)</strong> e Saldo de Games
+                    1. <strong>Pontuação Total de Partidas:</strong> 3 pontos por vitória/WO/BY, 1 por empate, 0 por derrota<br />
+                    2. <strong>Penalidade de BY:</strong> Duelista que jogou na mesa supera quem folgou com vitória de BY<br />
+                    3. <strong>Os Mínimos / OMW% (Opponents' Match Win %):</strong> Aproveitamento dos adversários enfrentados (força do calendário, piso oficial de 33%)<br />
+                    4. <strong>Saldo de Games Direto:</strong> Diferencial de vitórias em games (+2 no 2x0, +1 no 2x1, -1 no 1x2, -2 no 0x2)<br />
+                    5. <strong>Confronto Direto (Head-to-Head):</strong> Vitória no confronto individual direto entre os empatados<br />
+                    6. <strong>Aproveitamento em Games:</strong> PGW% (games do jogador) e OGW% (games dos oponentes)
+                  </p>
+                </div>
+              </div>
+
+              <div className="rule-item">
+                <span className="rule-badge" style={{ background: '#ef4444', color: '#fff' }}>Drop</span>
+                <div>
+                  <strong>Regra de Desistência (Drop no Torneio):</strong>
+                  <p>
+                    • Um duelista pode solicitar o Drop a qualquer momento durante o torneio em andamento.<br />
+                    • <strong>Preservação Integral de Pontos:</strong> O duelista mantém todos os pontos, vitórias e saldo obtidos até a rodada em que participou, permanecendo na classificação final com sua pontuação merecida.<br />
+                    • <strong>Exclusão de Pareamento:</strong> O jogador dropado é automaticamente excluído dos sorteios das rodadas subsequentes.
                   </p>
                 </div>
               </div>

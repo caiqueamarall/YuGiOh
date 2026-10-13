@@ -128,6 +128,7 @@ export function App() {
 
       const isChampion = standing.playerId === championId;
       const tournamentDeckUsed = playerDecks[player.id] || 'Quickdraw Dandy';
+      const isDropped = (completedTournament.droppedPlayerIds || []).includes(player.id);
 
       const newHistoryEntry: PlayerTournamentHistory = {
         tournamentId: completedTournament.id,
@@ -141,6 +142,7 @@ export function App() {
         matchLosses: standing.matchLosses,
         hadBy: standing.hadBy,
         countsForLeague: isLeagueTournament,
+        isDropped,
       };
 
       // Torneio Freeplay: Salva histórico de participação e deck jogado para consultas futuras,

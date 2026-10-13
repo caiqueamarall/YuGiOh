@@ -64,7 +64,7 @@ function downloadCanvasAsPNG(canvas: HTMLCanvasElement, filename: string): void 
 export function exportTournamentResultsPNG(tournament: Tournament, players: Player[]): void {
   const standings = calculateTournamentStandings(tournament, players);
   const playerDecks = tournament.playerDecks || {};
-  const tiebreakNotes = getTiebreakExplanations(standings);
+  const tiebreakNotes = getTiebreakExplanations(standings, tournament);
 
   const tournDate = tournament.date
     ? new Date(tournament.date).toLocaleDateString('pt-BR')
@@ -408,7 +408,7 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
     // Nome
     ctx.fillStyle = '#ffffff';
     ctx.font = s.rank <= 3 ? 'bold 13.5px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
-    ctx.fillText(s.playerName, colX.name, rowY + 23);
+    ctx.fillText(s.isDropped ? `${s.playerName} [DROP]` : s.playerName, colX.name, rowY + 23);
 
     // Deck
     ctx.fillStyle = '#cbd5e1';
