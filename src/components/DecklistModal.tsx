@@ -17,6 +17,8 @@ import {
   Save,
   LayoutGrid,
   List,
+  Download,
+  Loader2,
 } from 'lucide-react';
 import type { Decklist, DeckCardItem } from '../types';
 import {
@@ -32,6 +34,7 @@ import {
   type EdisonCard,
   type CardCategory,
 } from '../utils/cardDatabase';
+import { exportDecklistImagePNG } from '../utils/imageExporter';
 
 interface DecklistModalProps {
   decklist?: Decklist | null;
@@ -97,6 +100,14 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
   const [importText, setImportText] = useState<string>('');
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
+
+  // Estado de exportação em imagem PNG
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportProgress, setExportProgress] = useState<{
+    loaded: number;
+    total: number;
+    message: string;
+  } | null>(null);
 
   // Objeto temporário de Decklist para cálculo de estatísticas
   const currentDecklistObj: Decklist = useMemo(
@@ -430,6 +441,38 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
     }
   };
 
+  // Exportar Decklist em imagem PNG de alta resolução estilizada
+  const handleExportPNG = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    setExportProgress({
+      loaded: 0,
+      total: 1,
+      message: 'Preparando cartas para exportação...',
+    });
+
+    try {
+      await exportDecklistImagePNG(
+        {
+          deckName,
+          playerName,
+          mainDeck,
+          extraDeck,
+          sideDeck,
+        },
+        (prog) => {
+          setExportProgress(prog);
+        }
+      );
+    } catch (err) {
+      console.error('Erro ao exportar decklist em PNG:', err);
+      alert('Ocorreu um erro ao gerar a imagem da decklist. Verifique sua conexão e tente novamente.');
+    } finally {
+      setIsExporting(false);
+      setExportProgress(null);
+    }
+  };
+
   // Renderizador de um slot de carta na Visão Geral (Print 3 Reference)
   const renderCardSlot = (c: SimulatorCard, section: 'main' | 'extra' | 'side') => (
     <div
@@ -554,6 +597,17 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
 
           {/* Botões do Topo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={handleExportPNG}
+              disabled={isExporting}
+              title="Exportar decklist completo em PNG"
+              className="btn-deck-header-export"
+            >
+              {isExporting ? <Loader2 size={12} className="spin" /> : <Download size={12} />}
+              <span>PNG</span>
+            </button>
+
             <button
               type="button"
               onClick={handleCopyDecklistText}
@@ -736,23 +790,37 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
           {/* ========================================================== */}
           {activeTab === 'visual' && (
             <div className="simulator-container">
-              {/* Barra de ação rápida para adicionar cartas */}
-              {canEdit && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '4px' }}>
-                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                    💡 Toque em qualquer carta para expandir detalhes, ver efeito e ajustar cópias.
-                  </span>
+              {/* Barra de Ações da Visão Geral (Exportar Imagem PNG + Adicionar Cartas) */}
+              <div className="simulator-actions-toolbar">
+                <span style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  💡 Toque em qualquer carta para expandir detalhes e efeitos.
+                </span>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
-                    className="btn-decklist-add"
-                    onClick={() => setActiveTab('search')}
-                    style={{ fontSize: '11.5px', padding: '4px 10px', color: '#fbbf24', borderColor: '#f59e0b' }}
+                    className="btn-deck-export-action"
+                    onClick={handleExportPNG}
+                    disabled={isExporting}
+                    title="Exportar imagem completa em alta resolução no formato PNG (estilo simulador)"
                   >
-                    <Plus size={13} />
-                    <span>Adicionar Cartas (+Banco)</span>
+                    {isExporting ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
+                    <span>{isExporting ? 'Exportando PNG...' : 'Exportar Imagem (PNG)'}</span>
                   </button>
+
+                  {canEdit && (
+                    <button
+                      type="button"
+                      className="btn-decklist-add"
+                      onClick={() => setActiveTab('search')}
+                      style={{ fontSize: '11.5px', padding: '5px 12px', color: '#fbbf24', borderColor: '#f59e0b' }}
+                    >
+                      <Plus size={13} />
+                      <span>Adicionar Cartas</span>
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* SEÇÃO 1: MAIN DECK (Com Rail Lateral e Grid Estilo Print 3) */}
               <div className="simulator-section">
@@ -1372,12 +1440,23 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn-deck-footer-export"
+              onClick={handleExportPNG}
+              disabled={isExporting}
+              title="Exportar imagem completa em alta resolução no formato PNG"
+            >
+              {isExporting ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
+              <span>Exportar PNG</span>
+            </button>
+
             <button
               type="button"
               className="btn-secondary-action"
               onClick={onClose}
-              style={{ padding: '8px 18px', fontSize: '13px' }}
+              style={{ padding: '8px 16px', fontSize: '13px' }}
             >
               Fechar
             </button>
@@ -1651,6 +1730,21 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                 Importar Cartas
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast flutuante com progresso da geração da imagem PNG */}
+      {isExporting && (
+        <div className="deck-export-toast">
+          <Loader2 size={18} className="spin text-gold" style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#fff' }}>
+              Gerando imagem da Decklist em PNG...
+            </span>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+              {exportProgress?.message || 'Processando e renderizando cartas...'}
+            </span>
           </div>
         </div>
       )}
