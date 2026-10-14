@@ -11,12 +11,15 @@ function toBase64(filePath) {
 
 const assetsDir = path.resolve('public/tutorial_assets');
 const logoB64 = toBase64(path.join(assetsDir, 'logo_edison.png'));
-const rosterB64 = toBase64(path.join(assetsDir, 'mobile_roster_creation.png'));
-const matchesB64 = toBase64(path.join(assetsDir, 'mobile_round_matches.png'));
-const standingsB64 = toBase64(path.join(assetsDir, 'mobile_standings_tiebreaks.png'));
-const deckOverviewB64 = toBase64(path.join(assetsDir, 'mobile_decklist_overview.png'));
-const cardSearchB64 = toBase64(path.join(assetsDir, 'mobile_card_search.png'));
+
+// Prints específicos enviados pelo usuário
+const print3B64 = toBase64(path.join(assetsDir, 'print_3_roster.png'));   // Página 3
+const print4B64 = toBase64(path.join(assetsDir, 'print_4_matches.png'));  // Página 4
+const print5B64 = toBase64(path.join(assetsDir, 'print_5_decklist.png')); // Página 7
+
+// Demais prints reais para páginas 2, 6 e 8
 const rulesB64 = toBase64(path.join(assetsDir, 'mobile_edison_rules.png'));
+const standingsB64 = toBase64(path.join(assetsDir, 'mobile_standings_tiebreaks.png'));
 const reportB64 = toBase64(path.join(assetsDir, 'official_pdf_report.jpg'));
 
 const htmlContent = `<!DOCTYPE html>
@@ -123,6 +126,7 @@ const htmlContent = `<!DOCTYPE html>
     .badge {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 4px;
       padding: 3px 8px;
       border-radius: 4px;
@@ -185,6 +189,35 @@ const htmlContent = `<!DOCTYPE html>
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+
+    /* ALINHAMENTO PERFEITO DAS 5 ABAS (GRID) */
+    .tabs-guide-grid {
+      display: grid;
+      grid-template-columns: 105px 1fr;
+      row-gap: 10px;
+      column-gap: 12px;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .tab-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 105px;
+      padding: 5px 0;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .tab-desc {
+      font-size: 10.5px;
+      color: #cbd5e1;
+      line-height: 1.4;
     }
 
     .step-item {
@@ -405,25 +438,25 @@ const htmlContent = `<!DOCTYPE html>
       <div class="cover-badge-top">Guia Oficial do Usuário • Versão Mobile &amp; Web</div>
       <h1 class="cover-title">EDISON LEAGUE<br><span>MANUAL DO USUÁRIO</span></h1>
       <p class="cover-subtitle">
-        Guia completo para gerenciamento de torneios de Yu-Gi-Oh!, emparceiramento suíço oficial, aplicação dos critérios de desempate e simulador oficial de decklists Edison 2010.
+        Guia completo para gerenciamento de torneios de Yu-Gi-Oh!, sorteio suíço oficial, aplicação dos critérios de desempate e simulador oficial de decklists Edison 2010.
       </p>
 
       <div class="cover-features-grid">
         <div class="cover-feat-box">
           <strong>⚔️ Sistema Suíço Oficial Konami</strong>
-          <p>Emparceiramento automatizado, sem repetições e com cronômetro de 40 min.</p>
+          <p>Sorteio automatizado, sem repetições e com cronômetro de 40 min.</p>
         </div>
         <div class="cover-feat-box">
           <strong>⚖️ 5 Critérios de Desempate TCG</strong>
-          <p>Confronto Direto, OMW%, OGW%, Saldo de Games e Games Vencidos com notas automáticas.</p>
+          <p>Confronto Direto, OMW%, OGW%, Saldo de Games e Games Vencidos com pontuação.</p>
         </div>
         <div class="cover-feat-box">
-          <strong>🏆 Regra Justa de Folga (BY)</strong>
-          <p>Vitória de 3 pontos no torneio com saldo 0 de games para não distorcer desempates.</p>
+          <strong>🏆 Pódio e Relatórios Oficiais</strong>
+          <p>Exportação de relatórios em PDF para impressão e cartazes Top 3 em alta resolução.</p>
         </div>
         <div class="cover-feat-box">
           <strong>📜 Banco Edison com 3.660 Cartas</strong>
-          <p>Construtor visual de decklists, banlist de março de 2010 e exportação PNG em alta resolução.</p>
+          <p>Construtor visual de decklists, banlist de 2010 e exportação PNG em alta resolução.</p>
         </div>
       </div>
     </div>
@@ -431,7 +464,7 @@ const htmlContent = `<!DOCTYPE html>
     <div class="cover-meta">
       <div>Desenvolvido para: <strong>Liga Edison Yu-Gi-Oh! TCG</strong></div>
       <div>Plataforma: <strong>PWA iOS / APK Android / Web</strong></div>
-      <div>Edição: <strong>Outubro de 2026</strong></div>
+      <div>Edição: <strong>2010 • Atualizado em 2026</strong></div>
     </div>
   </div>
 
@@ -466,29 +499,21 @@ const htmlContent = `<!DOCTYPE html>
         <div class="card">
           <div class="card-title">🧭 As 5 Abas do Menu Principal</div>
           
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <span class="badge badge-gold">🏆 Ranking</span>
-            <div style="font-size: 10px; color: #cbd5e1;">Classificação geral acumulada da liga com vitórias, derrotas e aproveitamento de cada duelista.</div>
-          </div>
+          <div class="tabs-guide-grid">
+            <div class="tab-badge badge-gold">🏆 Ranking</div>
+            <div class="tab-desc">Classificação geral acumulada da liga com vitórias, derrotas e aproveitamento de cada duelista.</div>
 
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <span class="badge badge-emerald">⚔️ Torneio</span>
-            <div style="font-size: 10px; color: #cbd5e1;">Área central do evento ativo: criação, emparceiramento suíço, cronômetro, mesas e lançamento de placares.</div>
-          </div>
+            <div class="tab-badge badge-emerald">⚔️ Torneio</div>
+            <div class="tab-desc">Área central do evento ativo: criação, sorteio suíço, cronômetro, mesas e lançamento de placares.</div>
 
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <span class="badge badge-blue">👥 Jogadores</span>
-            <div style="font-size: 10px; color: #cbd5e1;">Cadastro de duelistas, histórico pessoal de partidas, decks utilizados e taxas de vitória.</div>
-          </div>
+            <div class="tab-badge badge-blue">👥 Jogadores</div>
+            <div class="tab-desc">Cadastro de duelistas, histórico pessoal de partidas, decks utilizados e taxas de vitória.</div>
 
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <span class="badge badge-purple">🕒 Histórico</span>
-            <div style="font-size: 10px; color: #cbd5e1;">Registro de torneios passados com consulta de mesas, exportação de relatórios em PDF/PNG e edição retroativa.</div>
-          </div>
+            <div class="tab-badge badge-purple">🕒 Histórico</div>
+            <div class="tab-desc">Registro de torneios passados com consulta de mesas, exportação de relatórios em PDF/PNG e edição retroativa.</div>
 
-          <div style="display: flex; gap: 8px;">
-            <span class="badge badge-gold">⚙️ Regras</span>
-            <div style="font-size: 10px; color: #cbd5e1;">Consulta completa da Banlist oficial de Março/2010 e guia das mecânicas históricas de Edison (Ignition Priority, etc.).</div>
+            <div class="tab-badge badge-gold">⚙️ Regras</div>
+            <div class="tab-desc">Consulta completa da Banlist oficial de 2010 e guia das mecânicas históricas de Edison (Ignition Priority, etc.).</div>
           </div>
         </div>
 
@@ -516,15 +541,15 @@ const htmlContent = `<!DOCTYPE html>
 
 
   <!-- ===================================================================== -->
-  <!-- PÁGINA 3: CRIAÇÃO DO TORNEIO & ESCALAÇÃO                              -->
+  <!-- PÁGINA 3: CRIAÇÃO DO TORNEIO & SORTEIO (PRINT Nº 3)                   -->
   <!-- ===================================================================== -->
   <div class="page">
     <div class="page-header">
       <div class="page-header-title">⚡ EDISON LEAGUE • MANUAL DO USUÁRIO</div>
-      <div class="page-header-subtitle">SEÇÃO 2 • CRIAÇÃO DO TORNEIO</div>
+      <div class="page-header-subtitle">SEÇÃO 2 • CRIAÇÃO DO TORNEIO &amp; SORTEIO</div>
     </div>
 
-    <h2 class="section-title">⚔️ Criação do Torneio &amp; Escalação de Duelistas</h2>
+    <h2 class="section-title">⚔️ Criação do Torneio &amp; Sorteio de Duelistas</h2>
     <p class="section-desc">
       A criação de um novo torneio na aba <strong>Torneio</strong> é intuitiva, rápida e conta com ferramentas inteligentes para buscar participantes e associar decklists oficiais.
     </p>
@@ -535,7 +560,7 @@ const htmlContent = `<!DOCTYPE html>
           <div class="step-num">1</div>
           <div class="step-text">
             <strong>Identificação e Data</strong>
-            <p>Defina o nome do torneio (ex: <em>Torneio Edison #12/10/2026</em>) e confirme a data de realização.</p>
+            <p>Defina o nome do torneio (ex: <em>Torneio Edison #14/10/2026</em>) e confirme a data de realização.</p>
           </div>
         </div>
 
@@ -580,8 +605,8 @@ const htmlContent = `<!DOCTYPE html>
 
       <div>
         <div class="phone-mockup">
-          <img src="${rosterB64}" alt="Escalação de Jogadores" />
-          <div class="phone-caption">Seleção de Duelistas e Associação de Decks</div>
+          <img src="${print3B64}" alt="Criação do Torneio no Celular (Print 3)" />
+          <div class="phone-caption">Tela Oficial de Criação &amp; Busca de Duelistas</div>
         </div>
       </div>
     </div>
@@ -594,7 +619,7 @@ const htmlContent = `<!DOCTYPE html>
 
 
   <!-- ===================================================================== -->
-  <!-- PÁGINA 4: CONDUÇÃO DAS RODADAS, CRONÔMETRO & PLACARES                 -->
+  <!-- PÁGINA 4: CONDUÇÃO DAS RODADAS & CRONÔMETRO (PRINT Nº 4)              -->
   <!-- ===================================================================== -->
   <div class="page">
     <div class="page-header">
@@ -604,7 +629,7 @@ const htmlContent = `<!DOCTYPE html>
 
     <h2 class="section-title">⏱️ Condução das Rodadas &amp; Lançamento de Placares</h2>
     <p class="section-desc">
-      O sistema suíço organiza as mesas rodada a rodada, garantindo que duelistas enfrentem adversários de pontuação equivalente e nunca repitam o mesmo oponente.
+      O sistema suíço organiza o sorteio das mesas rodada a rodada, garantindo que duelistas enfrentem adversários de pontuação equivalente e nunca repitam o mesmo oponente.
     </p>
 
     <div class="two-cols-mobile">
@@ -616,7 +641,7 @@ const htmlContent = `<!DOCTYPE html>
           </p>
           <ul style="padding-left: 14px; font-size: 9.5px; color: #94a3b8; line-height: 1.45;">
             <li><strong>Iniciar / Pausar:</strong> Controle o tempo da rodada com um toque.</li>
-            <li><strong>Editar Tempo:</strong> Adicione minutos extras facilmente para casos de prorrogação ou time call.</li>
+            <li><strong>Editar Tempo:</strong> Adicione minutos extras facilmente (+1 min, +5 min) para casos de prorrogação ou time call.</li>
             <li><strong>Alerta Sonoro/Visual:</strong> Notificação clara quando o tempo regulamentar se esgota.</li>
           </ul>
         </div>
@@ -624,7 +649,7 @@ const htmlContent = `<!DOCTYPE html>
         <div class="card">
           <div class="card-title">🎯 Registro Rápido de Resultados por Mesa</div>
           <p style="font-size: 10px; color: #cbd5e1; margin-bottom: 6px;">
-            Cada mesa de duelo possui botões de atalho rápido para registrar os games vencidos:
+            Cada mesa de duelo possui botões de atalho rápido para registrar os games vencidos com pontuação direta:
           </p>
           <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px;">
             <span class="badge badge-gold">2-0</span>
@@ -634,7 +659,7 @@ const htmlContent = `<!DOCTYPE html>
             <span class="badge badge-purple">1-1 (Empate)</span>
           </div>
           <p style="font-size: 9.5px; color: #94a3b8;">
-            Também é possível marcar vitória por <strong>W.O.</strong> caso um duelista não compareça no prazo regulamentar.
+            Também é possível marcar vitória por <strong>WO</strong> caso um duelista não compareça no prazo regulamentar.
           </p>
         </div>
 
@@ -650,8 +675,8 @@ const htmlContent = `<!DOCTYPE html>
 
       <div>
         <div class="phone-mockup">
-          <img src="${matchesB64}" alt="Mesas e Placares" />
-          <div class="phone-caption">Painel de Mesas e Lançamento de Placares</div>
+          <img src="${print4B64}" alt="Mesas e Cronômetro (Print 4)" />
+          <div class="phone-caption">Painel de Mesas, Cronômetro 40 min &amp; Bo3</div>
         </div>
       </div>
     </div>
@@ -664,7 +689,7 @@ const htmlContent = `<!DOCTYPE html>
 
 
   <!-- ===================================================================== -->
-  <!-- PÁGINA 5: REGRA OFICIAL DO BY (3 PTS E SALDO 0)                       -->
+  <!-- PÁGINA 5: REGRA DO BY (FOLGA COM SALDO 0)                             -->
   <!-- ===================================================================== -->
   <div class="page">
     <div class="page-header">
@@ -705,7 +730,7 @@ const htmlContent = `<!DOCTYPE html>
         </p>
         <ul style="padding-left: 14px; font-size: 9.5px; color: #94a3b8; line-height: 1.45;">
           <li><strong>Sem Repetição:</strong> Nenhum duelista pode receber mais de 1 BY no mesmo torneio, a menos que matematicamente todos os outros já tenham recebido.</li>
-          <li><strong>Critério de Seleção:</strong> Conforme diretrizes oficiais Konami, o BY é atribuído preferencialmente aos duelistas com menor pontuação na rodada.</li>
+          <li><strong>Critério de Sorteio:</strong> Conforme diretrizes oficiais Konami, o BY é atribuído preferencialmente aos duelistas com menor pontuação na rodada.</li>
         </ul>
       </div>
     </div>
@@ -780,7 +805,7 @@ const htmlContent = `<!DOCTYPE html>
 
     <h2 class="section-title">⚖️ Os 5 Critérios Oficiais de Desempate</h2>
     <p class="section-desc">
-      Quando dois ou mais duelistas terminam o torneio com o mesmo número de pontos, o aplicativo aplica rigorosamente a hierarquia oficial da Konami, exibindo notas explicativas automáticas.
+      Quando dois ou mais duelistas terminam o torneio com o mesmo número de pontos, o aplicativo aplica rigorosamente a hierarquia oficial da Konami com pontuação detalhada.
     </p>
 
     <div class="two-cols-mobile">
@@ -831,9 +856,9 @@ const htmlContent = `<!DOCTYPE html>
         </div>
 
         <div class="card card-gold" style="margin-top: 6px;">
-          <div class="card-title">💡 Observações Automáticas na Tabela</div>
+          <div class="card-title">💡 Observações de Desempate na Tabela</div>
           <p style="font-size: 9.5px; color: #cbd5e1; line-height: 1.4;">
-            Abaixo da tabela de classificação, o app gera uma caixa explicativa que descreve textualmente cada desempate (ex: <em>"Vitor (1º) superou Caique (2º) pelo critério OMW% (58.3% vs 56.3%) — enfrentou adversários com melhor aproveitamento"</em>).
+            Abaixo da classificação, o app detalha com pontuação exata o motivo do desempate (ex: <em>"Vitor (1º) superou Caique (2º) pelo critério OMW% (58.3% vs 56.3%) — enfrentou adversários com melhor aproveitamento"</em>).
           </p>
         </div>
       </div>
@@ -841,7 +866,7 @@ const htmlContent = `<!DOCTYPE html>
       <div>
         <div class="phone-mockup">
           <img src="${standingsB64}" alt="Classificação e Desempate" />
-          <div class="phone-caption">Tabela de Classificação &amp; Notas de Desempate</div>
+          <div class="phone-caption">Tabela de Classificação &amp; Pontuação</div>
         </div>
       </div>
     </div>
@@ -854,7 +879,7 @@ const htmlContent = `<!DOCTYPE html>
 
 
   <!-- ===================================================================== -->
-  <!-- PÁGINA 7: SIMULADOR DE DECKLIST EDISON (3.660 CARTAS)                 -->
+  <!-- PÁGINA 7: SIMULADOR DE DECKLIST EDISON (PRINT Nº 5)                   -->
   <!-- ===================================================================== -->
   <div class="page">
     <div class="page-header">
@@ -864,10 +889,10 @@ const htmlContent = `<!DOCTYPE html>
 
     <h2 class="section-title">🃏 Construtor e Simulador de Decklists Edison</h2>
     <p class="section-desc">
-      O aplicativo possui uma biblioteca completa com as <strong>3.660 cartas oficiais</strong> lançadas até o formato Edison (Abril de 2010), com validador de banlist e exportação em imagem.
+      O aplicativo possui uma biblioteca completa com as <strong>3.660 cartas oficiais</strong> lançadas até o formato Edison (2010), com validador de banlist e exportação em imagem.
     </p>
 
-    <div class="two-cols">
+    <div class="two-cols-mobile">
       <div>
         <div class="card card-gold">
           <div class="card-title">📦 Estrutura Oficial de Decks</div>
@@ -879,7 +904,7 @@ const htmlContent = `<!DOCTYPE html>
         </div>
 
         <div class="card">
-          <div class="card-title">🚫 Validação Automática da Banlist Edison</div>
+          <div class="card-title">🚫 Validação Automática da Banlist de 2010</div>
           <p style="font-size: 10px; color: #cbd5e1; margin-bottom: 6px;">
             Cada carta adicionada tem seu limite verificado instantaneamente com badges visuais sobre a ilustração:
           </p>
@@ -905,14 +930,10 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
-      <div style="display: flex; gap: 10px; justify-content: center;">
-        <div class="phone-mockup" style="max-width: 175px;">
-          <img src="${deckOverviewB64}" alt="Visão Geral do Deck" />
-          <div class="phone-caption">Visão Geral do Deck</div>
-        </div>
-        <div class="phone-mockup" style="max-width: 175px;">
-          <img src="${cardSearchB64}" alt="Busca de Cartas Edison" />
-          <div class="phone-caption">Busca entre 3.660 Cartas</div>
+      <div>
+        <div class="phone-mockup">
+          <img src="${print5B64}" alt="Simulador de Decklist no Celular (Print 5)" />
+          <div class="phone-caption">Visão Geral do Decklist Oficial Edison</div>
         </div>
       </div>
     </div>
@@ -948,7 +969,7 @@ const htmlContent = `<!DOCTYPE html>
           <ul style="padding-left: 14px; font-size: 9.5px; color: #94a3b8; line-height: 1.45;">
             <li>Pódio visual com molduras de Campeão, Vice e Bronze.</li>
             <li>Tabela completa com Pontos, V-E-D, Games, Saldo, PMW%, OMW%, PGW% e OGW%.</li>
-            <li>Todas as rodadas com confrontos mesa a mesa e placares.</li>
+            <li>Todas as rodadas com sorteio de confrontos mesa a mesa e placares.</li>
             <li>Quadro detalhado de observações de desempate.</li>
           </ul>
         </div>
@@ -989,7 +1010,7 @@ const htmlContent = `<!DOCTYPE html>
 `;
 
 async function buildPDF() {
-  console.log('Iniciando compilação do Manual do Usuário em PDF...');
+  console.log('Iniciando compilação do Manual do Usuário em PDF com as novas imagens e textos...');
   const executablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
   const browser = await puppeteer.launch({
