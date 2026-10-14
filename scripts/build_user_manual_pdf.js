@@ -45,6 +45,23 @@ const htmlContent = `<!DOCTYPE html>
       font-size: 11px;
       line-height: 1.45;
     }
+    p {
+      text-align: justify;
+      text-justify: inter-word;
+      line-height: 1.45;
+    }
+    ul {
+      padding-left: 18px;
+    }
+    li {
+      text-align: justify;
+      text-justify: inter-word;
+      line-height: 1.45;
+      margin-bottom: 5px;
+    }
+    li:last-child {
+      margin-bottom: 0;
+    }
 
     .page {
       width: 210mm;
@@ -120,7 +137,9 @@ const htmlContent = `<!DOCTYPE html>
       font-size: 11.5px;
       color: #94a3b8;
       margin-bottom: 14px;
-      line-height: 1.4;
+      line-height: 1.45;
+      text-align: justify;
+      text-justify: inter-word;
     }
     .badge {
       display: inline-flex;
@@ -176,6 +195,30 @@ const htmlContent = `<!DOCTYPE html>
       padding: 12px;
       margin-bottom: 10px;
     }
+    .card p {
+      font-size: 10px;
+      color: #cbd5e1;
+      line-height: 1.45;
+      text-align: justify;
+      text-justify: inter-word;
+      margin-bottom: 6px;
+    }
+    .card p:last-child {
+      margin-bottom: 0;
+    }
+    .card ul {
+      padding-left: 16px;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+    .card ul li {
+      font-size: 9.5px;
+      color: #94a3b8;
+      line-height: 1.45;
+      margin-bottom: 5px;
+      text-align: justify;
+      text-justify: inter-word;
+    }
     .card-gold {
       background: rgba(245, 158, 11, 0.06);
       border: 1px solid rgba(245, 158, 11, 0.3);
@@ -216,7 +259,9 @@ const htmlContent = `<!DOCTYPE html>
     .tab-desc {
       font-size: 10.5px;
       color: #cbd5e1;
-      line-height: 1.4;
+      line-height: 1.45;
+      text-align: justify;
+      text-justify: inter-word;
     }
 
     .step-item {
@@ -250,7 +295,10 @@ const htmlContent = `<!DOCTYPE html>
     .step-text p {
       color: #94a3b8;
       font-size: 10.5px;
-      line-height: 1.4;
+      line-height: 1.45;
+      text-align: justify;
+      text-justify: inter-word;
+      margin-top: 2px;
     }
 
     /* PHONE FRAME */
@@ -305,7 +353,9 @@ const htmlContent = `<!DOCTYPE html>
     .tiebreak-desc {
       font-size: 9.5px;
       color: #94a3b8;
-      line-height: 1.35;
+      line-height: 1.4;
+      text-align: justify;
+      text-justify: inter-word;
     }
 
     /* TABLE */
