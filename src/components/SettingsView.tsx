@@ -142,10 +142,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <Settings size={14} className="text-gold" />
             <span>AJUSTES & REGRAS OFICIAIS</span>
           </div>
-          <h2 className="hero-title">Guia Edison & Banlist</h2>
+          <h2 className="hero-title">Guia Edison &amp; Banlist</h2>
           <p className="hero-subtitle hide-on-xs">
             Regras históricas, banlist de Março de 2010, regulamento e backups.
           </p>
+          <div style={{ marginTop: '10px' }}>
+            <a
+              href="/Manual_do_Usuario_Edison_League.pdf"
+              download="Manual_do_Usuario_Edison_League.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary-gold"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '7px 16px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                textDecoration: 'none',
+                boxShadow: '0 4px 15px rgba(245, 158, 11, 0.25)',
+              }}
+            >
+              <Download size={14} />
+              <span>Baixar Manual do Usuário (PDF)</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -625,6 +648,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <p className="guide-intro">
                 O projeto foi construído com design mobile-first e pode ser executado em celulares de duas formas práticas:
               </p>
+
+              <div className="guide-step-card" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', background: 'rgba(245, 158, 11, 0.05)' }}>
+                <div className="step-number" style={{ background: '#f59e0b', color: '#000', fontWeight: 900 }}>PDF</div>
+                <div>
+                  <h4 style={{ color: '#fbbf24' }}>Manual Completo do Usuário &amp; Guia de Desempates</h4>
+                  <p>
+                    Documento oficial em PDF de 8 páginas ilustrado com telas reais da versão para celular, cobrindo o sistema suíço, cronômetro de 40 min, os 5 critérios oficiais de desempate, regra justa do BY (saldo 0) e simulador com 3.660 cartas Edison.
+                  </p>
+                  <a
+                    href="/Manual_do_Usuario_Edison_League.pdf"
+                    download="Manual_do_Usuario_Edison_League.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary-gold"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      marginTop: '8px',
+                    }}
+                  >
+                    <Download size={13} />
+                    <span>Baixar Manual do Usuário (PDF)</span>
+                  </a>
+                </div>
+              </div>
 
               <div className="guide-step-card">
                 <div className="step-number">Opção 1</div>
