@@ -56,7 +56,7 @@ const htmlContent = `<!DOCTYPE html>
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      border-bottom: 1px solid #1e2433;
+      box-sizing: border-box;
     }
 
     /* HEADER & FOOTER */
@@ -255,21 +255,21 @@ const htmlContent = `<!DOCTYPE html>
 
     /* PHONE FRAME */
     .phone-mockup {
-      background: #000000;
-      border: 3px solid #2d3345;
-      border-radius: 24px;
+      background: #141724;
+      border: 2px solid #2d3345;
+      border-radius: 18px;
       padding: 6px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
       display: flex;
       flex-direction: column;
       align-items: center;
       max-width: 240px;
       margin: 0 auto;
+      overflow: hidden;
     }
     .phone-mockup img {
       width: 100%;
       height: auto;
-      border-radius: 18px;
+      border-radius: 12px;
       display: block;
     }
     .phone-caption {
@@ -333,7 +333,7 @@ const htmlContent = `<!DOCTYPE html>
 
     /* COVER PAGE */
     .cover-page {
-      background: radial-gradient(circle at 50% 25%, #231c0e 0%, #0e1017 60%, #08090d 100%);
+      background: linear-gradient(180deg, #1c1810 0%, #0d0f17 100%);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -350,7 +350,6 @@ const htmlContent = `<!DOCTYPE html>
       width: 110px;
       height: 110px;
       margin-bottom: 18px;
-      filter: drop-shadow(0 0 25px rgba(245, 158, 11, 0.5));
     }
     .cover-badge-top {
       background: rgba(245, 158, 11, 0.15);
@@ -374,9 +373,8 @@ const htmlContent = `<!DOCTYPE html>
       letter-spacing: -0.02em;
     }
     .cover-title span {
-      background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #fbbf24;
+      display: inline-block;
     }
     .cover-subtitle {
       font-size: 13.5px;
@@ -446,8 +444,8 @@ const htmlContent = `<!DOCTYPE html>
           <p>Sorteio automatizado, sem repetições e com cronômetro de 40 min.</p>
         </div>
         <div class="cover-feat-box">
-          <strong>⚖️ 5 Critérios de Desempate TCG</strong>
-          <p>Confronto Direto, OMW%, OGW%, Saldo de Games e Games Vencidos com pontuação.</p>
+          <strong>⚖️ 6 Critérios de Desempate TCG</strong>
+          <p>Pontos, Sem BY, OMW%, Saldo de Games, Head-to-Head, PGW% e OGW%.</p>
         </div>
         <div class="cover-feat-box">
           <strong>🏆 Pódio e Relatórios Oficiais</strong>
@@ -483,7 +481,7 @@ const htmlContent = `<!DOCTYPE html>
     </p>
 
     <!-- Barra de Navegação Oficial (Print 1 enviado pelo usuário) -->
-    <div style="background: #141724; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; text-align: center; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);">
+    <div style="background: #141724; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; text-align: center;">
       <img src="${navbarP2B64}" style="width: 100%; max-width: 580px; height: auto; border-radius: 8px; display: block; margin: 0 auto;" alt="Barra de Navegação do App (5 Abas)" />
       <div style="font-size: 9.5px; color: #fbbf24; font-weight: 700; margin-top: 6px;">Barra Oficial de Navegação Mobile (5 Abas)</div>
     </div>
@@ -1001,7 +999,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <div>
-        <div style="background: #141724; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 6px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6); text-align: center;">
+        <div style="background: #141724; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 6px; text-align: center;">
           <img src="${reportB64}" alt="Relatório Oficial em PDF" style="width: 100%; height: auto; border-radius: 4px; display: block;" />
           <div class="phone-caption">Exemplo do Relatório Oficial de Torneio</div>
         </div>
