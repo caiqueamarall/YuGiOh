@@ -164,7 +164,7 @@ const htmlContent = `<!DOCTYPE html>
     }
     .two-cols-mobile {
       display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
+      grid-template-columns: 1fr 1fr;
       gap: 16px;
       align-items: start;
     }
@@ -262,7 +262,8 @@ const htmlContent = `<!DOCTYPE html>
       display: flex;
       flex-direction: column;
       align-items: center;
-      max-width: 240px;
+      max-width: 290px;
+      width: 100%;
       margin: 0 auto;
       overflow: hidden;
     }
@@ -880,7 +881,7 @@ const htmlContent = `<!DOCTYPE html>
 
 
   <!-- ===================================================================== -->
-  <!-- PÁGINA 7: SIMULADOR DE DECKLIST (PRINT 5 + PRINT 3 COMPLEMENTO)       -->
+  <!-- PÁGINA 7: SIMULADOR DE DECKLIST & BANLIST (PRINTS GRANDES PREENCHIDOS) -->
   <!-- ===================================================================== -->
   <div class="page">
     <div class="page-header">
@@ -889,58 +890,57 @@ const htmlContent = `<!DOCTYPE html>
     </div>
 
     <h2 class="section-title">🃏 Construtor de Decklists &amp; Banlist Edison</h2>
-    <p class="section-desc">
-      O aplicativo possui uma biblioteca completa com as <strong>3.660 cartas oficiais</strong> lançadas até o formato Edison (2010), com validador de banlist e exportação em imagem.
+    <p class="section-desc" style="margin-bottom: 10px;">
+      O aplicativo possui uma biblioteca completa com as <strong>3.660 cartas oficiais</strong> lançadas até o formato Edison (2010), com validador automático de limites e exportação em alta resolução.
     </p>
 
-    <div class="two-cols">
-      <div>
-        <div class="card card-gold">
-          <div class="card-title">📦 Estrutura Oficial de Decks</div>
-          <ul style="padding-left: 14px; font-size: 10px; color: #cbd5e1; line-height: 1.45;">
-            <li><strong>Main Deck:</strong> Mínimo 40 e máximo 60 cartas. Alerta amarelo automático caso o deck tenha menos de 40 cartas.</li>
-            <li><strong>Extra Deck:</strong> Máximo de 15 cartas (Monstros Synchro e Fusão).</li>
-            <li><strong>Side Deck:</strong> Máximo de 15 cartas para trocas entre duelos.</li>
-          </ul>
-        </div>
+    <!-- Grade 2x2 com os 4 Cards Explicativos Compactos -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+      <div class="card card-gold" style="margin-bottom: 0; padding: 10px 12px;">
+        <div class="card-title">📦 Estrutura Oficial de Decks</div>
+        <ul style="padding-left: 14px; font-size: 9.5px; color: #cbd5e1; line-height: 1.4;">
+          <li><strong>Main Deck:</strong> 40 a 60 cartas (aviso em amarelo se &lt; 40).</li>
+          <li><strong>Extra Deck:</strong> Máximo de 15 cartas (Synchro e Fusão).</li>
+          <li><strong>Side Deck:</strong> Máximo de 15 cartas para trocas entre duelos.</li>
+        </ul>
+      </div>
 
-        <div class="card">
-          <div class="card-title">🚫 Validação Automática da Banlist de 2010</div>
-          <p style="font-size: 10px; color: #cbd5e1; margin-bottom: 6px;">
-            Cada carta adicionada tem seu limite verificado instantaneamente com badges visuais sobre a ilustração:
-          </p>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444;">🚫 Proibida (0)</span>
-            <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b;">1️⃣ Limitada (1)</span>
-            <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6;">2️⃣ Semi-Limitada (2)</span>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">🔍 Busca Rápida &amp; Filtros de Categoria</div>
-          <p style="font-size: 10px; color: #94a3b8; line-height: 1.4;">
-            Na aba <em>"Buscar &amp; Adicionar Cartas"</em>, filtre facilmente por <strong>Monstros, Magias, Armadilhas ou Extra Deck</strong> e digite o nome de qualquer carta para adicionar ao Main ou Side Deck com apenas 1 clique.
-          </p>
-        </div>
-
-        <div class="card" style="background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.3);">
-          <div class="card-title" style="color: #c084fc;">🖼️ Exportar Decklist em Imagem PNG</div>
-          <p style="font-size: 10px; color: #cbd5e1; line-height: 1.4;">
-            Toque no botão <strong>PNG</strong> para gerar instantaneamente a imagem completa do seu decklist em alta resolução, com todas as artes separadas em Main, Extra e Side Deck, pronta para postar e compartilhar.
-          </p>
+      <div class="card" style="margin-bottom: 0; padding: 10px 12px;">
+        <div class="card-title">🚫 Validação Automática da Banlist 2010</div>
+        <p style="font-size: 9.5px; color: #cbd5e1; margin-bottom: 4px;">
+          Verificação instantânea com badges visuais sobre cada carta:
+        </p>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+          <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; font-size: 8.5px;">🚫 Proibida (0)</span>
+          <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; font-size: 8.5px;">1️⃣ Limitada (1)</span>
+          <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; font-size: 8.5px;">2️⃣ Semi (2)</span>
         </div>
       </div>
 
-      <!-- Dois Prints Lado a Lado (Print 5 + Print 3 Complementar) -->
-      <div style="display: flex; gap: 10px; justify-content: center;">
-        <div class="phone-mockup" style="max-width: 175px;">
-          <img src="${decklistP7B64}" alt="Visão Geral do Decklist (Print 5)" />
-          <div class="phone-caption">Visão Geral do Deck</div>
-        </div>
-        <div class="phone-mockup" style="max-width: 175px;">
-          <img src="${banlistP7B64}" alt="Banlist Edison 2010 (Print 3)" />
-          <div class="phone-caption">Banlist 2010 no App</div>
-        </div>
+      <div class="card" style="margin-bottom: 0; padding: 10px 12px;">
+        <div class="card-title">🔍 Busca Rápida &amp; Filtros de Categoria</div>
+        <p style="font-size: 9.5px; color: #cbd5e1; line-height: 1.35;">
+          Filtre por <strong>Monstros, Magias, Armadilhas ou Extra Deck</strong> e digite o nome de qualquer carta para adicioná-la com 1 toque.
+        </p>
+      </div>
+
+      <div class="card" style="background: rgba(168, 85, 247, 0.08); border-color: rgba(168, 85, 247, 0.3); margin-bottom: 0; padding: 10px 12px;">
+        <div class="card-title" style="color: #c084fc;">🖼️ Exportar Decklist em Imagem PNG</div>
+        <p style="font-size: 9.5px; color: #cbd5e1; line-height: 1.35;">
+          Toque no botão <strong>PNG</strong> para exportar a imagem completa do decklist em alta resolução, pronta para postar e compartilhar.
+        </p>
+      </div>
+    </div>
+
+    <!-- Dois Prints Lado a Lado Bem Grandes e Preenchendo a Tela -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; justify-items: center;">
+      <div class="phone-mockup" style="max-width: 310px; width: 100%;">
+        <img src="${decklistP7B64}" alt="Visão Geral do Decklist (Print 5)" />
+        <div class="phone-caption">Visão Geral do Deck (Main, Extra &amp; Side Deck)</div>
+      </div>
+      <div class="phone-mockup" style="max-width: 310px; width: 100%;">
+        <img src="${banlistP7B64}" alt="Banlist Edison 2010 (Print 3)" />
+        <div class="phone-caption">Lista de Proibidas &amp; Limitadas (Banlist 2010)</div>
       </div>
     </div>
 
