@@ -567,14 +567,8 @@ const htmlContent = `<!DOCTYPE html>
         <div class="step-item">
           <div class="step-num">2</div>
           <div class="step-text">
-            <strong>Número de Rodadas (Tabela Oficial Konami)</strong>
-            <p>O aplicativo sugere automaticamente a quantidade de rodadas recomendada para o total de jogadores selecionados, permitindo também ajuste manual (ex: 3, 4 ou 5 rodadas):</p>
-            <table class="modern-table">
-              <tr><th>Participantes</th><th>Rodadas Sugeridas</th><th>Top Cut Sugerido</th></tr>
-              <tr><td>4 a 8 Duelistas</td><td>3 Rodadas</td><td>Top 2 / Top 4</td></tr>
-              <tr><td>9 a 16 Duelistas</td><td>4 Rodadas</td><td>Top 4 / Top 8</td></tr>
-              <tr><td>17 a 32 Duelistas</td><td>5 Rodadas</td><td>Top 8</td></tr>
-            </table>
+            <strong>Definição do Número de Rodadas</strong>
+            <p>O aplicativo calcula automaticamente a quantidade de rodadas recomendada com base nos participantes selecionados, permitindo que a organização altere ou ajuste o número livremente (ex: 3, 4 ou 5 rodadas).</p>
           </div>
         </div>
 
