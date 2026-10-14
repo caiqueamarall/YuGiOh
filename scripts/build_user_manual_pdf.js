@@ -286,11 +286,16 @@ const htmlContent = `<!DOCTYPE html>
     .step-text {
       flex: 1;
     }
-    .step-text strong {
+    .step-text > strong:first-child {
       color: #f8fafc;
       font-size: 11.5px;
       display: block;
       margin-bottom: 2px;
+    }
+    .step-text p strong {
+      display: inline;
+      color: #f8fafc;
+      font-weight: 700;
     }
     .step-text p {
       color: #94a3b8;
@@ -1042,7 +1047,7 @@ const htmlContent = `<!DOCTYPE html>
           <div class="card-title">🔥 3 Principais Regras Históricas de Edison (2010)</div>
           <ul style="padding-left: 14px; font-size: 9.5px; color: #cbd5e1; line-height: 1.45;">
             <li><strong style="color: #fbbf24;">1. Prioridade de Invocação (Ignition Priority):</strong> Ao invocar um monstro com prioridade de efeito (ex: <em>Judgment Dragon, Chaos Sorcerer</em>), o jogador do turno pode declarar a ativação do efeito antes que o oponente responda com cartas como <em>Bottomless Trap Hole</em> ou <em>Torrential Tribute</em>.</li>
-            <li><strong style="color: #60a5fa;">2. Saque no Turno 1:</strong> O jogador que inicia a partida compra na Draw Phase, começando com 6 cartas na mão.</li>
+            <li><strong style="color: #60a5fa;">2. Compra no 1º Turno:</strong> O jogador que inicia a partida compra na Draw Phase, começando com 6 cartas na mão.</li>
             <li><strong style="color: #f472b6;">3. Regra de Magia de Campo Única:</strong> Apenas 1 Magia de Campo pode coexistir na mesa inteira. Ativar uma nova destrói a anterior por regra.</li>
           </ul>
         </div>
