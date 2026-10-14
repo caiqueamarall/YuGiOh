@@ -569,7 +569,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     Quando dois ou mais duelistas terminam um torneio com a mesma pontuação, a ordem é definida estritamente por:<br />
                     1. <strong>Pontuação Total de Partidas:</strong> 3 pontos por vitória/WO/BY, 1 por empate, 0 por derrota<br />
                     2. <strong>Penalidade de BY:</strong> Duelista que jogou na mesa supera quem folgou com vitória de BY<br />
-                    3. <strong>Os Mínimos / OMW% (Opponents' Match Win %):</strong> Aproveitamento dos adversários enfrentados (força do calendário, piso oficial de 33%)<br />
+                    3. <strong>Os Mínimos / OMW% (Opponents' Match Win %):</strong> Aproveitamento dos adversários enfrentados (força dos oponentes na tabela, piso oficial de 33%)<br />
                     4. <strong>Saldo de Games Direto:</strong> Diferencial de vitórias em games (+2 no 2x0, +1 no 2x1, -1 no 1x2, -2 no 0x2)<br />
                     5. <strong>Confronto Direto (Head-to-Head):</strong> Vitória no confronto individual direto entre os empatados<br />
                     6. <strong>Aproveitamento em Games:</strong> PGW% (games do jogador) e OGW% (games dos oponentes)
