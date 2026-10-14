@@ -260,7 +260,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <h4>1. Prioridade de Invocação (Ignition Priority)</h4>
               </div>
               <p className="rule-card-text">
-                <strong>A regra mais importante e diferente do jogo atual:</strong> Em 2010, quando o jogador do turno invoca com sucesso um monstro com efeito de ignição (efeito ativado manualmente na Main Phase), ele tem o direito de <strong>declarar a ativação do efeito de ignição como Elo 1 (Chain Link 1)</strong> antes que o oponente possa responder com cartas como <em>Bottomless Trap Hole</em>, <em>Torrential Tribute</em>, <em>Book of Moon</em> ou <em>Compulsory Evacuation Device</em>.
+                <strong>A regra mais importante e diferente do jogo atual:</strong> Em 2010, quando o jogador do turno invoca com sucesso um monstro com prioridade de efeito (efeito ativado manualmente na Main Phase), ele tem o direito de <strong>declarar a ativação do efeito como Elo 1 (Chain Link 1)</strong> antes que o oponente possa responder com cartas como <em>Bottomless Trap Hole</em>, <em>Torrential Tribute</em>, <em>Book of Moon</em> ou <em>Compulsory Evacuation Device</em>.
               </p>
               <div className="rule-example-box">
                 <strong>Exemplo Prático:</strong>
@@ -277,7 +277,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <h4>2. Compra no 1º Turno (First Turn Draw)</h4>
               </div>
               <p className="rule-card-text">
-                O jogador que joga primeiro <strong>compra 1 carta normalmente</strong> em sua Draw Phase no primeiro turno do duelo (começando o turno com 6 cartas na mão). A regra moderna que proíbe comprar no turno 1 só foi introduzida em 2014.
+                O jogador que joga primeiro <strong>compra 1 carta</strong> em sua Draw Phase no primeiro turno do duelo (começando o turno com 6 cartas na mão). A regra moderna que proíbe comprar no turno 1 só foi introduzida em 2014.
               </p>
             </div>
 

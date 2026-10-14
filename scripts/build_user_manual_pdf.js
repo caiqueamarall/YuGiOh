@@ -12,15 +12,14 @@ function toBase64(filePath) {
 const assetsDir = path.resolve('public/tutorial_assets');
 const logoB64 = toBase64(path.join(assetsDir, 'logo_edison.png'));
 
-// Prints específicos enviados pelo usuário
-const print3B64 = toBase64(path.join(assetsDir, 'print_3_roster.png'));   // Página 3
-const print4B64 = toBase64(path.join(assetsDir, 'print_4_matches.png'));  // Página 4
-const print5B64 = toBase64(path.join(assetsDir, 'print_5_decklist.png')); // Página 7
-
-// Demais prints reais para páginas 2, 6 e 8
-const rulesB64 = toBase64(path.join(assetsDir, 'mobile_edison_rules.png'));
-const standingsB64 = toBase64(path.join(assetsDir, 'mobile_standings_tiebreaks.png'));
-const reportB64 = toBase64(path.join(assetsDir, 'official_pdf_report.jpg'));
+// Prints do Usuário
+const navbarP2B64 = toBase64(path.join(assetsDir, 'print_p2_navbar.png'));       // Página 2 (1º print)
+const print3B64 = toBase64(path.join(assetsDir, 'print_3_roster.png'));          // Página 3 (Print 3)
+const print4B64 = toBase64(path.join(assetsDir, 'print_4_matches.png'));         // Página 4 (Print 4)
+const standingsP6B64 = toBase64(path.join(assetsDir, 'print_p6_standings.png')); // Página 6 (2º print)
+const decklistP7B64 = toBase64(path.join(assetsDir, 'print_5_decklist.png'));     // Página 7 (Print 5)
+const banlistP7B64 = toBase64(path.join(assetsDir, 'print_p7_banlist.png'));      // Página 7 (3º print - complemento)
+const reportB64 = toBase64(path.join(assetsDir, 'official_pdf_report.jpg'));       // Página 8
 
 const htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -60,7 +59,7 @@ const htmlContent = `<!DOCTYPE html>
       border-bottom: 1px solid #1e2433;
     }
 
-    /* HEADER & FOOTER ON CONTENT PAGES */
+    /* HEADER & FOOTER */
     .page-header {
       display: flex;
       justify-content: space-between;
@@ -191,7 +190,7 @@ const htmlContent = `<!DOCTYPE html>
       gap: 6px;
     }
 
-    /* ALINHAMENTO PERFEITO DAS 5 ABAS (GRID) */
+    /* ALINHAMENTO DAS 5 ABAS COM GRID */
     .tabs-guide-grid {
       display: grid;
       grid-template-columns: 105px 1fr;
@@ -281,29 +280,29 @@ const htmlContent = `<!DOCTYPE html>
       font-weight: 600;
     }
 
-    /* TIEBREAK BOXES */
+    /* TIEBREAK BOXES (ORDEM EXATA DO PRINT 5) */
     .tiebreak-card {
       background: #131622;
       border-left: 3px solid #f59e0b;
       border-radius: 0 6px 6px 0;
-      padding: 9px 12px;
-      margin-bottom: 8px;
+      padding: 8px 11px;
+      margin-bottom: 7px;
     }
     .tiebreak-num {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 800;
       color: #fbbf24;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
     .tiebreak-name {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 800;
       color: #ffffff;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
     .tiebreak-desc {
-      font-size: 10px;
+      font-size: 9.5px;
       color: #94a3b8;
       line-height: 1.35;
     }
@@ -470,7 +469,7 @@ const htmlContent = `<!DOCTYPE html>
 
 
   <!-- ===================================================================== -->
-  <!-- PÁGINA 2: INTRODUÇÃO & NAVEGAÇÃO MOBILE                               -->
+  <!-- PÁGINA 2: INTRODUÇÃO & NAVEGAÇÃO MOBILE (PRINT 1: NAVBAR)             -->
   <!-- ===================================================================== -->
   <div class="page">
     <div class="page-header">
@@ -483,7 +482,13 @@ const htmlContent = `<!DOCTYPE html>
       O <strong>Edison League</strong> foi projetado especificamente para proporcionar a melhor experiência de gestão de torneios tanto em computadores quanto na tela do seu smartphone (iOS e Android), operando de forma 100% responsiva e rápida.
     </p>
 
-    <div class="two-cols-mobile">
+    <!-- Barra de Navegação Oficial (Print 1 enviado pelo usuário) -->
+    <div style="background: #141724; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; text-align: center; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);">
+      <img src="${navbarP2B64}" style="width: 100%; max-width: 580px; height: auto; border-radius: 8px; display: block; margin: 0 auto;" alt="Barra de Navegação do App (5 Abas)" />
+      <div style="font-size: 9.5px; color: #fbbf24; font-weight: 700; margin-top: 6px;">Barra Oficial de Navegação Mobile (5 Abas)</div>
+    </div>
+
+    <div class="two-cols">
       <div>
         <div class="card card-gold">
           <div class="card-title">📲 Como Instalar o App no seu Smartphone</div>
@@ -496,6 +501,15 @@ const htmlContent = `<!DOCTYPE html>
           </ul>
         </div>
 
+        <div class="card" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3);">
+          <div class="card-title" style="color: #34d399;">💾 Salvamento Automático &amp; Offline</div>
+          <p style="font-size: 10px; color: #cbd5e1;">
+            Todos os dados de jogadores, torneios em andamento e decklists são sincronizados e salvos automaticamente. Caso feche o navegador ou perca conexão, você pode continuar exatamente de onde parou.
+          </p>
+        </div>
+      </div>
+
+      <div>
         <div class="card">
           <div class="card-title">🧭 As 5 Abas do Menu Principal</div>
           
@@ -515,20 +529,6 @@ const htmlContent = `<!DOCTYPE html>
             <div class="tab-badge badge-gold">⚙️ Regras</div>
             <div class="tab-desc">Consulta completa da Banlist oficial de 2010 e guia das mecânicas históricas de Edison (Ignition Priority, etc.).</div>
           </div>
-        </div>
-
-        <div class="card" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3);">
-          <div class="card-title" style="color: #34d399;">💾 Salvamento Automático &amp; Offline</div>
-          <p style="font-size: 10px; color: #cbd5e1;">
-            Todos os dados de jogadores, torneios em andamento e decklists são sincronizados e salvos automaticamente. Caso feche o navegador ou perca conexão, você pode continuar exatamente de onde parou.
-          </p>
-        </div>
-      </div>
-
-      <div>
-        <div class="phone-mockup">
-          <img src="${rulesB64}" alt="Regras Edison e Navegação Mobile" />
-          <div class="phone-caption">Navegação e Consulta de Regras no Celular</div>
         </div>
       </div>
     </div>
@@ -707,7 +707,7 @@ const htmlContent = `<!DOCTYPE html>
         ⭐ Pontuação Oficial Aplicada no BY: +3 Pontos &amp; Saldo 0 de Games
       </div>
       <p style="font-size: 11px; color: #e2e8f0; line-height: 1.5;">
-        O duelista que recebe BY é bonificado com a vitória no match (<strong>+3 Pontos</strong> na classificação). No entanto, para o cálculo do 4º critério de desempate (Saldo de Games), o sistema atribui <strong>0 games vencidos e 0 games perdidos (Saldo 0)</strong>, em vez de conceder +2 games virtuais.
+        O duelista que recebe BY é bonificado com a vitória no match (<strong>+3 Pontos</strong> na classificação). No entanto, para o cálculo do desempate de games, o sistema atribui <strong>0 games vencidos e 0 games perdidos (Saldo 0)</strong>, em vez de conceder +2 games virtuais.
       </p>
     </div>
 
@@ -743,7 +743,7 @@ const htmlContent = `<!DOCTYPE html>
             <th>Resultado da Partida</th>
             <th>Pontos no Torneio</th>
             <th>Games Vencidos / Perdidos</th>
-            <th>Saldo no Desempate (4º Critério)</th>
+            <th>Saldo no Desempate</th>
           </tr>
         </thead>
         <tbody>
@@ -795,78 +795,87 @@ const htmlContent = `<!DOCTYPE html>
 
 
   <!-- ===================================================================== -->
-  <!-- PÁGINA 6: OS 5 CRITÉRIOS OFICIAIS DE DESEMPATE                        -->
+  <!-- PÁGINA 6: CRITÉRIOS DE DESEMPATE (ORDEM OFICIAL DO PRINT 5 + PRINT 2) -->
   <!-- ===================================================================== -->
   <div class="page">
     <div class="page-header">
       <div class="page-header-title">⚡ EDISON LEAGUE • MANUAL DO USUÁRIO</div>
-      <div class="page-header-subtitle">SEÇÃO 5 • CRITÉRIOS DE DESEMPATE TCG</div>
+      <div class="page-header-subtitle">SEÇÃO 5 • CRITÉRIOS OFICIAIS DE DESEMPATE</div>
     </div>
 
-    <h2 class="section-title">⚖️ Os 5 Critérios Oficiais de Desempate</h2>
+    <h2 class="section-title">⚖️ Desempate Oficial de Torneio (Regras Oficiais Edison / TCG)</h2>
     <p class="section-desc">
-      Quando dois ou mais duelistas terminam o torneio com o mesmo número de pontos, o aplicativo aplica rigorosamente a hierarquia oficial da Konami com pontuação detalhada.
+      Quando dois ou mais duelistas terminam um torneio com a mesma pontuação, a ordem é definida estritamente pela hierarquia oficial adotada pela nossa Liga:
     </p>
 
     <div class="two-cols-mobile">
       <div>
         <!-- CRITÉRIO 1 -->
         <div class="tiebreak-card">
-          <div class="tiebreak-num">1º Critério de Desempate</div>
-          <div class="tiebreak-name">Confronto Direto (Head-to-Head)</div>
+          <div class="tiebreak-num">1. Pontuação Total de Partidas</div>
+          <div class="tiebreak-name">Pontos no Torneio (Match Points)</div>
           <div class="tiebreak-desc">
-            Se os duelistas empatados em pontos já se enfrentaram no torneio, quem venceu o duelo direto fica à frente na tabela.
+            3 pontos por vitória / WO / BY, 1 ponto por empate, 0 pontos por derrota.
           </div>
         </div>
 
         <!-- CRITÉRIO 2 -->
-        <div class="tiebreak-card">
-          <div class="tiebreak-num">2º Critério de Desempate</div>
-          <div class="tiebreak-name">Opponent Match Win % (OMW%) — Força dos Oponentes</div>
+        <div class="tiebreak-card" style="border-left-color: #34d399;">
+          <div class="tiebreak-num" style="color: #34d399;">2. Penalidade de BY (Prioridade de Jogo)</div>
+          <div class="tiebreak-name">Sem BY (Prioridade para quem jogou)</div>
           <div class="tiebreak-desc">
-            Média da taxa de vitórias dos adversários que o duelista enfrentou. Conforme a regra Konami, qualquer oponente com aproveitamento inferior a 33.33% é arredondado para o piso de 0.33, evitando punir quem enfrentou duelistas azarados. Enfrentar oponentes fortes valoriza sua campanha.
+            Duelista que jogou na mesa supera quem folgou com vitória de BY. Em caso de empate em pontos, quem NÃO teve BY vem primeiro.
           </div>
         </div>
 
         <!-- CRITÉRIO 3 -->
         <div class="tiebreak-card">
-          <div class="tiebreak-num">3º Critério de Desempate</div>
-          <div class="tiebreak-name">Opponent Game Win % (OGW%) — Games dos Oponentes</div>
+          <div class="tiebreak-num">3. Os Mínimos / OMW%</div>
+          <div class="tiebreak-name">Opponents' Match Win % (Força dos Oponentes)</div>
           <div class="tiebreak-desc">
-            Média do percentual de games individuais vencidos por todos os adversários enfrentados pelo duelista (também com piso de 33.33%).
+            Aproveitamento dos adversários enfrentados (força dos oponentes na tabela, com piso oficial de 33% por adversário).
           </div>
         </div>
 
         <!-- CRITÉRIO 4 -->
         <div class="tiebreak-card">
-          <div class="tiebreak-num">4º Critério de Desempate</div>
-          <div class="tiebreak-name">Saldo de Games (Game Difference / Game Diff)</div>
+          <div class="tiebreak-num">4. Saldo de Games Direto</div>
+          <div class="tiebreak-name">Diferencial de Games (+2 / +1 / 0 / -1 / -2)</div>
           <div class="tiebreak-desc">
-            Saldo líquido calculado por: <em>(Games Ganhos - Games Perdidos)</em>. Quem vence partidas com menos derrotas individuais possui saldo superior. <em>(BY conta como saldo 0)</em>.
+            Diferencial de vitórias em games: +2 no 2x0, +1 no 2x1, 0 no BY, -1 no 1x2, -2 no 0x2.
           </div>
         </div>
 
         <!-- CRITÉRIO 5 -->
         <div class="tiebreak-card">
-          <div class="tiebreak-num">5º Critério de Desempate</div>
-          <div class="tiebreak-name">Games Vencidos (Games Won)</div>
+          <div class="tiebreak-num">5. Confronto Direto</div>
+          <div class="tiebreak-name">Head-to-Head</div>
           <div class="tiebreak-desc">
-            Número total bruto de games individuais vencidos ao longo do evento.
+            Vitória no confronto individual direto entre os duelistas empatados.
           </div>
         </div>
 
-        <div class="card card-gold" style="margin-top: 6px;">
-          <div class="card-title">💡 Observações de Desempate na Tabela</div>
-          <p style="font-size: 9.5px; color: #cbd5e1; line-height: 1.4;">
-            Abaixo da classificação, o app detalha com pontuação exata o motivo do desempate (ex: <em>"Vitor (1º) superou Caique (2º) pelo critério OMW% (58.3% vs 56.3%) — enfrentou adversários com melhor aproveitamento"</em>).
+        <!-- CRITÉRIO 6 -->
+        <div class="tiebreak-card">
+          <div class="tiebreak-num">6. Aproveitamento em Games</div>
+          <div class="tiebreak-name">PGW% e OGW%</div>
+          <div class="tiebreak-desc">
+            PGW% (porcentagem de games do jogador) e OGW% (porcentagem de games dos oponentes, piso de 33%).
+          </div>
+        </div>
+
+        <div class="card card-gold" style="margin-top: 4px; padding: 8px 10px;">
+          <div class="card-title" style="font-size: 11px;">💡 Resumo da Fórmula de Desempate</div>
+          <p style="font-size: 9px; color: #cbd5e1; line-height: 1.35;">
+            <code>Pontos &gt; Sem BY &gt; Mínimos (OMW%) &gt; Saldo de Games &gt; Confronto Direto &gt; PGW% &gt; OGW% (Piso: 0.33)</code>
           </p>
         </div>
       </div>
 
       <div>
         <div class="phone-mockup">
-          <img src="${standingsB64}" alt="Classificação e Desempate" />
-          <div class="phone-caption">Tabela de Classificação &amp; Pontuação</div>
+          <img src="${standingsP6B64}" alt="Classificação e Desempates (Print 2)" />
+          <div class="phone-caption">Classificação Final &amp; Desempates Oficiais</div>
         </div>
       </div>
     </div>
@@ -879,25 +888,25 @@ const htmlContent = `<!DOCTYPE html>
 
 
   <!-- ===================================================================== -->
-  <!-- PÁGINA 7: SIMULADOR DE DECKLIST EDISON (PRINT Nº 5)                   -->
+  <!-- PÁGINA 7: SIMULADOR DE DECKLIST (PRINT 5 + PRINT 3 COMPLEMENTO)       -->
   <!-- ===================================================================== -->
   <div class="page">
     <div class="page-header">
       <div class="page-header-title">⚡ EDISON LEAGUE • MANUAL DO USUÁRIO</div>
-      <div class="page-header-subtitle">SEÇÃO 6 • SIMULADOR DE DECKLIST EDISON</div>
+      <div class="page-header-subtitle">SEÇÃO 6 • SIMULADOR DE DECKLIST &amp; BANLIST</div>
     </div>
 
-    <h2 class="section-title">🃏 Construtor e Simulador de Decklists Edison</h2>
+    <h2 class="section-title">🃏 Construtor de Decklists &amp; Banlist Edison</h2>
     <p class="section-desc">
       O aplicativo possui uma biblioteca completa com as <strong>3.660 cartas oficiais</strong> lançadas até o formato Edison (2010), com validador de banlist e exportação em imagem.
     </p>
 
-    <div class="two-cols-mobile">
+    <div class="two-cols">
       <div>
         <div class="card card-gold">
           <div class="card-title">📦 Estrutura Oficial de Decks</div>
           <ul style="padding-left: 14px; font-size: 10px; color: #cbd5e1; line-height: 1.45;">
-            <li><strong>Main Deck:</strong> Mínimo 40 e máximo 60 cartas. O app exibe alerta amarelo automático caso o deck tenha menos de 40 cartas.</li>
+            <li><strong>Main Deck:</strong> Mínimo 40 e máximo 60 cartas. Alerta amarelo automático caso o deck tenha menos de 40 cartas.</li>
             <li><strong>Extra Deck:</strong> Máximo de 15 cartas (Monstros Synchro e Fusão).</li>
             <li><strong>Side Deck:</strong> Máximo de 15 cartas para trocas entre duelos.</li>
           </ul>
@@ -930,10 +939,15 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
-      <div>
-        <div class="phone-mockup">
-          <img src="${print5B64}" alt="Simulador de Decklist no Celular (Print 5)" />
-          <div class="phone-caption">Visão Geral do Decklist Oficial Edison</div>
+      <!-- Dois Prints Lado a Lado (Print 5 + Print 3 Complementar) -->
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <div class="phone-mockup" style="max-width: 175px;">
+          <img src="${decklistP7B64}" alt="Visão Geral do Decklist (Print 5)" />
+          <div class="phone-caption">Visão Geral do Deck</div>
+        </div>
+        <div class="phone-mockup" style="max-width: 175px;">
+          <img src="${banlistP7B64}" alt="Banlist Edison 2010 (Print 3)" />
+          <div class="phone-caption">Banlist 2010 no App</div>
         </div>
       </div>
     </div>
@@ -946,7 +960,7 @@ const htmlContent = `<!DOCTYPE html>
 
 
   <!-- ===================================================================== -->
-  <!-- PÁGINA 8: EXPORTAÇÕES, RANKING GERAL & REGRAS ESPECIAIS               -->
+  <!-- PÁGINA 8: EXPORTAÇÕES, RANKING GERAL & REGRAS ESPECIAIS (PRINT 4)     -->
   <!-- ===================================================================== -->
   <div class="page">
     <div class="page-header">
@@ -981,11 +995,12 @@ const htmlContent = `<!DOCTYPE html>
           </p>
         </div>
 
+        <!-- Bloco Atualizado com as Correções do Print 4 -->
         <div class="card">
           <div class="card-title">🔥 3 Principais Regras Históricas de Edison (2010)</div>
           <ul style="padding-left: 14px; font-size: 9.5px; color: #cbd5e1; line-height: 1.45;">
-            <li><strong style="color: #fbbf24;">1. Prioridade de Invocação (Ignition Priority):</strong> Ao invocar um monstro com efeito de ignição (ex: <em>Judgment Dragon, Chaos Sorcerer</em>), o jogador do turno pode ativar o efeito antes que o oponente responda com cartas como <em>Bottomless Trap Hole</em> ou <em>Torrential Tribute</em>.</li>
-            <li><strong style="color: #60a5fa;">2. Saque no Turno 1:</strong> O jogador que inicia a partida compra normalmente na Draw Phase, começando com 6 cartas na mão.</li>
+            <li><strong style="color: #fbbf24;">1. Prioridade de Invocação (Ignition Priority):</strong> Ao invocar um monstro com prioridade de efeito (ex: <em>Judgment Dragon, Chaos Sorcerer</em>), o jogador do turno pode declarar a ativação do efeito antes que o oponente responda com cartas como <em>Bottomless Trap Hole</em> ou <em>Torrential Tribute</em>.</li>
+            <li><strong style="color: #60a5fa;">2. Saque no Turno 1:</strong> O jogador que inicia a partida compra na Draw Phase, começando com 6 cartas na mão.</li>
             <li><strong style="color: #f472b6;">3. Regra de Magia de Campo Única:</strong> Apenas 1 Magia de Campo pode coexistir na mesa inteira. Ativar uma nova destrói a anterior por regra.</li>
           </ul>
         </div>
