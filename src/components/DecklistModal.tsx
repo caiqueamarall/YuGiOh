@@ -500,7 +500,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
   );
 
   return (
-    <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 1250 }}>
+    <div className="modal-backdrop deck-modal-backdrop" onClick={onClose} style={{ zIndex: 1250 }}>
       <div className="deck-modal-box" onClick={(e) => e.stopPropagation()}>
         {/* Topo do Header: Título & Ações Principais */}
         <div className="deck-header-top">
@@ -735,6 +735,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
         {/* Alerta de Validação Edison (se houver) */}
         {stats.warnings.length > 0 && (
           <div
+            className="deck-warning-banner"
             style={{
               padding: '6px 12px',
               background: 'rgba(245, 158, 11, 0.08)',
@@ -744,6 +745,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
               gap: '6px',
               fontSize: '11px',
               color: '#fde68a',
+              flexShrink: 0,
             }}
           >
             <AlertTriangle size={13} style={{ color: '#fbbf24', flexShrink: 0 }} />
@@ -784,7 +786,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
         </div>
 
         {/* CONTEÚDO DA ABA ATIVA */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px', background: '#0e0e11' }}>
+        <div className="deck-modal-body">
           {/* ========================================================== */}
           {/* ABA 1: VISÃO GERAL DO DECK (LAYOUT ESTILO PRINT 3)        */}
           {/* ========================================================== */}
@@ -1004,30 +1006,30 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
                     background: '#161619',
                     border: '1px solid #3f3f46',
                     borderRadius: '8px',
-                    padding: '8px 12px',
+                    minWidth: 0,
                   }}
                 >
-                  <Search size={16} className="text-muted" />
+                  <Search size={16} className="text-muted" style={{ flexShrink: 0 }} />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar entre as 3.660 cartas de Edison (ex: Cyber Dragon, Dustshoot, Dandy...)"
+                    placeholder="Buscar carta Edison (ex: Cyber Dragon, MST...)"
                     style={{
                       background: 'transparent',
                       border: 'none',
                       color: '#fff',
                       fontSize: '13.5px',
                       width: '100%',
+                      minWidth: 0,
                       outline: 'none',
                     }}
-                    autoFocus
                   />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', flexShrink: 0, padding: 0 }}
                     >
                       <X size={14} />
                     </button>
@@ -1422,6 +1424,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
 
         {/* Rodapé com Totais e Salvar */}
         <div
+          className="deck-modal-footer"
           style={{
             padding: '12px 18px',
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
@@ -1431,6 +1434,7 @@ export const DecklistModal: React.FC<DecklistModalProps> = ({
             justifyContent: 'space-between',
             gap: '10px',
             flexWrap: 'wrap',
+            flexShrink: 0,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#94a3b8' }}>

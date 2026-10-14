@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Layers,
   X,
+  Search,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { Player, Tournament, TournamentRound, Decklist } from '../types';
@@ -75,9 +76,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
   });
   const [countsForLeague, setCountsForLeague] = useState<boolean>(true);
   const [totalRounds, setTotalRounds] = useState<number>(4); // 4 ou 5 rodadas
-  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(
-    players.filter((p) => p.active).map((p) => p.id)
-  );
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [playerSearchQuery, setPlayerSearchQuery] = useState<string>('');
 
   // Ao mudar a data no calendário, atualiza o nome padrão caso não tenha sido customizado
   const handleDateChange = (newDate: string) => {
@@ -247,11 +247,27 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
   };
 
   const selectAllPlayers = () => {
-    setSelectedPlayerIds(players.filter((p) => p.active).map((p) => p.id));
+    if (playerSearchQuery.trim()) {
+      const filteredIds = players
+        .filter((p) => p.active && p.name.toLowerCase().includes(playerSearchQuery.toLowerCase().trim()))
+        .map((p) => p.id);
+      setSelectedPlayerIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+    } else {
+      setSelectedPlayerIds(players.filter((p) => p.active).map((p) => p.id));
+    }
   };
 
   const deselectAllPlayers = () => {
-    setSelectedPlayerIds([]);
+    if (playerSearchQuery.trim()) {
+      const filteredIds = new Set(
+        players
+          .filter((p) => p.active && p.name.toLowerCase().includes(playerSearchQuery.toLowerCase().trim()))
+          .map((p) => p.id)
+      );
+      setSelectedPlayerIds((prev) => prev.filter((id) => !filteredIds.has(id)));
+    } else {
+      setSelectedPlayerIds([]);
+    }
   };
 
   const handleDeckChange = (playerId: string, deckName: string) => {
@@ -570,11 +586,45 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
               </div>
             )}
 
+            {/* Campo de Busca de Duelistas */}
+            <div className="roster-search-container">
+              <Search size={15} className="text-muted roster-search-icon" />
+              <input
+                type="text"
+                value={playerSearchQuery}
+                onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                placeholder="Buscar duelista pelo nome..."
+                className="roster-search-input"
+              />
+              {playerSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setPlayerSearchQuery('')}
+                  className="btn-clear-roster-search"
+                  title="Limpar busca"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
             {/* Grid reestruturado com espaçamentos confortáveis e seleção de deck do torneio */}
             <div className="tournament-player-roster">
-              {players
-                .filter((p) => p.active)
-                .map((player) => {
+              {(() => {
+                const activeList = players.filter((p) => p.active);
+                const filtered = activeList.filter((p) =>
+                  p.name.toLowerCase().includes(playerSearchQuery.toLowerCase().trim())
+                );
+
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                      Nenhum duelista encontrado com o nome "{playerSearchQuery}".
+                    </div>
+                  );
+                }
+
+                return filtered.map((player) => {
                   const isSelected = selectedPlayerIds.includes(player.id);
                   const currentDeck = tournamentPlayerDecks[player.id] ?? '';
 
@@ -654,7 +704,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                       </div>
                     </div>
                   );
-                })}
+                });
+              })()}
             </div>
           </div>
 
@@ -1374,7 +1425,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                   </div>
                   <div className="by-reward-badge">
                     <CheckCircle2 size={16} />
-                    <span>+3 Pontos • Vitória 2-0</span>
+                    <span>+3 Pontos • Saldo 0 (BY)</span>
                   </div>
                 </div>
 

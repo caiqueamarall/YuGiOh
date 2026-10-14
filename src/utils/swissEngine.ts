@@ -20,7 +20,7 @@ export function getMatchScoreBreakdown(match: Match): {
     return {
       p1Points: 3,
       p2Points: 0,
-      p1Games: 2,
+      p1Games: 0,
       p2Games: 0,
       isDraw: false,
     };
@@ -177,7 +177,7 @@ export function calculateTournamentStandings(
       if (match.isBy) {
         p1Stats.matchPoints += 3;
         p1Stats.matchWins += 1;
-        p1Stats.gamesWon += 2;
+        p1Stats.gamesWon += 0;
         p1Stats.hadBy = true;
         continue;
       }
@@ -802,9 +802,9 @@ export function generateSwissPairings(
       player1Id: byPlayerId,
       player2Id: null,
       isBy: true,
-      gameWins1: 2,
+      gameWins1: 0,
       gameWins2: 0,
-      isCompleted: true, // BY já começa resolvido com 3 pontos e 2-0
+      isCompleted: true, // BY já começa resolvido com 3 pontos e saldo 0
       isDraw: false,
       isWO: false,
       winnerId: byPlayerId,

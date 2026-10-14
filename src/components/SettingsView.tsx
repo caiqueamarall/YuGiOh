@@ -540,7 +540,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div>
                   <strong>Regra do BY - Folga por número ímpar:</strong>
                   <p>
-                    Quando o número de duelistas ativos for ímpar, 1 duelista recebe folga automática (BY) na rodada, computando vitória de 3 pontos (2-0).<br />
+                    Quando o número de duelistas ativos for ímpar, 1 duelista recebe folga automática (BY) na rodada, computando vitória de 3 pontos (com saldo 0 no desempate de games).<br />
                     <span className="text-gold">
                       ★ <strong>Penalidade de Desempate:</strong> Em caso de empate de pontos no ranking final do torneio, o duelista que recebeu BY tem a menor prioridade no desempate entre os empatados.
                     </span>

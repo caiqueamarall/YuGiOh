@@ -369,7 +369,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                               borderRadius: '4px',
                             }}
                           >
-                            +3 Pts (Vitória 2-0)
+                            +3 Pts • Saldo 0 (BY)
                           </span>
                         </div>
                       );

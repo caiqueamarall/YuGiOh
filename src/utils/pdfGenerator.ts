@@ -660,7 +660,7 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
               <span class="deck-pill-pdf">${p1Deck}</span>
             </td>
             <td style="width: 85px;">
-              <span class="badge-by-pdf">2 x 0 (BY)</span>
+              <span class="badge-by-pdf">BY (+3 Pts • Saldo 0)</span>
             </td>
             <td class="text-left" style="width: 335px; color: #64748b; font-style: italic; font-size: 10.5px;">
               Vitória Automática (Folga)

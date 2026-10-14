@@ -350,6 +350,7 @@ select option {
 .deck-modal-box {
   max-width: 980px;
   width: 96%;
+  height: 92vh;
   max-height: 94vh;
   display: flex;
   flex-direction: column;
@@ -369,6 +370,7 @@ select option {
   justify-content: space-between;
   gap: 8px;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .deck-header-badges-row {
@@ -381,21 +383,12 @@ select option {
   flex-wrap: wrap;
   gap: 6px;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
-@media (max-width: 600px) {
-  .deck-header-top {
-    padding: 8px 10px;
-    gap: 6px;
-  }
-  .deck-header-badges-row {
-    padding: 5px 8px;
-    gap: 5px;
-  }
-  .deck-tab-button {
-    padding: 6px 10px;
-    font-size: 11.5px;
-  }
+.deck-warning-banner {
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .deck-tabs-nav {
@@ -407,6 +400,9 @@ select option {
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  flex-shrink: 0;
+  min-height: 42px;
+  box-sizing: border-box;
 }
 
 .deck-tabs-nav::-webkit-scrollbar {
@@ -428,6 +424,7 @@ select option {
   white-space: nowrap;
   border-radius: 6px 6px 0 0;
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .deck-tab-button:hover {
@@ -439,6 +436,55 @@ select option {
   color: #fbbf24;
   border-bottom-color: #f59e0b;
   background: rgba(245, 158, 11, 0.12);
+}
+
+.deck-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  background: #0e0e11;
+}
+
+.deck-modal-footer {
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .modal-backdrop.deck-modal-backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .deck-modal-box {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+  }
+
+  .deck-header-top {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .deck-header-badges-row {
+    padding: 5px 8px;
+    gap: 5px;
+  }
+
+  .deck-tab-button {
+    padding: 6px 10px;
+    font-size: 11.5px;
+  }
+
+  .deck-modal-body {
+    padding: 10px;
+  }
 }
 
 /* Área do Simulador (Print 3 Reference) */
