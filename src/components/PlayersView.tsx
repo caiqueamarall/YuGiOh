@@ -136,10 +136,24 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
           <div className="hero-tag">
             <Users size={14} className="text-gold" />
             <span>CADASTRO & DUELISTAS</span>
+            <span
+              style={{
+                marginLeft: '6px',
+                background: 'rgba(245, 158, 11, 0.2)',
+                color: '#fbbf24',
+                padding: '1px 7px',
+                borderRadius: '999px',
+                fontSize: '11px',
+                fontWeight: 800,
+              }}
+              title="Total de duelistas adicionados"
+            >
+              {players.length}
+            </span>
           </div>
           <h2 className="hero-title">Duelistas da Liga</h2>
           <p className="hero-subtitle hide-on-xs">
-            Gerencie os participantes da liga com facilidade.
+            Gerencie os participantes da liga com facilidade ({players.length} {players.length === 1 ? 'duelista adicionado' : 'duelistas adicionados'}).
           </p>
         </div>
       </div>
@@ -271,6 +285,18 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Legenda simples com contagem total de duelistas adicionados */}
+          <div className="players-count-legend">
+            <Users size={13} className="text-gold" />
+            <span>
+              {searchTerm ? (
+                <>Mostrando <strong>{filteredPlayers.length}</strong> de <strong>{players.length}</strong> {players.length === 1 ? 'jogador adicionado' : 'jogadores adicionados'}</>
+              ) : (
+                <>Total: <strong>{players.length}</strong> {players.length === 1 ? 'jogador adicionado' : 'jogadores adicionados'}</>
+              )}
+            </span>
           </div>
 
           <div className="players-cards-container">
