@@ -11,7 +11,7 @@ import {
   Layers,
 } from 'lucide-react';
 import type { Player, Tournament, Decklist } from '../types';
-import { calculateTournamentStandings } from '../utils/swissEngine';
+import { calculateTournamentStandings, getTournamentTopCut } from '../utils/swissEngine';
 import { DecklistModal } from './DecklistModal';
 
 interface TournamentEditModalProps {
@@ -841,6 +841,32 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                   <span>Torneio Oficial da Liga (concede pontos e títulos no Ranking da Liga)</span>
                 </label>
               </div>
+
+              <div style={{ marginTop: '16px' }}>
+                <label style={{ fontSize: '13px', color: '#e2e8f0', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                  Quantitativo do TOP do Torneio:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                  {[2, 3, 4, 5].map((num) => {
+                    const currentTop = getTournamentTopCut(editedTournament);
+                    const isSelected = currentTop === num;
+                    return (
+                      <button
+                        key={num}
+                        type="button"
+                        className={`btn-top-select ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setEditedTournament((prev) => ({ ...prev, topCut: num }))}
+                        style={{ padding: '8px 6px' }}
+                      >
+                        <span className="top-cut-number">TOP {num}</span>
+                        <span className="top-cut-label">
+                          {num === 2 ? 'Finalistas' : num === 3 ? 'Pódio Clássico' : num === 4 ? 'Semifinais' : 'Top 5'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 
@@ -942,7 +968,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                           <tr key={s.playerId} className={s.rank === 1 ? 'champion-row' : ''}>
                             <td>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                <span className={`rank-tag ${s.rank <= 3 ? 'top' : ''}`}>
+                                <span className={`rank-tag ${s.rank <= getTournamentTopCut(editedTournament) ? 'top' : ''}`}>
                                   {s.rank}º
                                 </span>
                                 {rankDiff > 0 && (

@@ -1011,3 +1011,32 @@ export function recalculateAllPlayerStats(
 
   return Array.from(playerStatsMap.values());
 }
+
+/**
+ * Retorna o quantitativo de duelistas para o TOP de um torneio.
+ * Prioriza a escolha salva pelo gestor (tournament.topCut).
+ * Se não definido, calcula com base na regra de jogadores:
+ * - até 13 jogadores: Top 2
+ * - 14 a 18 jogadores: Top 4
+ * - 19 ou mais jogadores: Top 5
+ */
+export function getTournamentTopCut(tournament: { topCut?: number; playerIds?: string[] } | null | undefined): number {
+  if (!tournament) return 3;
+  if (tournament.topCut && [2, 3, 4, 5].includes(tournament.topCut)) {
+    return tournament.topCut;
+  }
+  const count = tournament.playerIds ? tournament.playerIds.length : 8;
+  return getDefaultTopCutForPlayerCount(count);
+}
+
+/**
+ * Sugere o quantitativo padrão de TOP baseado na quantidade de participantes:
+ * - até 13 jogadores: Top 2
+ * - 14 a 18 jogadores: Top 4
+ * - 19 ou mais jogadores: Top 5
+ */
+export function getDefaultTopCutForPlayerCount(playerCount: number): number {
+  if (playerCount <= 13) return 2;
+  if (playerCount <= 18) return 4;
+  return 5;
+}

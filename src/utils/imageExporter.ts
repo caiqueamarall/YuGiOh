@@ -4,6 +4,7 @@ import {
   getTiebreakExplanations,
   sortPlayersForLeague,
   getLeagueTiebreakExplanations,
+  getTournamentTopCut,
 } from './swissEngine';
 import {
   getEdisonCardByName,
@@ -75,9 +76,8 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
     ? new Date(tournament.date).toLocaleDateString('pt-BR')
     : '-';
 
-  const firstPlace = standings[0];
-  const secondPlace = standings[1];
-  const thirdPlace = standings[2];
+  const topCut = getTournamentTopCut(tournament);
+  const topStandings = standings.slice(0, Math.min(topCut, standings.length));
 
   // Dimensões do Canvas (Expandido para 1480px para acomodar confortavelmente todas as porcentagens oficiais)
   const width = 1480;
@@ -162,185 +162,176 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
 
   curY += 24;
 
-  // 3. Molduras dos Top 3 (Se houver duelistas suficientes)
-  if (podiumHeight > 0) {
-    const cardGap = 16;
-    const cardWidth = (contentWidth - cardGap * 2) / 3;
+  // 3. Molduras do TOP (Top 2, Top 3, Top 4 ou Top 5)
+  if (podiumHeight > 0 && topStandings.length >= 2) {
+    const numCards = topStandings.length;
+    let cardGap = 16;
+    let cardWidth = (contentWidth - cardGap * (numCards - 1)) / numCards;
+    let podiumStartX = padding;
 
-    // --- 1º LUGAR: OURO IMPERIAL / MILLENNIUM ---
-    if (firstPlace) {
-      const cX = padding;
-      const cY = curY;
-
-      // Fundo do Card Ouro
-      const goldBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
-      goldBg.addColorStop(0, 'rgba(245, 158, 11, 0.22)');
-      goldBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
-      ctx.fillStyle = goldBg;
-      roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-      ctx.fill();
-
-      // Borda Dourada Trabalhada
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 2;
-      roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-      ctx.stroke();
-
-      // Faixa Superior Ouro
-      const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
-      ribbonGrad.addColorStop(0, '#d97706');
-      ribbonGrad.addColorStop(1, '#b45309');
-      ctx.fillStyle = ribbonGrad;
-      roundRect(ctx, cX, cY, cardWidth, 32, 12);
-      ctx.fill();
-      // Retângulo para cantos inferiores retos da faixa
-      ctx.fillRect(cX, cY + 16, cardWidth, 16);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 12px system-ui, -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('👑 1º LUGAR • CAMPEÃO', cX + cardWidth / 2, cY + 21);
-
-      // Nome do Campeão
-      ctx.fillStyle = '#fde68a';
-      ctx.font = '900 20px system-ui, -apple-system, sans-serif';
-      ctx.fillText(firstPlace.playerName, cX + cardWidth / 2, cY + 70);
-
-      // Deck
-      ctx.fillStyle = '#cbd5e1';
-      ctx.font = '13px system-ui, -apple-system, sans-serif';
-      ctx.fillText(playerDecks[firstPlace.playerId] || 'Edison Deck', cX + cardWidth / 2, cY + 96);
-
-      // Badge de Pontos
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
-      roundRect(ctx, cX + cardWidth / 2 - 75, cY + 114, 150, 28, 14);
-      ctx.fill();
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 1;
-      roundRect(ctx, cX + cardWidth / 2 - 75, cY + 114, 150, 28, 14);
-      ctx.stroke();
-
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-      ctx.fillText(`${firstPlace.matchPoints} pts (${firstPlace.matchWins}-${firstPlace.matchDraws}-${firstPlace.matchLosses})`, cX + cardWidth / 2, cY + 133);
-      ctx.textAlign = 'left';
+    if (numCards === 2) {
+      cardGap = 24;
+      cardWidth = 480;
+      podiumStartX = padding + (contentWidth - (2 * cardWidth + cardGap)) / 2;
+    } else if (numCards === 4) {
+      cardGap = 14;
+      cardWidth = (contentWidth - cardGap * 3) / 4;
+    } else if (numCards === 5) {
+      cardGap = 12;
+      cardWidth = (contentWidth - cardGap * 4) / 5;
     }
 
-    // --- 2º LUGAR: PRATA / AÇO CROMADO ---
-    if (secondPlace) {
-      const cX = padding + cardWidth + cardGap;
+    topStandings.forEach((s, idx) => {
+      const rank = idx + 1;
+      const cX = podiumStartX + (cardWidth + cardGap) * idx;
       const cY = curY;
+      const deckName = playerDecks[s.playerId] || 'Edison Deck';
+      const badgeW = Math.min(150, cardWidth - 24);
 
-      // Fundo do Card Prata
-      const silverBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
-      silverBg.addColorStop(0, 'rgba(148, 163, 184, 0.20)');
-      silverBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
-      ctx.fillStyle = silverBg;
-      roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-      ctx.fill();
+      if (rank === 1) {
+        // --- 1º LUGAR: OURO IMPERIAL / MILLENNIUM ---
+        const goldBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
+        goldBg.addColorStop(0, 'rgba(245, 158, 11, 0.22)');
+        goldBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
+        ctx.fillStyle = goldBg;
+        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
+        ctx.fill();
 
-      // Borda Prateada
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 2;
-      roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-      ctx.stroke();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
+        ctx.stroke();
 
-      // Faixa Superior Prata
-      const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
-      ribbonGrad.addColorStop(0, '#64748b');
-      ribbonGrad.addColorStop(1, '#475569');
-      ctx.fillStyle = ribbonGrad;
-      roundRect(ctx, cX, cY, cardWidth, 32, 12);
-      ctx.fill();
-      ctx.fillRect(cX, cY + 16, cardWidth, 16);
+        const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
+        ribbonGrad.addColorStop(0, '#d97706');
+        ribbonGrad.addColorStop(1, '#b45309');
+        ctx.fillStyle = ribbonGrad;
+        roundRect(ctx, cX, cY, cardWidth, 32, 12);
+        ctx.fill();
+        ctx.fillRect(cX, cY + 16, cardWidth, 16);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 12px system-ui, -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('🥈 2º LUGAR • VICE-CAMPEÃO', cX + cardWidth / 2, cY + 21);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 12px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('👑 1º LUGAR • CAMPEÃO', cX + cardWidth / 2, cY + 21);
 
-      // Nome do 2º Lugar
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = '800 19px system-ui, -apple-system, sans-serif';
-      ctx.fillText(secondPlace.playerName, cX + cardWidth / 2, cY + 70);
+        ctx.fillStyle = '#fde68a';
+        ctx.font = numCards >= 5 ? '900 17px system-ui, -apple-system, sans-serif' : '900 20px system-ui, -apple-system, sans-serif';
+        ctx.fillText(s.playerName, cX + cardWidth / 2, cY + 70);
 
-      // Deck
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '13px system-ui, -apple-system, sans-serif';
-      ctx.fillText(playerDecks[secondPlace.playerId] || 'Edison Deck', cX + cardWidth / 2, cY + 96);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = numCards >= 5 ? '12px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
+        ctx.fillText(deckName, cX + cardWidth / 2, cY + 96);
 
-      // Badge de Pontos
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.2)';
-      roundRect(ctx, cX + cardWidth / 2 - 75, cY + 114, 150, 28, 14);
-      ctx.fill();
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1;
-      roundRect(ctx, cX + cardWidth / 2 - 75, cY + 114, 150, 28, 14);
-      ctx.stroke();
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
+        ctx.fill();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1;
+        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
+        ctx.stroke();
 
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-      ctx.fillText(`${secondPlace.matchPoints} pts (${secondPlace.matchWins}-${secondPlace.matchDraws}-${secondPlace.matchLosses})`, cX + cardWidth / 2, cY + 133);
-      ctx.textAlign = 'left';
-    }
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 12.5px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`${s.matchPoints} pts (${s.matchWins}-${s.matchDraws}-${s.matchLosses})`, cX + cardWidth / 2, cY + 133);
+        ctx.textAlign = 'left';
+      } else if (rank === 2) {
+        // --- 2º LUGAR: PRATA / AÇO CROMADO ---
+        const silverBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
+        silverBg.addColorStop(0, 'rgba(148, 163, 184, 0.20)');
+        silverBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
+        ctx.fillStyle = silverBg;
+        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
+        ctx.fill();
 
-    // --- 3º LUGAR: BRONZE NOBRE / COBRE NOBRE (DIFERENCIADO!) ---
-    if (thirdPlace) {
-      const cX = padding + (cardWidth + cardGap) * 2;
-      const cY = curY;
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2;
+        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
+        ctx.stroke();
 
-      // Fundo do Card Bronze (Tons quentes de cobre avermelhado)
-      const bronzeBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
-      bronzeBg.addColorStop(0, 'rgba(234, 88, 12, 0.22)');
-      bronzeBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
-      ctx.fillStyle = bronzeBg;
-      roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-      ctx.fill();
+        const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
+        ribbonGrad.addColorStop(0, '#64748b');
+        ribbonGrad.addColorStop(1, '#475569');
+        ctx.fillStyle = ribbonGrad;
+        roundRect(ctx, cX, cY, cardWidth, 32, 12);
+        ctx.fill();
+        ctx.fillRect(cX, cY + 16, cardWidth, 16);
 
-      // Borda Cobre / Bronze Avermelhado
-      ctx.strokeStyle = '#ea580c';
-      ctx.lineWidth = 2;
-      roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-      ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 12px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🥈 2º LUGAR • VICE-CAMPEÃO', cX + cardWidth / 2, cY + 21);
 
-      // Faixa Superior Bronze
-      const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
-      ribbonGrad.addColorStop(0, '#ea580c');
-      ribbonGrad.addColorStop(1, '#c2410c');
-      ctx.fillStyle = ribbonGrad;
-      roundRect(ctx, cX, cY, cardWidth, 32, 12);
-      ctx.fill();
-      ctx.fillRect(cX, cY + 16, cardWidth, 16);
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = numCards >= 5 ? '800 16px system-ui, -apple-system, sans-serif' : '800 19px system-ui, -apple-system, sans-serif';
+        ctx.fillText(s.playerName, cX + cardWidth / 2, cY + 70);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 12px system-ui, -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('🥉 3º LUGAR • BRONZE NOBRE', cX + cardWidth / 2, cY + 21);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = numCards >= 5 ? '12px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
+        ctx.fillText(deckName, cX + cardWidth / 2, cY + 96);
 
-      // Nome do 3º Lugar
-      ctx.fillStyle = '#ffedd5';
-      ctx.font = '800 19px system-ui, -apple-system, sans-serif';
-      ctx.fillText(thirdPlace.playerName, cX + cardWidth / 2, cY + 70);
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.2)';
+        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
+        ctx.fill();
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1;
+        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
+        ctx.stroke();
 
-      // Deck
-      ctx.fillStyle = '#fdba74';
-      ctx.font = '13px system-ui, -apple-system, sans-serif';
-      ctx.fillText(playerDecks[thirdPlace.playerId] || 'Edison Deck', cX + cardWidth / 2, cY + 96);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 12.5px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`${s.matchPoints} pts (${s.matchWins}-${s.matchDraws}-${s.matchLosses})`, cX + cardWidth / 2, cY + 133);
+        ctx.textAlign = 'left';
+      } else {
+        // --- 3º, 4º e 5º LUGAR: BRONZE NOBRE (Mesma cor para Top 4 e Top 5 conforme solicitado!) ---
+        const bronzeBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
+        bronzeBg.addColorStop(0, 'rgba(234, 88, 12, 0.22)');
+        bronzeBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
+        ctx.fillStyle = bronzeBg;
+        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
+        ctx.fill();
 
-      // Badge de Pontos
-      ctx.fillStyle = 'rgba(234, 88, 12, 0.25)';
-      roundRect(ctx, cX + cardWidth / 2 - 75, cY + 114, 150, 28, 14);
-      ctx.fill();
-      ctx.strokeStyle = '#ea580c';
-      ctx.lineWidth = 1;
-      roundRect(ctx, cX + cardWidth / 2 - 75, cY + 114, 150, 28, 14);
-      ctx.stroke();
+        ctx.strokeStyle = '#ea580c';
+        ctx.lineWidth = 2;
+        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
+        ctx.stroke();
 
-      ctx.fillStyle = '#fed7aa';
-      ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-      ctx.fillText(`${thirdPlace.matchPoints} pts (${thirdPlace.matchWins}-${thirdPlace.matchDraws}-${thirdPlace.matchLosses})`, cX + cardWidth / 2, cY + 133);
-      ctx.textAlign = 'left';
-    }
+        const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
+        ribbonGrad.addColorStop(0, '#ea580c');
+        ribbonGrad.addColorStop(1, '#c2410c');
+        ctx.fillStyle = ribbonGrad;
+        roundRect(ctx, cX, cY, cardWidth, 32, 12);
+        ctx.fill();
+        ctx.fillRect(cX, cY + 16, cardWidth, 16);
+
+        const ribbonTitle = rank === 3 ? '🥉 3º LUGAR • BRONZE NOBRE' : `🥉 ${rank}º LUGAR • TOP ${rank}`;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 12px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ribbonTitle, cX + cardWidth / 2, cY + 21);
+
+        ctx.fillStyle = '#ffedd5';
+        ctx.font = numCards >= 5 ? '800 16px system-ui, -apple-system, sans-serif' : '800 19px system-ui, -apple-system, sans-serif';
+        ctx.fillText(s.playerName, cX + cardWidth / 2, cY + 70);
+
+        ctx.fillStyle = '#fdba74';
+        ctx.font = numCards >= 5 ? '12px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
+        ctx.fillText(deckName, cX + cardWidth / 2, cY + 96);
+
+        ctx.fillStyle = 'rgba(234, 88, 12, 0.25)';
+        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
+        ctx.fill();
+        ctx.strokeStyle = '#ea580c';
+        ctx.lineWidth = 1;
+        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
+        ctx.stroke();
+
+        ctx.fillStyle = '#fed7aa';
+        ctx.font = 'bold 12.5px system-ui, -apple-system, sans-serif';
+        ctx.fillText(`${s.matchPoints} pts (${s.matchWins}-${s.matchDraws}-${s.matchLosses})`, cX + cardWidth / 2, cY + 133);
+        ctx.textAlign = 'left';
+      }
+    });
 
     curY += podiumHeight + 24;
   }
@@ -420,7 +411,7 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
       ctx.fillStyle = '#fbbf24';
     } else if (s.rank === 2) {
       ctx.fillStyle = '#e2e8f0';
-    } else if (s.rank === 3) {
+    } else if (s.rank <= topCut) {
       ctx.fillStyle = '#fdba74';
     } else {
       ctx.fillStyle = '#94a3b8';
@@ -429,7 +420,7 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
 
     // Nome
     ctx.fillStyle = '#ffffff';
-    ctx.font = s.rank <= 3 ? 'bold 13.5px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
+    ctx.font = s.rank <= topCut ? 'bold 13.5px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
     ctx.fillText(s.isDropped ? `${s.playerName} [DROP]` : s.playerName, colX.name, rowY + 23);
 
     // Deck

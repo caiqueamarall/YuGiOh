@@ -31,6 +31,8 @@ import {
   generateSwissPairings,
   calculateTournamentStandings,
   getTiebreakExplanations,
+  getTournamentTopCut,
+  getDefaultTopCutForPlayerCount,
 } from '../utils/swissEngine';
 import { exportTournamentResultsPDF } from '../utils/pdfGenerator';
 import { exportTournamentResultsPNG } from '../utils/imageExporter';
@@ -78,6 +80,18 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
   const [totalRounds, setTotalRounds] = useState<number>(4); // 4 ou 5 rodadas
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [playerSearchQuery, setPlayerSearchQuery] = useState<string>('');
+  const [topCut, setTopCut] = useState<number>(() => {
+    const activeCount = players.filter((p) => p.active).length;
+    return getDefaultTopCutForPlayerCount(activeCount > 0 ? activeCount : 8);
+  });
+  const [hasUserChangedTopCut, setHasUserChangedTopCut] = useState<boolean>(false);
+
+  // Ajusta automaticamente a sugestão de TOP conforme os jogadores selecionados (a menos que o gestor tenha escolhido manualmente)
+  useEffect(() => {
+    if (!hasUserChangedTopCut && selectedPlayerIds.length > 0) {
+      setTopCut(getDefaultTopCutForPlayerCount(selectedPlayerIds.length));
+    }
+  }, [selectedPlayerIds.length, hasUserChangedTopCut]);
 
   // Ao mudar a data no calendário, atualiza o nome padrão caso não tenha sido customizado
   const handleDateChange = (newDate: string) => {
@@ -316,6 +330,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
       currentRound: 1,
       status: 'active',
       countsForLeague: countsForLeague,
+      topCut: topCut,
       playerIds: selectedPlayerIds,
       playerDecks: sanitizedPlayerDecks,
       playerDecklists: tournamentPlayerDecklists,
@@ -544,6 +559,37 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
             </div>
           </div>
 
+          {/* Linha 3: Quantitativo de Duelistas no TOP */}
+          <div className="form-section">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Quantitativo do TOP (Pódio & Destaques):</label>
+              <span className="text-muted text-sm">
+                {selectedPlayerIds.length > 0
+                  ? `Sugestão p/ ${selectedPlayerIds.length} jogadores: TOP ${getDefaultTopCutForPlayerCount(selectedPlayerIds.length)}`
+                  : 'Defina a quantidade de duelistas em destaque'}
+              </span>
+            </div>
+            <div className="top-cut-selector-grid">
+              {[2, 3, 4, 5].map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  id={`btn-top-cut-${num}`}
+                  className={`btn-top-select ${topCut === num ? 'selected' : ''}`}
+                  onClick={() => {
+                    setTopCut(num);
+                    setHasUserChangedTopCut(true);
+                  }}
+                >
+                  <span className="top-cut-number">TOP {num}</span>
+                  <span className="top-cut-label">
+                    {num === 2 ? 'Finalistas' : num === 3 ? 'Pódio Clássico' : num === 4 ? 'Semifinalistas' : 'Top 5 Especial'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Seleção de Duelistas e Escolha de Deck do Torneio */}
           <div className="form-section">
             <div className="player-selection-header">
@@ -735,9 +781,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
   // ==========================================
   if (isFinishing || activeTournament.status === 'completed') {
     const standings = calculateTournamentStandings(activeTournament, players);
-    const champion = standings[0];
-    const runnerUp = standings[1];
-    const thirdPlace = standings[2];
+    const tournamentTopCut = getTournamentTopCut(activeTournament);
+    const topStandings = standings.slice(0, Math.min(tournamentTopCut, standings.length));
     const tiebreakNotes = getTiebreakExplanations(standings, activeTournament);
     const playerDecks = activeTournament.playerDecks || {};
 
@@ -746,7 +791,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
         <div className="celebration-card">
           <div className="celebration-badge">
             <Sparkles size={20} className="text-gold" />
-            <span>TORNEIO CONCLUÍDO COM SUCESSO</span>
+            <span>TORNEIO CONCLUÍDO • TOP {tournamentTopCut} DEFINIDO</span>
             {activeTournament.countsForLeague !== false ? (
               <span className="badge-league-official" style={{ marginLeft: '8px' }}>Oficial da Liga</span>
             ) : (
@@ -762,74 +807,66 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
           </p>
 
           <div className="mini-podium-showcase">
-            {champion && (
-              <div className="mini-podium-card place-1">
-                <div className="mini-podium-rank rank-gold">
-                  <Trophy size={13} className="text-gold" />
-                  <span>1º LUGAR</span>
-                </div>
-                <div className="mini-podium-avatar champion-avatar">
-                  {champion.playerName.substring(0, 2).toUpperCase()}
-                </div>
-                <div className="mini-podium-name champion-name" title={champion.playerName}>
-                  {champion.playerName}
-                </div>
-                {playerDecks[champion.playerId] && (
-                  <div className="mini-podium-deck" title={playerDecks[champion.playerId]}>
-                    {playerDecks[champion.playerId]}
-                  </div>
-                )}
-                <div className="mini-podium-badge badge-gold">
-                  {champion.matchPoints} pts
-                </div>
-              </div>
-            )}
+            {topStandings.map((s, idx) => {
+              const rank = idx + 1;
+              const isFirst = rank === 1;
+              const isSecond = rank === 2;
 
-            {runnerUp && (
-              <div className="mini-podium-card place-2">
-                <div className="mini-podium-rank rank-silver">
-                  <Medal size={13} className="text-silver" />
-                  <span>2º LUGAR</span>
-                </div>
-                <div className="mini-podium-avatar">
-                  {runnerUp.playerName.substring(0, 2).toUpperCase()}
-                </div>
-                <div className="mini-podium-name" title={runnerUp.playerName}>
-                  {runnerUp.playerName}
-                </div>
-                {playerDecks[runnerUp.playerId] && (
-                  <div className="mini-podium-deck" title={playerDecks[runnerUp.playerId]}>
-                    {playerDecks[runnerUp.playerId]}
-                  </div>
-                )}
-                <div className="mini-podium-badge badge-silver">
-                  {runnerUp.matchPoints} pts
-                </div>
-              </div>
-            )}
+              const cardClass = isFirst
+                ? 'place-1'
+                : isSecond
+                ? 'place-2'
+                : `place-3 place-${rank}`;
 
-            {thirdPlace && (
-              <div className="mini-podium-card place-3">
-                <div className="mini-podium-rank rank-bronze">
-                  <Award size={13} className="text-bronze" />
-                  <span>3º LUGAR</span>
-                </div>
-                <div className="mini-podium-avatar">
-                  {thirdPlace.playerName.substring(0, 2).toUpperCase()}
-                </div>
-                <div className="mini-podium-name" title={thirdPlace.playerName}>
-                  {thirdPlace.playerName}
-                </div>
-                {playerDecks[thirdPlace.playerId] && (
-                  <div className="mini-podium-deck" title={playerDecks[thirdPlace.playerId]}>
-                    {playerDecks[thirdPlace.playerId]}
+              const rankClass = isFirst
+                ? 'rank-gold'
+                : isSecond
+                ? 'rank-silver'
+                : 'rank-bronze';
+
+              const badgeClass = isFirst
+                ? 'badge-gold'
+                : isSecond
+                ? 'badge-silver'
+                : 'badge-bronze';
+
+              const iconColor = isFirst
+                ? 'text-gold'
+                : isSecond
+                ? 'text-silver'
+                : 'text-bronze';
+
+              const rankLabel = isFirst
+                ? '1º LUGAR'
+                : isSecond
+                ? '2º LUGAR'
+                : `${rank}º LUGAR`;
+
+              const Icon = isFirst ? Trophy : isSecond ? Medal : Award;
+
+              return (
+                <div key={s.playerId} className={`mini-podium-card ${cardClass}`}>
+                  <div className={`mini-podium-rank ${rankClass}`}>
+                    <Icon size={13} className={iconColor} />
+                    <span>{rankLabel}</span>
                   </div>
-                )}
-                <div className="mini-podium-badge badge-bronze">
-                  {thirdPlace.matchPoints} pts
+                  <div className={`mini-podium-avatar ${isFirst ? 'champion-avatar' : ''}`}>
+                    {s.playerName.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div className={`mini-podium-name ${isFirst ? 'champion-name' : ''}`} title={s.playerName}>
+                    {s.playerName}
+                  </div>
+                  {playerDecks[s.playerId] && (
+                    <div className="mini-podium-deck" title={playerDecks[s.playerId]}>
+                      {playerDecks[s.playerId]}
+                    </div>
+                  )}
+                  <div className={`mini-podium-badge ${badgeClass}`}>
+                    {s.matchPoints} pts
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })}
           </div>
 
           <div className="standings-table-compact">
@@ -920,7 +957,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                   {standings.map((s) => (
                     <tr key={s.playerId} className={s.rank === 1 ? 'champion-row' : ''}>
                       <td>
-                        <span className={`rank-tag ${s.rank <= 3 ? 'top' : ''}`}>{s.rank}º</span>
+                        <span className={`rank-tag ${s.rank <= tournamentTopCut ? 'top' : ''}`}>{s.rank}º</span>
                       </td>
                       <td className="text-left">
                         <strong>{s.playerName}</strong>
@@ -1058,6 +1095,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
   const currentRoundIndex = activeTournament.currentRound - 1;
   const currentRound: TournamentRound = activeTournament.rounds[currentRoundIndex];
   const standings = calculateTournamentStandings(activeTournament, players);
+  const activeTopCut = getTournamentTopCut(activeTournament);
   const playerMap = new Map(players.map((p) => [p.id, p]));
   const playerDecks = activeTournament.playerDecks || {};
 
@@ -1246,7 +1284,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 {standings.map((s) => (
                   <tr key={s.playerId}>
                     <td>
-                      <span className={`rank-tag ${s.rank <= 3 ? 'top' : ''}`}>{s.rank}º</span>
+                      <span className={`rank-tag ${s.rank <= activeTopCut ? 'top' : ''}`}>{s.rank}º</span>
                     </td>
                     <td className="text-left">
                       <strong>{s.playerName}</strong>

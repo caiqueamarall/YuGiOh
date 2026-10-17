@@ -4,6 +4,7 @@ import {
   getTiebreakExplanations,
   sortPlayersForLeague,
   getLeagueTiebreakExplanations,
+  getTournamentTopCut,
 } from './swissEngine';
 
 const PRINT_CSS = `
@@ -184,12 +185,13 @@ const PRINT_CSS = `
   }
   .podium-box {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 16px;
     max-width: 820px;
   }
   .podium-card {
     flex: 1;
+    min-width: 0;
     border-radius: 8px;
     padding: 0;
     text-align: center;
@@ -204,17 +206,22 @@ const PRINT_CSS = `
     border: 2px solid #64748b;
     background: linear-gradient(180deg, #f8fafc 0%, #ffffff 70%);
   }
-  .podium-card.place-3 {
+  .podium-card.place-3,
+  .podium-card.place-4,
+  .podium-card.place-5 {
     border: 2px solid #ea580c;
     background: linear-gradient(180deg, #fff7ed 0%, #ffffff 70%);
   }
   .podium-header-bar {
-    padding: 5px 8px;
-    font-size: 10.5px;
+    padding: 5px 6px;
+    font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .podium-card.place-1 .podium-header-bar {
     background: linear-gradient(135deg, #d97706, #b45309);
@@ -222,16 +229,21 @@ const PRINT_CSS = `
   .podium-card.place-2 .podium-header-bar {
     background: linear-gradient(135deg, #64748b, #475569);
   }
-  .podium-card.place-3 .podium-header-bar {
+  .podium-card.place-3 .podium-header-bar,
+  .podium-card.place-4 .podium-header-bar,
+  .podium-card.place-5 .podium-header-bar {
     background: linear-gradient(135deg, #ea580c, #c2410c);
   }
   .podium-body {
-    padding: 8px 10px;
+    padding: 8px 6px;
   }
   .podium-player {
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 800;
     margin: 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .podium-card.place-1 .podium-player {
     color: #92400e;
@@ -239,21 +251,27 @@ const PRINT_CSS = `
   .podium-card.place-2 .podium-player {
     color: #1e293b;
   }
-  .podium-card.place-3 .podium-player {
+  .podium-card.place-3 .podium-player,
+  .podium-card.place-4 .podium-player,
+  .podium-card.place-5 .podium-player {
     color: #9a3412;
   }
   .podium-sub {
-    font-size: 11px;
+    font-size: 10.5px;
     color: #475569;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .podium-badge-pts {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: 999px;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 800;
     margin-top: 4px;
+    white-space: nowrap;
   }
   .podium-card.place-1 .podium-badge-pts {
     background: #fef3c7;
@@ -265,7 +283,9 @@ const PRINT_CSS = `
     color: #475569;
     border: 1px solid #94a3b8;
   }
-  .podium-card.place-3 .podium-badge-pts {
+  .podium-card.place-3 .podium-badge-pts,
+  .podium-card.place-4 .podium-badge-pts,
+  .podium-card.place-5 .podium-badge-pts {
     background: #ffedd5;
     color: #c2410c;
     border: 1px solid #ea580c;
@@ -610,10 +630,9 @@ export function exportLeagueRankingPDF(players: Player[]): void {
  */
 export function exportTournamentResultsPDF(tournament: Tournament, players: Player[]): void {
   const standings = calculateTournamentStandings(tournament, players);
+  const topCut = getTournamentTopCut(tournament);
+  const topStandings = standings.slice(0, Math.min(topCut, standings.length));
   const playerMap = new Map(players.map((p) => [p.id, p]));
-  const firstPlace = standings[0];
-  const secondPlace = standings[1];
-  const thirdPlace = standings[2];
   const tiebreakNotes = getTiebreakExplanations(standings, tournament);
   const playerDecks = tournament.playerDecks || {};
 
@@ -622,11 +641,15 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
     : '-';
 
   // Tabela de Classificação Final
-  const standingsRows = standings.map((s) => `
-    <tr>
-      <td><strong>${s.rank}º</strong></td>
+  const standingsRows = standings.map((s) => {
+    const isTop = s.rank <= topCut;
+    const rankStyle = isTop ? 'color: #b45309; font-weight: 800;' : '';
+    return `
+    <tr style="${isTop ? 'background-color: rgba(245, 158, 11, 0.04);' : ''}">
+      <td style="${rankStyle}"><strong>${s.rank}º</strong></td>
       <td class="text-left">
         <strong>${s.playerName}</strong>
+        ${isTop ? `<span style="font-size: 8.5px; background: #ffedd5; color: #c2410c; border: 1px solid #ea580c; border-radius: 3px; padding: 1px 3px; font-weight: 800; margin-left: 4px;">TOP ${topCut}</span>` : ''}
         ${s.isDropped ? '<span style="font-size: 9px; background: #fee2e2; color: #dc2626; border: 1px solid #f87171; border-radius: 3px; padding: 1px 4px; font-weight: 700; margin-left: 4px;">DROP</span>' : ''}
       </td>
       <td><span class="deck-pill">${playerDecks[s.playerId] || 'Edison Deck'}</span></td>
@@ -640,7 +663,8 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
       <td><strong>${s.pgw.toFixed(2)}</strong> <span style="font-size: 9px; color: #64748b;">(${s.pgwPercentage}%)</span></td>
       <td><strong>${s.ogw.toFixed(2)}</strong> <span style="font-size: 9px; color: #64748b;">(${s.ogwPercentage}%)</span></td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   // Tabela de Confrontos Rodada a Rodada
   const roundsHtml = tournament.rounds.map((round) => {
@@ -715,6 +739,34 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
     `;
   }).join('');
 
+  // Monta os cards do Pódio (Top 2, Top 3, Top 4 ou Top 5)
+  const podiumHtml = topStandings.map((s, idx) => {
+    const rank = idx + 1;
+    const isFirst = rank === 1;
+    const isSecond = rank === 2;
+    const cardClass = isFirst ? 'place-1' : (isSecond ? 'place-2' : `place-3 place-${rank}`);
+    const headerLabel = isFirst
+      ? '👑 1º Lugar • Campeão'
+      : isSecond
+      ? '🥈 2º Lugar • Vice'
+      : rank === 3
+      ? '🥉 3º Lugar • Bronze Nobre'
+      : `🥉 ${rank}º Lugar • Top ${rank}`;
+    const deck = playerDecks[s.playerId] || 'Edison Deck';
+    const playerFontSize = topStandings.length >= 5 ? 'font-size: 13px;' : '';
+
+    return `
+      <div class="podium-card ${cardClass}">
+        <div class="podium-header-bar">${headerLabel}</div>
+        <div class="podium-body">
+          <div class="podium-player" style="${playerFontSize}">${s.playerName}</div>
+          <div class="podium-sub">${deck}</div>
+          <div class="podium-badge-pts">${s.matchPoints} pontos (${s.matchWins}-${s.matchDraws}-${s.matchLosses})</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
   const content = `
     <div class="pdf-header">
       <div class="pdf-title-group">
@@ -730,42 +782,13 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
       </div>
     </div>
 
-    <!-- Pódio Top 3 -->
+    <!-- Pódio Top ${topCut} -->
     <div class="podium-box">
-      ${firstPlace ? `
-        <div class="podium-card place-1">
-          <div class="podium-header-bar">👑 1º Lugar • Campeão</div>
-          <div class="podium-body">
-            <div class="podium-player">${firstPlace.playerName}</div>
-            <div class="podium-sub">${playerDecks[firstPlace.playerId] || 'Edison Deck'}</div>
-            <div class="podium-badge-pts">${firstPlace.matchPoints} pontos (${firstPlace.matchWins}-${firstPlace.matchDraws}-${firstPlace.matchLosses})</div>
-          </div>
-        </div>
-      ` : ''}
-      ${secondPlace ? `
-        <div class="podium-card place-2">
-          <div class="podium-header-bar">🥈 2º Lugar • Vice</div>
-          <div class="podium-body">
-            <div class="podium-player">${secondPlace.playerName}</div>
-            <div class="podium-sub">${playerDecks[secondPlace.playerId] || 'Edison Deck'}</div>
-            <div class="podium-badge-pts">${secondPlace.matchPoints} pontos (${secondPlace.matchWins}-${secondPlace.matchDraws}-${secondPlace.matchLosses})</div>
-          </div>
-        </div>
-      ` : ''}
-      ${thirdPlace ? `
-        <div class="podium-card place-3">
-          <div class="podium-header-bar">🥉 3º Lugar • Bronze Nobre</div>
-          <div class="podium-body">
-            <div class="podium-player">${thirdPlace.playerName}</div>
-            <div class="podium-sub">${playerDecks[thirdPlace.playerId] || 'Edison Deck'}</div>
-            <div class="podium-badge-pts">${thirdPlace.matchPoints} pontos (${thirdPlace.matchWins}-${thirdPlace.matchDraws}-${thirdPlace.matchLosses})</div>
-          </div>
-        </div>
-      ` : ''}
+      ${podiumHtml}
     </div>
 
     <!-- Tabela de Classificação -->
-    <div class="round-title">Classificação Final do Torneio (Critérios de Desempate TCG)</div>
+    <div class="round-title">Classificação Final do Torneio • Destaque TOP ${topCut} (Critérios TCG)</div>
     <table class="standings-table">
       <thead>
         <tr>

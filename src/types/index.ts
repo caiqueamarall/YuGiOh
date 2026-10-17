@@ -138,6 +138,7 @@ export interface Tournament {
   createdAt: string;
   completedAt?: string;
   countsForLeague?: boolean; // true = Pontua para a Liga Oficial (padrão); false = Torneio Freeplay
+  topCut?: number; // 2, 3, 4 ou 5 (quantitativo de duelistas no TOP selecionado pelo gestor)
 }
 
 export type ActiveTab = 'ranking' | 'tournament' | 'players' | 'history' | 'settings';

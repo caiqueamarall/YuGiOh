@@ -17,11 +17,17 @@ import {
   Edit2,
   Layers,
   X,
+  Medal,
+  Award,
 } from 'lucide-react';
 import type { Player, Tournament, Decklist } from '../types';
 import { exportTournamentResultsPDF } from '../utils/pdfGenerator';
 import { exportTournamentResultsPNG } from '../utils/imageExporter';
-import { calculateTournamentStandings, getTiebreakExplanations } from '../utils/swissEngine';
+import {
+  calculateTournamentStandings,
+  getTiebreakExplanations,
+  getTournamentTopCut,
+} from '../utils/swissEngine';
 import { StatInfoModal, type TiebreakStatType } from './StatInfoModal';
 import { TournamentEditModal } from './TournamentEditModal';
 import { DecklistModal } from './DecklistModal';
@@ -133,9 +139,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           completedTournaments.map((tournament) => {
             const isExpanded = expandedTournamentId === tournament.id;
             const standings = calculateTournamentStandings(tournament, players);
+            const tourTopCut = getTournamentTopCut(tournament);
+            const topStandings = standings.slice(0, Math.min(tourTopCut, standings.length));
             const champion = standings[0] ? playerMap.get(standings[0].playerId) : (tournament.championId ? playerMap.get(tournament.championId) : null);
-            const runnerUp = standings[1] ? playerMap.get(standings[1].playerId) : (tournament.runnerUpId ? playerMap.get(tournament.runnerUpId) : null);
-            const thirdPlace = standings[2] ? playerMap.get(standings[2].playerId) : null;
 
             return (
               <div key={tournament.id} className="history-card">
@@ -247,67 +253,39 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
                     {/* Destaque de Pódio com edição rápida de deck */}
                     <div className="history-podium-row">
-                      {champion && (
-                        <div className="podium-mini-pill gold">
-                          <Trophy size={16} className="text-gold" />
-                          <span>1º Lugar: {champion.name}</span>
-                          <span style={{ opacity: 0.85 }}>• {tournament.playerDecks?.[champion.id] || 'Edison Deck'}</span>
-                          <button
-                            type="button"
-                            className="btn-deck-edit-inline"
-                            onClick={() =>
-                              openQuickDeckEdit(
-                                tournament,
-                                champion.id,
-                                tournament.playerDecks?.[champion.id] || ''
-                              )
-                            }
-                            title="Editar deck do campeão"
-                          >
-                            <Edit2 size={10} />
-                          </button>
-                        </div>
-                      )}
-                      {runnerUp && (
-                        <div className="podium-mini-pill silver">
-                          <span>2º Lugar: {runnerUp.name}</span>
-                          <span style={{ opacity: 0.85 }}>• {tournament.playerDecks?.[runnerUp.id] || 'Edison Deck'}</span>
-                          <button
-                            type="button"
-                            className="btn-deck-edit-inline"
-                            onClick={() =>
-                              openQuickDeckEdit(
-                                tournament,
-                                runnerUp.id,
-                                tournament.playerDecks?.[runnerUp.id] || ''
-                              )
-                            }
-                            title="Editar deck do vice-campeão"
-                          >
-                            <Edit2 size={10} />
-                          </button>
-                        </div>
-                      )}
-                      {thirdPlace && (
-                        <div className="podium-mini-pill bronze">
-                          <span>3º Lugar: {thirdPlace.name}</span>
-                          <span style={{ opacity: 0.85 }}>• {tournament.playerDecks?.[thirdPlace.id] || 'Edison Deck'}</span>
-                          <button
-                            type="button"
-                            className="btn-deck-edit-inline"
-                            onClick={() =>
-                              openQuickDeckEdit(
-                                tournament,
-                                thirdPlace.id,
-                                tournament.playerDecks?.[thirdPlace.id] || ''
-                              )
-                            }
-                            title="Editar deck do 3º colocado"
-                          >
-                            <Edit2 size={10} />
-                          </button>
-                        </div>
-                      )}
+                      {topStandings.map((s, idx) => {
+                        const rank = idx + 1;
+                        const isFirst = rank === 1;
+                        const isSecond = rank === 2;
+                        const pillColor = isFirst ? 'gold' : isSecond ? 'silver' : 'bronze';
+                        const playerObj = playerMap.get(s.playerId);
+                        const pName = playerObj?.name || s.playerName;
+                        const pDeck = tournament.playerDecks?.[s.playerId] || 'Edison Deck';
+
+                        return (
+                          <div key={s.playerId} className={`podium-mini-pill ${pillColor}`}>
+                            {isFirst && <Trophy size={16} className="text-gold" />}
+                            {isSecond && <Medal size={16} className="text-silver" />}
+                            {rank >= 3 && <Award size={16} className="text-bronze" />}
+                            <span>{rank}º Lugar: {pName}</span>
+                            <span style={{ opacity: 0.85 }}>• {pDeck}</span>
+                            <button
+                              type="button"
+                              className="btn-deck-edit-inline"
+                              onClick={() =>
+                                openQuickDeckEdit(
+                                  tournament,
+                                  s.playerId,
+                                  tournament.playerDecks?.[s.playerId] || ''
+                                )
+                              }
+                              title={`Editar deck do ${rank}º colocado`}
+                            >
+                              <Edit2 size={10} />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Classificação Final do Torneio */}
@@ -406,7 +384,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                                 {standings.map((s) => (
                                   <tr key={s.playerId} className={s.rank === 1 ? 'champion-row' : ''}>
                                     <td>
-                                      <span className={`rank-tag ${s.rank <= 3 ? 'top' : ''}`}>{s.rank}º</span>
+                                      <span className={`rank-tag ${s.rank <= tourTopCut ? 'top' : ''}`}>{s.rank}º</span>
                                     </td>
                                     <td className="text-left">
                                       <strong>{s.playerName}</strong>
