@@ -1,4 +1,7 @@
 import type { Player, Tournament } from '../types';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import {
   calculateTournamentStandings,
   getTiebreakExplanations,
@@ -439,7 +442,58 @@ const PRINT_CSS = `
   }
 `;
 
-function triggerPrintWindow(title: string, bodyContent: string) {
+async function triggerPrintWindow(title: string, bodyContent: string): Promise<void> {
+  const fullHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    ${PRINT_CSS}
+  </style>
+</head>
+<body>
+  <div class="print-actions">
+    <button class="btn-print" onclick="window.print()">🖨️ Salvar como PDF / Imprimir</button>
+    <button class="btn-close" onclick="window.close()">Fechar</button>
+  </div>
+  ${bodyContent}
+</body>
+</html>`;
+
+  // 1. Prioridade no Android APK: Ponte nativa AndroidPrintBridge (abre tela oficial do sistema Android "Salvar como PDF")
+  const androidBridge = (window as unknown as { AndroidPrintBridge?: { printHtml: (html: string, name: string) => void } }).AndroidPrintBridge;
+  if (androidBridge && typeof androidBridge.printHtml === 'function') {
+    try {
+      androidBridge.printHtml(fullHtml, title);
+      return;
+    } catch (err) {
+      console.warn('Falha na ponte AndroidPrintBridge, usando fallback:', err);
+    }
+  }
+
+  // 2. Se for ambiente nativo (Capacitor) mas a ponte não estiver disponível (ex: iOS ou fallback)
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const fileName = `${title}.html`;
+      const result = await Filesystem.writeFile({
+        path: fileName,
+        data: fullHtml,
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title: title,
+        url: result.uri,
+        dialogTitle: 'Salvar ou Compartilhar Relatório',
+      });
+      return;
+    } catch (err) {
+      console.warn('Erro ao compartilhar relatório no Capacitor:', err);
+    }
+  }
+
+  // 3. Fallback clássico para navegadores Desktop (PC)
   const printWindow = window.open('', '_blank', 'width=950,height=800');
   if (printWindow) {
     printWindow.document.open();

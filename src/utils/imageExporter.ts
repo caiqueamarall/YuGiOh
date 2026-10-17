@@ -1,4 +1,7 @@
 import type { Player, Tournament, DeckCardItem } from '../types';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import {
   calculateTournamentStandings,
   getTiebreakExplanations,
@@ -37,17 +40,62 @@ function roundRect(
 }
 
 /**
- * Função auxiliar para disparar o download da imagem PNG gerada
+ * Função auxiliar para disparar o download ou compartilhamento da imagem PNG gerada
  */
-function downloadCanvasAsPNG(canvas: HTMLCanvasElement, filename: string): void {
-  // Tenta usar toBlob para melhor compatibilidade com dispositivos móveis
+async function downloadCanvasAsPNG(canvas: HTMLCanvasElement, filename: string): Promise<void> {
+  const fileNameWithExt = `${filename}.png`;
+
+  // 1. Prioridade no App Nativo (Android APK / iOS): Salva no Cache e abre o Share Sheet nativo
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+
+      const fileResult = await Filesystem.writeFile({
+        path: fileNameWithExt,
+        data: base64Data,
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title: filename,
+        text: `Yu-Gi-Oh! Edison League - ${filename}`,
+        url: fileResult.uri,
+        dialogTitle: 'Salvar ou Compartilhar Imagem PNG',
+      });
+      return;
+    } catch (nativeErr) {
+      console.warn('Erro ao salvar/compartilhar via Capacitor:', nativeErr);
+    }
+  }
+
+  // 2. Web Share API para navegadores móveis (Chrome Mobile / Safari iOS)
+  if (canvas.toBlob && typeof navigator !== 'undefined' && navigator.canShare) {
+    try {
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (blob) {
+        const file = new File([blob], fileNameWithExt, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: filename,
+          });
+          return;
+        }
+      }
+    } catch (shareErr) {
+      console.warn('Web Share API falhou, usando download convencional:', shareErr);
+    }
+  }
+
+  // 3. Fallback clássico para navegadores Desktop (PC)
   if (canvas.toBlob) {
     canvas.toBlob((blob) => {
       if (!blob) return;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${filename}.png`;
+      a.download = fileNameWithExt;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -57,7 +105,7 @@ function downloadCanvasAsPNG(canvas: HTMLCanvasElement, filename: string): void 
     const dataUrl = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = `${filename}.png`;
+    a.download = fileNameWithExt;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
