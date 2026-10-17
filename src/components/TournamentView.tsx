@@ -1586,6 +1586,16 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                     </button>
                     <button
                       type="button"
+                      className={`btn-preset btn-preset-win ${p1IsWinner && !match.isWO && match.gameWins1 === 1 && match.gameWins2 === 0 ? 'preset-active' : ''}`}
+                      onClick={() =>
+                        handleSetMatchScore(currentRoundIndex, match.id, 1, 0, false, false, match.player1Id)
+                      }
+                      title={`Vitória 1-0 para ${p1?.name}`}
+                    >
+                      1 - 0
+                    </button>
+                    <button
+                      type="button"
                       className={`btn-preset btn-preset-wo ${match.isWO && p1IsWinner ? 'preset-active' : ''}`}
                       onClick={() =>
                         handleSetMatchScore(currentRoundIndex, match.id, 2, 0, false, true, match.player1Id)
@@ -1601,13 +1611,23 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                     <span className="preset-side-title">Empate</span>
                     <button
                       type="button"
-                      className={`btn-preset btn-preset-draw ${isDraw ? 'preset-active' : ''}`}
+                      className={`btn-preset btn-preset-draw ${isDraw && match.gameWins1 === 1 && match.gameWins2 === 1 ? 'preset-active' : ''}`}
                       onClick={() =>
                         handleSetMatchScore(currentRoundIndex, match.id, 1, 1, true, false, null)
                       }
                       title="Empate 1-1"
                     >
                       1 - 1
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn-preset btn-preset-draw ${isDraw && match.gameWins1 === 0 && match.gameWins2 === 0 ? 'preset-active' : ''}`}
+                      onClick={() =>
+                        handleSetMatchScore(currentRoundIndex, match.id, 0, 0, true, false, null)
+                      }
+                      title="Empate 0-0 (Tempo esgotado)"
+                    >
+                      0 - 0
                     </button>
                   </div>
 
@@ -1635,6 +1655,16 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                       title={`Vitória 1-2 para ${p2?.name}`}
                     >
                       1 - 2
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn-preset btn-preset-win ${p2IsWinner && !match.isWO && match.gameWins1 === 0 && match.gameWins2 === 1 ? 'preset-active' : ''}`}
+                      onClick={() =>
+                        handleSetMatchScore(currentRoundIndex, match.id, 0, 1, false, false, match.player2Id)
+                      }
+                      title={`Vitória 0-1 para ${p2?.name}`}
+                    >
+                      0 - 1
                     </button>
                     <button
                       type="button"
