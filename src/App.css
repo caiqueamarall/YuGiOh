@@ -42,6 +42,7 @@
   background: var(--purple-gradient);
   color: #ffffff;
   padding: 12px 18px 14px 18px;
+  padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
   border-radius: 0 0 24px 24px;
   box-shadow: 0 10px 30px -4px rgba(6, 60, 53, 0.28);
   margin-bottom: 16px;
