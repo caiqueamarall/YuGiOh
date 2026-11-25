@@ -2259,75 +2259,64 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                           key={pid}
                           style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '10px 12px',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            padding: '11px 12px',
                             background: isDropped ? '#FEF2F2' : '#F8FAFC',
                             border: isDropped ? '1px solid #FECACA' : '1px solid #E2E8F0',
-                            borderRadius: '10px',
+                            borderRadius: '12px',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                            <div
-                              className="player-avatar-sm"
-                              style={{
-                                backgroundColor: p?.avatarColor || '#0D6E62',
-                                opacity: isDropped ? 0.6 : 1,
-                              }}
-                            >
-                              {p?.name.substring(0, 2).toUpperCase()}
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontWeight: 700, fontSize: '13.5px', color: isDropped ? '#DC2626' : '#0F172A' }}>
-                                  {p?.name}
-                                </span>
-                                {isDropped && (
+                          {/* Linha Superior: Avatar + Nome Completo + Pontos */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                              <div
+                                className="player-avatar-sm"
+                                style={{
+                                  backgroundColor: p?.avatarColor || '#0D6E62',
+                                  opacity: isDropped ? 0.6 : 1,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {p?.name.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                   <span
                                     style={{
-                                      fontSize: '10px',
-                                      background: '#FEE2E2',
-                                      color: '#DC2626',
-                                      padding: '1px 6px',
-                                      borderRadius: '4px',
-                                      fontWeight: 800,
+                                      fontWeight: 700,
+                                      fontSize: '13.5px',
+                                      color: isDropped ? '#DC2626' : '#0F172A',
+                                      wordBreak: 'break-word',
+                                      lineHeight: 1.25,
                                     }}
                                   >
-                                    DROPADO
+                                    {p?.name}
                                   </span>
-                                )}
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateActiveDeck(pid)}
-                                  title="Clique para editar o nome do deck"
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    background: '#ECFDF5',
-                                    border: '1px solid #A7F3D0',
-                                    color: '#0D6E62',
-                                    fontSize: '11px',
-                                    fontWeight: 700,
-                                    padding: '2px 8px',
-                                    borderRadius: '9999px',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  <Shield size={10} style={{ flexShrink: 0 }} />
-                                  <span>{currentDeck}</span>
-                                  <Edit2 size={9.5} style={{ opacity: 0.8, flexShrink: 0 }} />
-                                </button>
-                                <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600 }}>
-                                  • {pts} pts
-                                </span>
+                                  {isDropped && (
+                                    <span
+                                      style={{
+                                        fontSize: '10px',
+                                        background: '#FEE2E2',
+                                        color: '#DC2626',
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        fontWeight: 800,
+                                      }}
+                                    >
+                                      DROPADO
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600, marginTop: '2px', wordBreak: 'break-word' }}>
+                                  {currentDeck} • {pts} pts
+                                </div>
                               </div>
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          {/* Linha Inferior: Botões de Ação Uniformes e Alinhados */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', paddingTop: '6px', borderTop: '1px solid #E2E8F0' }}>
                             <button
                               type="button"
                               onClick={() => handleUpdateActiveDeck(pid)}
@@ -2335,19 +2324,21 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                padding: '6px 10px',
-                                fontSize: '11.5px',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                padding: '7px 10px',
+                                fontSize: '12px',
                                 background: '#FFFFFF',
                                 color: '#0D6E62',
                                 border: '1px solid #CBD5E1',
                                 borderRadius: '8px',
                                 fontWeight: 700,
                                 cursor: 'pointer',
+                                width: '100%',
                               }}
                             >
                               <Edit2 size={12} />
-                              <span>Deck</span>
+                              <span>Editar Deck</span>
                             </button>
 
                             {isDropped ? (
@@ -2356,7 +2347,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                                 className="btn-secondary-action"
                                 onClick={() => handleUndropPlayer(pid)}
                                 style={{
-                                  padding: '6px 12px',
+                                  padding: '7px 10px',
                                   fontSize: '12px',
                                   background: '#ECFDF5',
                                   border: '1px solid #6EE7B7',
@@ -2364,6 +2355,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                                   borderRadius: '8px',
                                   fontWeight: 700,
                                   cursor: 'pointer',
+                                  justifyContent: 'center',
+                                  width: '100%',
                                 }}
                               >
                                 Reintegrar
@@ -2374,7 +2367,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                                 className="btn-danger-ghost"
                                 onClick={() => handleDropPlayer(pid)}
                                 style={{
-                                  padding: '6px 12px',
+                                  padding: '7px 10px',
                                   fontSize: '12px',
                                   background: '#FEF2F2',
                                   color: '#DC2626',
@@ -2382,6 +2375,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                                   borderRadius: '8px',
                                   fontWeight: 700,
                                   cursor: 'pointer',
+                                  justifyContent: 'center',
+                                  width: '100%',
                                 }}
                               >
                                 Dropar

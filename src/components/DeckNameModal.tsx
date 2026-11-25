@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, X, Check, Sparkles } from 'lucide-react';
+import { Shield, X } from 'lucide-react';
 
 export interface DeckNameModalProps {
   playerName: string;
@@ -7,21 +7,6 @@ export interface DeckNameModalProps {
   onSave: (deckName: string) => void;
   onClose: () => void;
 }
-
-const POPULAR_EDISON_DECKS = [
-  'Diva Zombie',
-  'Blackwing',
-  'Machina Gadget',
-  'Quickdraw Dandy',
-  'Gladiator Beast',
-  'Lightsworn',
-  'Frog Monarch',
-  'Hero Beat',
-  'Vayu Turbo',
-  'Flamvell Synchro',
-  'Gravekeeper',
-  'X-Saber',
-];
 
 export const DeckNameModal: React.FC<DeckNameModalProps> = ({
   playerName,
@@ -136,7 +121,7 @@ export const DeckNameModal: React.FC<DeckNameModalProps> = ({
               color: '#0F172A',
               outline: 'none',
               boxSizing: 'border-box',
-              marginBottom: '16px',
+              marginBottom: '4px',
               fontFamily: 'var(--font-body)',
             }}
             autoFocus
@@ -144,40 +129,6 @@ export const DeckNameModal: React.FC<DeckNameModalProps> = ({
               if (e.key === 'Enter') handleSave();
             }}
           />
-
-          <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sparkles size={13} style={{ color: '#059669' }} />
-            <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Decks Populares Edison
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
-            {POPULAR_EDISON_DECKS.map((name) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => setDeckName(name)}
-                style={{
-                  background: deckName === name ? '#ECFDF5' : '#F1F5F9',
-                  border: deckName === name ? '1px solid #10B981' : '1px solid #E2E8F0',
-                  color: deckName === name ? '#047857' : '#475569',
-                  padding: '5px 10px',
-                  borderRadius: '9999px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                {deckName === name && <Check size={11} />}
-                <span>{name}</span>
-              </button>
-            ))}
-          </div>
         </div>
 
         <div
