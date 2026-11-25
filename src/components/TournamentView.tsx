@@ -43,6 +43,7 @@ import { StatInfoModal, type TiebreakStatType } from './StatInfoModal';
 import { RoundTimer } from './RoundTimer';
 import { CustomDatePicker } from './CustomDatePicker';
 import { DecklistModal } from './DecklistModal';
+import { DeckNameModal } from './DeckNameModal';
 
 interface TournamentViewProps {
   players: Player[];
@@ -176,6 +177,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
   const [showEditRoundModal, setShowEditRoundModal] = useState(false);
   const [manualMatches, setManualMatches] = useState<Match[]>([]);
   const [participantsModalTab, setParticipantsModalTab] = useState<'drops' | 'late-entry'>('drops');
+  const [editingDeckPlayerId, setEditingDeckPlayerId] = useState<string | null>(null);
   const [selectedLatePlayerId, setSelectedLatePlayerId] = useState<string>('');
   const [latePlayerDeck, setLatePlayerDeck] = useState<string>('');
   const [selectedStatModal, setSelectedStatModal] = useState<TiebreakStatType | null>(null);
@@ -510,18 +512,19 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
   // Permite editar o deck de um duelista durante um torneio em andamento
   const handleUpdateActiveDeck = (playerId: string) => {
     if (!activeTournament) return;
-    const currentName = activeTournament.playerDecks?.[playerId] || '';
-    const newName = window.prompt('Digite o nome do deck para este duelista neste torneio:', currentName);
-    if (newName !== null) {
-      const sanitized = newName.trim() || 'Yugioh Deck';
-      onUpdateActiveTournament({
-        ...activeTournament,
-        playerDecks: {
-          ...(activeTournament.playerDecks || {}),
-          [playerId]: sanitized,
-        },
-      });
-    }
+    setEditingDeckPlayerId(playerId);
+  };
+
+  const handleSaveActiveDeckName = (playerId: string, newDeckName: string) => {
+    if (!activeTournament) return;
+    const sanitized = newDeckName.trim() || 'Yugioh Deck';
+    onUpdateActiveTournament({
+      ...activeTournament,
+      playerDecks: {
+        ...(activeTournament.playerDecks || {}),
+        [playerId]: sanitized,
+      },
+    });
   };
 
   // Iniciar novo torneio
@@ -1824,7 +1827,15 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                     </div>
                     <div>
                       <h4 className="match-player-name">{p1?.name}</h4>
-                      <span className="match-deck-tag">{p1Deck}</span>
+                      <span
+                        className="match-deck-tag"
+                        onClick={() => handleUpdateActiveDeck(match.player1Id)}
+                        title="Clique para editar o nome do deck"
+                        style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <span>{p1Deck}</span>
+                        <Edit2 size={10} style={{ opacity: 0.75, flexShrink: 0 }} />
+                      </span>
                     </div>
                   </div>
                   <div className="by-reward-badge">
@@ -1881,7 +1892,15 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                   </div>
                   <div className="duelist-meta">
                     <span className="duelist-name">{p1?.name}</span>
-                    <span className="duelist-deck">{p1Deck}</span>
+                    <span
+                      className="duelist-deck"
+                      onClick={() => handleUpdateActiveDeck(match.player1Id)}
+                      title="Clique para editar o nome do deck"
+                      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span>{p1Deck}</span>
+                      <Edit2 size={10} style={{ opacity: 0.75, flexShrink: 0 }} />
+                    </span>
                   </div>
                   {p1IsWinner && <span className="winner-tag">VITÓRIA</span>}
                 </div>
@@ -1915,7 +1934,15 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                   </div>
                   <div className="duelist-meta">
                     <span className="duelist-name">{p2?.name}</span>
-                    <span className="duelist-deck">{p2Deck}</span>
+                    <span
+                      className="duelist-deck"
+                      onClick={() => match.player2Id && handleUpdateActiveDeck(match.player2Id)}
+                      title="Clique para editar o nome do deck"
+                      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span>{p2Deck}</span>
+                      <Edit2 size={10} style={{ opacity: 0.75, flexShrink: 0 }} />
+                    </span>
                   </div>
                   {p2IsWinner && <span className="winner-tag">VITÓRIA</span>}
                 </div>
@@ -2270,49 +2297,97 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                                   </span>
                                 )}
                               </div>
-                              <span style={{ fontSize: '11.5px', color: '#64748B' }}>
-                                {currentDeck} • {pts} pts
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateActiveDeck(pid)}
+                                  title="Clique para editar o nome do deck"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    background: '#ECFDF5',
+                                    border: '1px solid #A7F3D0',
+                                    color: '#0D6E62',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    padding: '2px 8px',
+                                    borderRadius: '9999px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <Shield size={10} style={{ flexShrink: 0 }} />
+                                  <span>{currentDeck}</span>
+                                  <Edit2 size={9.5} style={{ opacity: 0.8, flexShrink: 0 }} />
+                                </button>
+                                <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600 }}>
+                                  • {pts} pts
+                                </span>
+                              </div>
                             </div>
                           </div>
 
-                          {isDropped ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                             <button
                               type="button"
-                              className="btn-secondary-action"
-                              onClick={() => handleUndropPlayer(pid)}
+                              onClick={() => handleUpdateActiveDeck(pid)}
+                              title="Editar nome do deck"
                               style={{
-                                padding: '6px 12px',
-                                fontSize: '12px',
-                                background: '#ECFDF5',
-                                border: '1px solid #6EE7B7',
-                                color: '#059669',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '6px 10px',
+                                fontSize: '11.5px',
+                                background: '#FFFFFF',
+                                color: '#0D6E62',
+                                border: '1px solid #CBD5E1',
                                 borderRadius: '8px',
                                 fontWeight: 700,
                                 cursor: 'pointer',
                               }}
                             >
-                              Reintegrar
+                              <Edit2 size={12} />
+                              <span>Deck</span>
                             </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="btn-danger-ghost"
-                              onClick={() => handleDropPlayer(pid)}
-                              style={{
-                                padding: '6px 12px',
-                                fontSize: '12px',
-                                background: '#FEF2F2',
-                                color: '#DC2626',
-                                border: '1px solid #FECACA',
-                                borderRadius: '8px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Dropar
-                            </button>
-                          )}
+
+                            {isDropped ? (
+                              <button
+                                type="button"
+                                className="btn-secondary-action"
+                                onClick={() => handleUndropPlayer(pid)}
+                                style={{
+                                  padding: '6px 12px',
+                                  fontSize: '12px',
+                                  background: '#ECFDF5',
+                                  border: '1px solid #6EE7B7',
+                                  color: '#059669',
+                                  borderRadius: '8px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Reintegrar
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn-danger-ghost"
+                                onClick={() => handleDropPlayer(pid)}
+                                style={{
+                                  padding: '6px 12px',
+                                  fontSize: '12px',
+                                  background: '#FEF2F2',
+                                  color: '#DC2626',
+                                  border: '1px solid #FECACA',
+                                  borderRadius: '8px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Dropar
+                              </button>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -2911,6 +2986,15 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
             setActiveDecklistModal(null);
           }}
           onClose={() => setActiveDecklistModal(null)}
+        />
+      )}
+      {/* Modal Rápido de Edição de Nome do Deck (com sugestões Edison Format) */}
+      {editingDeckPlayerId && activeTournament && (
+        <DeckNameModal
+          playerName={playerMap.get(editingDeckPlayerId)?.name || 'Duelista'}
+          currentDeckName={activeTournament.playerDecks?.[editingDeckPlayerId] || ''}
+          onSave={(newDeck) => handleSaveActiveDeckName(editingDeckPlayerId, newDeck)}
+          onClose={() => setEditingDeckPlayerId(null)}
         />
       )}
     </div>
