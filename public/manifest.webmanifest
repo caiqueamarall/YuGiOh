@@ -1,12 +1,12 @@
 {
-  "name": "Edison League - Yu-Gi-Oh! Manager",
-  "short_name": "Edison League",
+  "name": "Duel League - Yu-Gi-Oh! Manager",
+  "short_name": "Duel League",
   "description": "Gestor Oficial de Torneios e Liga Edison Format - Yu-Gi-Oh! TCG",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#121214",
-  "theme_color": "#121214",
+  "background_color": "#063C35",
+  "theme_color": "#063C35",
   "orientation": "portrait-primary",
   "icons": [
     {

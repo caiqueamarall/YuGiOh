@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   X,
   Trophy,
+  Award,
+  Medal,
   Shield,
   Calendar,
   Sparkles,
   Layers,
-  Plus,
-  Trash2,
 } from 'lucide-react';
-import type { Player, Decklist } from '../types';
+import type { Player } from '../types';
 import { RadarChart } from './RadarChart';
-import { DecklistModal } from './DecklistModal';
-import { getDeckCardCounts } from '../utils/cardDatabase';
 
 interface PlayerStatsModalProps {
   player: Player | null;
@@ -25,15 +23,7 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   player,
   onClose,
   leagueRank,
-  onUpdatePlayer,
 }) => {
-  const [activeDecklistModal, setActiveDecklistModal] = useState<{
-    decklist?: Decklist | null;
-    deckName: string;
-    readOnly?: boolean;
-    savedIndex?: number;
-  } | null>(null);
-
   if (!player) return null;
 
   const totalMatches = player.wins + player.draws + player.losses;
@@ -78,19 +68,19 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card stats-modal-large" onClick={(e) => e.stopPropagation()}>
-        {/* Header do Perfil */}
+        {/* Header Fixo do Perfil */}
         <div className="stats-modal-header">
           <div className="stats-profile-info">
             <div
               className="stats-modal-avatar"
-              style={{ backgroundColor: player.avatarColor || '#3B82F6' }}
+              style={{ backgroundColor: player.avatarColor || '#0D6E62' }}
             >
               {player.name.substring(0, 2).toUpperCase()}
             </div>
             <div>
               <div className="stats-header-tag">
-                <Sparkles size={13} className="text-gold" />
-                <span>PERFIL DO DUELISTA • EDISON FORMAT</span>
+                <Sparkles size={12} className="text-gold" />
+                <span>PERFIL DO DUELISTA</span>
               </div>
               <h2 className="stats-player-name">{player.name}</h2>
               <div className="stats-meta-row">
@@ -98,7 +88,7 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
                 {leagueRank && <span className="rank-tag top">{leagueRank}º na Liga</span>}
                 {player.tournamentTitles ? (
                   <span className="champion-badge-mini">
-                    <Trophy size={12} className="text-gold" />
+                    <Trophy size={11} className="text-gold" />
                     {player.tournamentTitles}x Campeão
                   </span>
                 ) : null}
@@ -112,24 +102,24 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
             onClick={onClose}
             aria-label="Fechar modal"
           >
-            <X size={22} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Corpo com Grid de Estatísticas e Gráfico de Radar */}
+        {/* Corpo com Rolagem Interna Segura */}
         <div className="stats-modal-body">
           {/* Seção Superior: Gráfico de Radar e Destaques */}
           <div className="stats-radar-showcase">
             <div className="radar-wrapper-box">
-              <h4 className="section-mini-title">Diagrama de Desempenho</h4>
-              <RadarChart player={player} size={300} />
+              <h4 className="section-mini-title" style={{ marginBottom: '8px' }}>Diagrama de Habilidades</h4>
+              <RadarChart player={player} size={280} />
             </div>
 
             {/* Deck Mais Jogado em Destaque */}
             <div className="stats-highlights-column">
               <div className="highlight-deck-card">
                 <div className="highlight-deck-header">
-                  <Shield size={18} className="text-gold" />
+                  <Shield size={16} style={{ color: 'var(--purple-600, #0D6E62)' }} />
                   <span className="highlight-tag">DECK MAIS JOGADO</span>
                 </div>
                 {mostPlayedDeck ? (
@@ -144,7 +134,7 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
                   </div>
                 ) : (
                   <div className="highlight-deck-content">
-                    <p className="text-muted text-sm">
+                    <p className="text-muted text-sm" style={{ margin: 0, fontSize: '12px' }}>
                       Nenhum torneio registrado ainda para este duelista.
                     </p>
                   </div>
@@ -185,7 +175,7 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
           {sortedDecks.length > 0 && (
             <div className="stats-section-block">
               <div className="section-header-row">
-                <Layers size={18} className="text-gold" />
+                <Layers size={16} style={{ color: 'var(--purple-600, #0D6E62)' }} />
                 <h4 className="section-mini-title">Decks Utilizados na Liga Oficial</h4>
               </div>
               <div className="deck-bars-list">
@@ -214,230 +204,134 @@ export const PlayerStatsModal: React.FC<PlayerStatsModalProps> = ({
             </div>
           )}
 
-          {/* Seção 2.5: Decklists Salvas / Repositório Pessoal */}
-          <div className="stats-section-block">
-            <div className="section-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Layers size={18} className="text-gold" />
-                <h4 className="section-mini-title">Decklists do Duelista (Edison Format)</h4>
-              </div>
-              {onUpdatePlayer && (
-                <button
-                  type="button"
-                  className="btn-decklist-add"
-                  style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  onClick={() =>
-                    setActiveDecklistModal({
-                      decklist: null,
-                      deckName: 'Novo Deck Edison',
-                      readOnly: false,
-                    })
-                  }
-                >
-                  <Plus size={12} />
-                  Criar Decklist
-                </button>
-              )}
-            </div>
-
-            {(!player.savedDecklists || player.savedDecklists.length === 0) ? (
-              <p className="text-muted text-xs" style={{ margin: '8px 0 0', fontStyle: 'italic' }}>
-                Nenhuma decklist salva no perfil ainda.{onUpdatePlayer ? ' Clique em "Criar Decklist" para montar uma decklist de 40 a 60 cartas Edison para este jogador.' : ''}
-              </p>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px', marginTop: '10px' }}>
-                {player.savedDecklists.map((dk, dIdx) => (
-                  <div
-                    key={`${dk.deckName}-${dIdx}`}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      padding: '10px 12px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                    }}
-                  >
-                    {(() => {
-                      const counts = getDeckCardCounts(dk);
-                      return (
-                        <>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <strong style={{ fontSize: '13px', color: '#f1f5f9' }}>{dk.deckName}</strong>
-                            <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700 }}>
-                              {counts.totalCount} cartas
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', gap: '8px' }}>
-                            <span>Main: <strong>{counts.mainCount}</strong></span>
-                            <span>Extra: <strong>{counts.extraCount}</strong></span>
-                            <span>Side: <strong>{counts.sideCount}</strong></span>
-                          </div>
-                        </>
-                      );
-                    })()}
-                    <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
-                      <button
-                        type="button"
-                        className="badge-decklist-has"
-                        style={{ flex: 1, justifyContent: 'center' }}
-                        onClick={() =>
-                          setActiveDecklistModal({
-                            decklist: dk,
-                            deckName: dk.deckName,
-                            readOnly: false,
-                            savedIndex: dIdx,
-                          })
-                        }
-                      >
-                        <Layers size={11} />
-                        Editar / Ver
-                      </button>
-                      {onUpdatePlayer && (
-                        <button
-                          type="button"
-                          className="btn-danger-ghost"
-                          style={{ padding: '3px 7px', fontSize: '11px' }}
-                          onClick={() => {
-                            if (confirm(`Remover a decklist "${dk.deckName}" do perfil de ${player.name}?`)) {
-                              const updatedSaved = (player.savedDecklists || []).filter((_, idx) => idx !== dIdx);
-                              onUpdatePlayer({
-                                ...player,
-                                savedDecklists: updatedSaved,
-                              });
-                            }
-                          }}
-                          title="Excluir decklist salva"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Seção 3: Histórico de Torneios */}
-          {player.decksHistory && player.decksHistory.length > 0 && (
+          {/* Seção 3: Histórico de Torneios Disputados */}
+          {player.decksHistory && player.decksHistory.length > 0 ? (
             <div className="stats-section-block">
-              <div className="section-header-row">
-                <Calendar size={18} className="text-gold" />
-                <h4 className="section-mini-title">Histórico de Torneios Disputados</h4>
+              <div className="section-header-row" style={{ justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Calendar size={16} style={{ color: '#0D6E62' }} />
+                  <h4 className="section-mini-title">Histórico de Torneios</h4>
+                </div>
+                <span className="history-count-badge">
+                  {player.decksHistory.length} {player.decksHistory.length === 1 ? 'torneio' : 'torneios'}
+                </span>
               </div>
-              <div className="table-responsive-wrapper modal-table">
-                <table className="compact-table">
-                  <thead>
-                    <tr>
-                      <th>Torneio</th>
-                      <th>Tipo</th>
-                      <th>Data</th>
-                      <th>Deck Utilizado</th>
-                      <th>Posição</th>
-                      <th>Placar</th>
-                      <th>BY</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {player.decksHistory.map((h, idx) => (
-                      <tr key={`${h.tournamentId}-${idx}`}>
-                        <td><strong>{h.tournamentName}</strong></td>
-                        <td>
-                          {h.countsForLeague !== false ? (
-                            <span className="badge-league-mini official">Liga</span>
-                          ) : (
-                            <span className="badge-league-mini freeplay">Freeplay</span>
-                          )}
-                        </td>
-                        <td>{formatHistoryDate(h.date)}</td>
-                        <td>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span className="player-deck-badge">
-                              <Shield size={11} />
-                              {h.deckName}
+
+              <div className="player-history-cards-container">
+                {player.decksHistory.map((h, idx) => {
+                  const isFirst = h.rank === 1;
+                  const isSecond = h.rank === 2;
+                  const isThird = h.rank === 3;
+                  const isOfficial = h.countsForLeague !== false;
+
+                  return (
+                    <div
+                      key={`${h.tournamentId || 'tour'}-${idx}`}
+                      className={`player-history-item-card ${
+                        isFirst ? 'podium-first' : isSecond ? 'podium-second' : isThird ? 'podium-third' : ''
+                      }`}
+                    >
+                      {/* Topo do Card: Título do Torneio + Badge de Posição */}
+                      <div className="ph-card-top-row">
+                        <div className="ph-title-col">
+                          <h5 className="ph-tournament-title">{h.tournamentName}</h5>
+                          <div className="ph-meta-pills">
+                            <span className="ph-date-pill">
+                              <Calendar size={11} />
+                              {formatHistoryDate(h.date)}
                             </span>
-                            {h.decklist && (
-                              <button
-                                type="button"
-                                className="badge-decklist-has"
-                                onClick={() =>
-                                  setActiveDecklistModal({
-                                    decklist: h.decklist,
-                                    deckName: h.deckName,
-                                    readOnly: true,
-                                  })
-                                }
-                                title="Visualizar Decklist deste torneio"
-                              >
-                                <Layers size={10} />
-                                Decklist ({getDeckCardCounts(h.decklist).totalCount})
-                              </button>
+                            <span className={`ph-type-pill ${isOfficial ? 'official' : 'freeplay'}`}>
+                              {isOfficial ? 'Liga Oficial' : 'Amistoso'}
+                            </span>
+                            {h.format && (
+                              <span className="ph-format-pill">{h.format}</span>
                             )}
                           </div>
-                        </td>
-                        <td>
-                          <span className={`rank-tag ${h.rank <= 3 ? 'top' : ''}`}>
-                            {h.rank}º Lugar
-                          </span>
-                          {h.isDropped && (
-                            <span className="badge-drop-tag" style={{ marginLeft: '6px', fontSize: '10px', background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '4px', padding: '1px 5px', fontWeight: 'bold' }}>
-                              Drop
+                        </div>
+
+                        <div className="ph-rank-col">
+                          <div
+                            className={`ph-rank-badge ${
+                              isFirst
+                                ? 'rank-gold'
+                                : isSecond
+                                ? 'rank-silver'
+                                : isThird
+                                ? 'rank-bronze'
+                                : 'rank-standard'
+                            }`}
+                          >
+                            {isFirst && <Trophy size={13} />}
+                            {isSecond && <Medal size={13} />}
+                            {isThird && <Award size={13} />}
+                            <span>{isFirst ? '1º Campeão' : `${h.rank}º Lugar`}</span>
+                          </div>
+                          {h.isDropped && <span className="ph-dropped-tag">Dropou</span>}
+                        </div>
+                      </div>
+
+                      {/* Rodapé do Card: Deck Utilizado & Desempenho / Placar */}
+                      <div className="ph-card-bottom-row">
+                        <div className="ph-deck-info" title={`Deck: ${h.deckName || 'Yugioh Deck'}`}>
+                          <Shield size={12} className="ph-deck-icon" />
+                          <span className="ph-deck-name">{h.deckName || 'Yugioh Deck'}</span>
+                        </div>
+
+                        <div className="ph-score-stats">
+                          <div className="ph-score-badge" title="Vitórias - Empates - Derrotas">
+                            <span className="score-v">{h.matchWins}V</span>
+                            <span className="score-sep">-</span>
+                            <span className="score-e">{h.matchDraws}E</span>
+                            <span className="score-sep">-</span>
+                            <span className="score-d">{h.matchLosses}D</span>
+                          </div>
+
+                          {h.matchPoints !== undefined && h.matchPoints !== null && (
+                            <span className="ph-pts-badge" title="Pontos conquistados">
+                              {h.matchPoints} pts
                             </span>
                           )}
-                        </td>
-                        <td>
-                          {h.matchWins}V - {h.matchDraws}E - {h.matchLosses}D
-                        </td>
-                        <td>
-                          {h.hadBy ? (
-                            <span className="had-by-tag">Sim</span>
-                          ) : (
-                            <span className="text-muted">Não</span>
+
+                          {h.hadBy && (
+                            <span className="ph-by-tag" title="Recebeu vitória por folga no torneio">
+                              +1 BY
+                            </span>
                           )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="stats-section-block">
+              <div className="section-header-row">
+                <Calendar size={16} style={{ color: '#0D6E62' }} />
+                <h4 className="section-mini-title">Histórico de Torneios</h4>
+              </div>
+              <div
+                style={{
+                  padding: '18px 14px',
+                  textAlign: 'center',
+                  color: '#64748B',
+                  background: '#F8FAFC',
+                  borderRadius: '12px',
+                  border: '1px dashed #CBD5E1',
+                  fontSize: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Calendar size={22} style={{ opacity: 0.35, color: '#0D6E62' }} />
+                <span>Nenhum histórico de torneios registrado para este duelista ainda.</span>
               </div>
             </div>
           )}
         </div>
       </div>
-
-      {/* Modal de Decklist Edison (Visualização ou Edição) */}
-      {activeDecklistModal && (
-        <DecklistModal
-          decklist={activeDecklistModal.decklist}
-          playerName={player.name}
-          defaultDeckName={activeDecklistModal.deckName}
-          readOnly={activeDecklistModal.readOnly}
-          onClose={() => setActiveDecklistModal(null)}
-          onSave={(newDecklist) => {
-            if (!onUpdatePlayer) return;
-            const updatedSaved = [...(player.savedDecklists || [])];
-            if (activeDecklistModal.savedIndex !== undefined && activeDecklistModal.savedIndex >= 0) {
-              updatedSaved[activeDecklistModal.savedIndex] = newDecklist;
-            } else {
-              const existingIdx = updatedSaved.findIndex(
-                (d) => d.deckName.toLowerCase() === newDecklist.deckName.toLowerCase()
-              );
-              if (existingIdx >= 0) {
-                updatedSaved[existingIdx] = newDecklist;
-              } else {
-                updatedSaved.push(newDecklist);
-              }
-            }
-            onUpdatePlayer({
-              ...player,
-              savedDecklists: updatedSaved,
-            });
-            setActiveDecklistModal(null);
-          }}
-        />
-      )}
     </div>
   );
 };

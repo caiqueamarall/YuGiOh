@@ -40,6 +40,35 @@ function roundRect(
 }
 
 /**
+ * Quebra texto em múltiplas linhas para não vazar nem ser cortado no Canvas
+ */
+function wrapCanvasText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  return lines;
+}
+
+/**
  * Função auxiliar para disparar o download ou compartilhamento da imagem PNG gerada
  */
 async function downloadCanvasAsPNG(canvas: HTMLCanvasElement, filename: string): Promise<void> {
@@ -112,414 +141,912 @@ async function downloadCanvasAsPNG(canvas: HTMLCanvasElement, filename: string):
   }
 }
 
+export type InstagramExportFormat = 'square' | 'vertical';
+
 /**
- * Exporta os Resultados de um Torneio Individual como imagem PNG em página única
+ * Exibe um modal minimalista para o usuário escolher entre o Formato Quadrado (1:1)
+ * e o Formato Reto da Tela (9:16) antes de exportar o PNG para o Instagram.
  */
-export function exportTournamentResultsPNG(tournament: Tournament, players: Player[]): void {
+function showInstagramFormatSelector(
+  title: string,
+  onSelect: (format: InstagramExportFormat) => void
+): void {
+  const existing = document.getElementById('ig-format-selector-modal');
+  if (existing) existing.remove();
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'ig-format-selector-modal';
+  backdrop.className = 'modal-backdrop';
+  backdrop.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.62);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 4000;
+    box-sizing: border-box;
+    animation: fadeIn 150ms ease-out;
+  `;
+
+  const card = document.createElement('div');
+  card.style.cssText = `
+    width: 100%;
+    max-width: 420px;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 1.5px solid #E2E8F0;
+    box-shadow: 0 24px 50px -10px rgba(15, 23, 42, 0.28);
+    overflow: hidden;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #0F172A;
+    animation: scaleUp 180ms ease-out;
+  `;
+
+  card.innerHTML = `
+    <div style="padding: 16px 20px; border-bottom: 1px solid #EEF2F6; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <div>
+        <div style="font-size: 10.5px; font-weight: 800; color: #059669; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 2px;">
+          EXPORTAÇÃO PARA INSTAGRAM
+        </div>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #0F172A;">
+          ${title}
+        </h3>
+      </div>
+      <button type="button" id="ig-format-close-btn" style="width: 32px; height: 32px; border-radius: 50%; background: #F1F5F9; border: none; color: #64748B; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+        ✕
+      </button>
+    </div>
+
+    <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; background: #F8FAFC;">
+      <p style="margin: 0 0 2px 0; font-size: 12.5px; color: #64748B; line-height: 1.4;">
+        Escolha o formato e proporção da imagem PNG:
+      </p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button type="button" id="ig-btn-format-square" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 18px 12px; background: #FFFFFF; border: 2px solid #A7F3D0; border-radius: 16px; cursor: pointer; transition: all 0.15s ease; text-align: center; box-shadow: 0 4px 12px rgba(6, 60, 53, 0.06);">
+          <div style="width: 46px; height: 46px; border-radius: 10px; background: #ECFDF5; border: 2px solid #0D6E62; display: flex; align-items: center; justify-content: center; color: #063C35; font-weight: 800; font-size: 11px;">
+            1:1
+          </div>
+          <div>
+            <div style="font-size: 13.5px; font-weight: 800; color: #0F172A; margin-bottom: 2px;">
+              Formato Quadrado
+            </div>
+            <div style="font-size: 11px; color: #059669; font-weight: 700;">
+              1080 × 1080 px
+            </div>
+            <div style="font-size: 10.5px; color: #64748B; margin-top: 3px;">
+              Feed do Instagram
+            </div>
+          </div>
+        </button>
+
+        <button type="button" id="ig-btn-format-vertical" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 18px 12px; background: #FFFFFF; border: 2px solid #A7F3D0; border-radius: 16px; cursor: pointer; transition: all 0.15s ease; text-align: center; box-shadow: 0 4px 12px rgba(6, 60, 53, 0.06);">
+          <div style="width: 32px; height: 52px; border-radius: 8px; background: #ECFDF5; border: 2px solid #0D6E62; display: flex; align-items: center; justify-content: center; color: #063C35; font-weight: 800; font-size: 10.5px;">
+            9:16
+          </div>
+          <div>
+            <div style="font-size: 13.5px; font-weight: 800; color: #0F172A; margin-bottom: 2px;">
+              Reto da Tela
+            </div>
+            <div style="font-size: 11px; color: #059669; font-weight: 700;">
+              1080 × 1920 px
+            </div>
+            <div style="font-size: 10.5px; color: #64748B; margin-top: 3px;">
+              Stories &amp; Tela Cheia
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+  `;
+
+  backdrop.appendChild(card);
+  document.body.appendChild(backdrop);
+
+  const close = () => backdrop.remove();
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) close();
+  });
+  card.querySelector('#ig-format-close-btn')?.addEventListener('click', close);
+
+  card.querySelector('#ig-btn-format-square')?.addEventListener('click', () => {
+    close();
+    onSelect('square');
+  });
+
+  card.querySelector('#ig-btn-format-vertical')?.addEventListener('click', () => {
+    close();
+    onSelect('vertical');
+  });
+}
+
+// Pré-carrega a nova logo oficial "Duel League" em memória para uso imediato nas exportações PNG
+let cachedBrandLogoImg: HTMLImageElement | null = null;
+if (typeof window !== 'undefined') {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  const baseUrl = (import.meta as unknown as { env?: { BASE_URL?: string } })?.env?.BASE_URL || './';
+  img.src = `${baseUrl}duel-league-logo.png`;
+  img.onload = () => {
+    cachedBrandLogoImg = img;
+  };
+}
+
+/**
+ * Desenha a logo oficial "Duel League" com borda branca diretamente sobre o banner escuro
+ */
+function drawMillenniumEmblem(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.save();
+
+  if (cachedBrandLogoImg && cachedBrandLogoImg.complete && cachedBrandLogoImg.naturalWidth > 0) {
+    const scale = Math.min(size / cachedBrandLogoImg.naturalWidth, size / cachedBrandLogoImg.naturalHeight);
+    const drawW = cachedBrandLogoImg.naturalWidth * scale;
+    const drawH = cachedBrandLogoImg.naturalHeight * scale;
+    const drawX = x + (size - drawW) / 2;
+    const drawY = y + (size - drawH) / 2;
+    ctx.drawImage(cachedBrandLogoImg, drawX, drawY, drawW, drawH);
+    ctx.restore();
+    return;
+  }
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+  roundRect(ctx, x, y, size, size, 14);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, x, y, size, size, 14);
+  ctx.stroke();
+
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const r = size * 0.34;
+
+  ctx.strokeStyle = '#FBBF24';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy + r * 0.85);
+  ctx.lineTo(cx - r, cy + r * 0.85);
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy + r * 0.15, r * 0.36, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = '#F59E0B';
+  ctx.beginPath();
+  ctx.arc(cx, cy + r * 0.15, r * 0.16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * Desenha um card de Pódio horizontal (largura total, empilhado um abaixo do outro)
+ * com arte elaborada (medalhão metálico, faixas diagonais sutis, badge do deck e painel de métricas à direita).
+ */
+function drawElaborateStackedPodiumCard(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  rank: number,
+  playerName: string,
+  deckName: string,
+  pointsText: string,
+  recordText: string,
+  extraStatText: string,
+  _isLeague: boolean
+) {
+  ctx.save();
+
+  // Paleta por colocação: 1º Lugar = Dourado Imperial, 2º Lugar = Prata Real, 3º Lugar = Bronze Nobre, 4º+ = Esmeralda
+  let bgStart = '#FFFDF0';
+  let bgMid = '#FEF3C7';
+  let bgEnd = '#FDE68A';
+  let borderCol = '#D97706';
+  let accentStart = '#F59E0B';
+  let accentEnd = '#B45309';
+  let medalOuter = '#FDE68A';
+  let medalInnerStart = '#F59E0B';
+  let medalInnerEnd = '#B45309';
+  let titleText = `${rank}º LUGAR`;
+  let titleColor = '#92400E';
+  let statBoxBg = 'rgba(255, 255, 255, 0.88)';
+  let statBoxBorder = '#F59E0B';
+  let ptsColor = '#B45309';
+  let deckTextColor = '#92400E';
+
+  if (rank === 2) {
+    bgStart = '#F8FAFC';
+    bgMid = '#F1F5F9';
+    bgEnd = '#E2E8F0';
+    borderCol = '#94A3B8';
+    accentStart = '#64748B';
+    accentEnd = '#334155';
+    medalOuter = '#E2E8F0';
+    medalInnerStart = '#64748B';
+    medalInnerEnd = '#334155';
+    titleText = '2º LUGAR';
+    titleColor = '#334155';
+    statBoxBg = 'rgba(255, 255, 255, 0.88)';
+    statBoxBorder = '#CBD5E1';
+    ptsColor = '#334155';
+    deckTextColor = '#334155';
+  } else if (rank === 3) {
+    bgStart = '#FFF7ED';
+    bgMid = '#FFEDD5';
+    bgEnd = '#FED7AA';
+    borderCol = '#EA580C';
+    accentStart = '#EA580C';
+    accentEnd = '#9A3412';
+    medalOuter = '#FED7AA';
+    medalInnerStart = '#EA580C';
+    medalInnerEnd = '#9A3412';
+    titleText = '3º LUGAR';
+    titleColor = '#9A3412';
+    statBoxBg = 'rgba(255, 255, 255, 0.88)';
+    statBoxBorder = '#FDBA74';
+    ptsColor = '#9A3412';
+    deckTextColor = '#9A3412';
+  } else if (rank > 3) {
+    bgStart = '#F0FDF4';
+    bgMid = '#ECFDF5';
+    bgEnd = '#D1FAE5';
+    borderCol = '#10B981';
+    accentStart = '#059669';
+    accentEnd = '#063C35';
+    medalOuter = '#A7F3D0';
+    medalInnerStart = '#059669';
+    medalInnerEnd = '#063C35';
+    titleText = `${rank}º LUGAR`;
+    titleColor = '#065F46';
+    statBoxBg = 'rgba(255, 255, 255, 0.88)';
+    statBoxBorder = '#A7F3D0';
+    ptsColor = '#065F46';
+    deckTextColor = '#063C35';
+  }
+
+  // 1. Corpo com Degradê Metálico Suave + Clip para texturas internas
+  roundRect(ctx, x, y, w, h, 18);
+  const cardGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+  cardGrad.addColorStop(0, bgStart);
+  cardGrad.addColorStop(0.55, bgMid);
+  cardGrad.addColorStop(1, bgEnd);
+  ctx.fillStyle = cardGrad;
+  ctx.fill();
+
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 18);
+  ctx.clip();
+
+  // Faixas diagonais decorativas sutis de fundo (estilo card colecionável)
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+  ctx.lineWidth = 18;
+  for (let i = -h; i < w + h; i += 64) {
+    ctx.beginPath();
+    ctx.moveTo(x + i, y);
+    ctx.lineTo(x + i - h, y + h);
+    ctx.stroke();
+  }
+
+  // Círculo decorativo translúcido à direita
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.beginPath();
+  ctx.arc(x + w - 90, y + h / 2, h * 0.85, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Barra lateral esquerda de destaque
+  const barGrad = ctx.createLinearGradient(x, y, x, y + h);
+  barGrad.addColorStop(0, accentStart);
+  barGrad.addColorStop(1, accentEnd);
+  ctx.fillStyle = barGrad;
+  ctx.fillRect(x, y, 12, h);
+
+  ctx.restore();
+
+  // Borda externa nítida
+  ctx.strokeStyle = borderCol;
+  ctx.lineWidth = rank === 1 ? 2.5 : 1.8;
+  roundRect(ctx, x, y, w, h, 18);
+  ctx.stroke();
+
+  // 2. Medalhão Metálico à Esquerda
+  const medalR = Math.min(36, Math.floor(h * 0.31));
+  const medalCX = x + 28 + medalR;
+  const medalCY = y + h / 2;
+
+  // Halo externo do medalhão
+  ctx.fillStyle = medalOuter;
+  ctx.beginPath();
+  ctx.arc(medalCX, medalCY, medalR + 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Círculo principal do medalhão
+  const medalGrad = ctx.createLinearGradient(medalCX - medalR, medalCY - medalR, medalCX + medalR, medalCY + medalR);
+  medalGrad.addColorStop(0, medalInnerStart);
+  medalGrad.addColorStop(1, medalInnerEnd);
+  ctx.fillStyle = medalGrad;
+  ctx.beginPath();
+  ctx.arc(medalCX, medalCY, medalR, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(medalCX, medalCY, medalR - 3, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `900 ${Math.round(medalR * 0.68)}px "Outfit", -apple-system, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`${rank}º`, medalCX, medalCY + 1);
+  ctx.textBaseline = 'alphabetic';
+
+  // 3. Painel Direito de Estatísticas (Pontuação em Destaque + V-E-D + Métrica Extra)
+  const statW = 248;
+  const statH = Math.min(h - 22, 96);
+  const statX = x + w - statW - 18;
+  const statY = y + (h - statH) / 2;
+
+  // 4. Coluna Central: Colocação ("1º LUGAR") e Nome do Duelista em destaque no centro,
+  // e a Pílula do Deck com fonte maior posicionada à direita, próxima da caixa de pontuação
+  const leftBound = medalCX + medalR + 18;
+  const centerY = y + h / 2;
+
+  const maxNameChars = 18;
+  const cleanPlayerName =
+    playerName.length > maxNameChars ? playerName.substring(0, maxNameChars - 1) + '…' : playerName;
+  const cleanDeck = deckName.length > 22 ? deckName.substring(0, 21) + '…' : deckName;
+  const deckLabel = `🛡️ ${cleanDeck}`;
+
+  // Mede a pílula do Deck (maior e ancorada à direita, próxima da caixa de pontuação)
+  let deckFontSize = 17.5;
+  ctx.font = `800 ${deckFontSize}px "Outfit", -apple-system, sans-serif`;
+  let deckTextW = ctx.measureText(deckLabel).width;
+  let deckPillW = Math.min(275, Math.max(185, deckTextW + 38));
+  const deckPillH = 44;
+
+  // Posiciona a pílula do Deck bem próxima da caixa de pontuação à direita
+  const deckRightGap = 14;
+  const deckPillX = statX - deckRightGap - deckPillW;
+  const deckPillY = centerY - deckPillH / 2;
+
+  // Área disponível entre o medalhão esquerdo e a pílula do deck para centralizar "1º LUGAR" + Nome do Participante
+  const playerAreaLeft = leftBound;
+  const playerAreaRight = deckPillX - 14;
+  const playerAreaW = Math.max(120, playerAreaRight - playerAreaLeft);
+  const playerCenterX = playerAreaLeft + playerAreaW / 2;
+
+  // Título da colocação ("1º LUGAR", "2º LUGAR", "3º LUGAR") centralizado sobre o nome
+  ctx.textAlign = 'center';
+  ctx.fillStyle = titleColor;
+  ctx.font = '800 13.5px "Outfit", -apple-system, sans-serif';
+  ctx.fillText(titleText, playerCenterX, centerY - 18);
+
+  // Nome do Participante com fonte grande centralizado abaixo do título
+  let nameFontSize = 36;
+  ctx.font = `900 ${nameFontSize}px "Outfit", -apple-system, sans-serif`;
+  if (ctx.measureText(cleanPlayerName).width > playerAreaW - 8) {
+    nameFontSize = 28;
+    ctx.font = `900 ${nameFontSize}px "Outfit", -apple-system, sans-serif`;
+  }
+  if (ctx.measureText(cleanPlayerName).width > playerAreaW - 4) {
+    nameFontSize = 23;
+    ctx.font = `900 ${nameFontSize}px "Outfit", -apple-system, sans-serif`;
+  }
+  ctx.fillStyle = '#0F172A';
+  ctx.fillText(cleanPlayerName, playerCenterX, centerY + 20);
+
+  // Desenha a Pílula do Deck maior e próxima à caixa de pontuação
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+  roundRect(ctx, deckPillX, deckPillY, deckPillW, deckPillH, 22);
+  ctx.fill();
+  ctx.strokeStyle = borderCol;
+  ctx.lineWidth = 1.8;
+  roundRect(ctx, deckPillX, deckPillY, deckPillW, deckPillH, 22);
+  ctx.stroke();
+
+  if (deckTextW > deckPillW - 24) {
+    deckFontSize = 15;
+    ctx.font = `800 ${deckFontSize}px "Outfit", -apple-system, sans-serif`;
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = deckTextColor;
+  ctx.fillText(deckLabel, deckPillX + deckPillW / 2, centerY + 1);
+  ctx.textBaseline = 'alphabetic';
+
+  // Renderiza o Painel Direito de Estatísticas
+  ctx.fillStyle = statBoxBg;
+  roundRect(ctx, statX, statY, statW, statH, 14);
+  ctx.fill();
+  ctx.strokeStyle = statBoxBorder;
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, statX, statY, statW, statH, 14);
+  ctx.stroke();
+
+  const statCenterX = statX + statW / 2;
+  const statMidY = statY + statH / 2;
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = ptsColor;
+  ctx.font = '900 22px "Outfit", -apple-system, sans-serif';
+  ctx.fillText(pointsText, statCenterX, statMidY - 10);
+
+  ctx.fillStyle = '#334155';
+  ctx.font = '800 12.5px "Outfit", -apple-system, sans-serif';
+  ctx.fillText(recordText, statCenterX, statMidY + 11);
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = '700 11px "Outfit", -apple-system, sans-serif';
+  ctx.fillText(extraStatText, statCenterX, statMidY + 29);
+
+  ctx.restore();
+}
+
+/**
+ * Exporta os Resultados de um Torneio Individual como imagem PNG para Instagram
+ * (Permite escolher entre Formato Quadrado 1080x1080 e Formato Reto da Tela 1080x1920)
+ */
+export function exportTournamentResultsPNG(
+  tournament: Tournament,
+  players: Player[],
+  format?: InstagramExportFormat
+): void {
+  if (!format) {
+    showInstagramFormatSelector('Exportar Resultado do Torneio', (chosenFormat) => {
+      exportTournamentResultsPNG(tournament, players, chosenFormat);
+    });
+    return;
+  }
+
   const standings = calculateTournamentStandings(tournament, players);
   const playerDecks = tournament.playerDecks || {};
   const tiebreakNotes = getTiebreakExplanations(standings, tournament);
 
   const tournDate = tournament.date
-    ? new Date(tournament.date).toLocaleDateString('pt-BR')
+    ? (/^\d{4}-\d{2}-\d{2}/.test(tournament.date)
+        ? tournament.date.substring(0, 10).split('-').reverse().join('/')
+        : new Date(tournament.date).toLocaleDateString('pt-BR'))
     : '-';
 
   const topCut = getTournamentTopCut(tournament);
-  const topStandings = standings.slice(0, Math.min(topCut, standings.length));
+  const isVertical = format === 'vertical';
 
-  // Dimensões do Canvas (Expandido para 1480px para acomodar confortavelmente todas as porcentagens oficiais)
-  const width = 1480;
-  const padding = 40;
-  const contentWidth = width - padding * 2;
+  // No formato vertical (9:16), sempre exibimos pelo menos o Top 3 (1º, 2º e 3º) um abaixo do outro
+  const podiumCount = isVertical
+    ? Math.min(Math.max(3, topCut), standings.length)
+    : Math.min(topCut, standings.length);
+  const topStandings = standings.slice(0, podiumCount);
 
-  // Cálculo da altura dinâmica para garantir exatamente 1 página
-  const headerHeight = 110;
-  const podiumHeight = standings.length >= 2 ? 160 : 0;
-  const tableHeaderHeight = 44;
-  const rowHeight = 36;
-  const tableHeight = tableHeaderHeight + standings.length * rowHeight;
-  const legendHeight = 32;
-  const tiebreakHeight = tiebreakNotes.length > 0 ? 30 + tiebreakNotes.length * 28 : 0;
-  const footerHeight = 60;
+  const TARGET_W = 1080;
+  const TARGET_H = isVertical ? 1920 : 1080;
+  const outerMargin = 24;
+  const padding = 48;
+  const contentWidth = TARGET_W - padding * 2; // 984px
 
-  const totalHeight =
+  const bannerH = isVertical ? 136 : 104;
+  const tableHeaderHeight = isVertical ? 46 : 40;
+  const legendHeight = 26;
+  const footerHeight = 46;
+
+  // Pré-calcula linhas de desempate
+  const maxTiebreakTextWidth = contentWidth - 32;
+  const tempCanvas = document.createElement('canvas');
+  const tempCtx = tempCanvas.getContext('2d');
+  if (tempCtx) {
+    tempCtx.font = '12px "Outfit", -apple-system, sans-serif';
+  }
+  const tourTiebreakLines: string[] = [];
+  if (tempCtx && tiebreakNotes.length > 0) {
+    tiebreakNotes.forEach((note) => {
+      const rawText = `• [${note.points} Pts] Empate entre ${note.players.join(', ')}: ${note.reasons.join(' | ')}`;
+      const wrapped = wrapCanvasText(tempCtx, rawText, maxTiebreakTextWidth);
+      tourTiebreakLines.push(...wrapped);
+    });
+  }
+
+  const tiebreakLineHeight = isVertical ? 22 : 19;
+  const tiebreakHeight =
+    tiebreakNotes.length > 0 ? 38 + tourTiebreakLines.length * tiebreakLineHeight : 0;
+
+  // No formato vertical, os cards do Top 1, 2 e 3 ficam empilhados um abaixo do outro.
+  // Distribuímos a altura das seções e linhas para preencher 100% da tela de forma uniforme!
+  const podiumCardGap = 12;
+  let stackedCardH = 116;
+  let podiumTotalH =
+    topStandings.length >= 2
+      ? isVertical
+        ? topStandings.length * stackedCardH + (topStandings.length - 1) * podiumCardGap
+        : 136
+      : 0;
+
+  const countRows = Math.max(1, standings.length);
+  const baseFixedH =
     padding +
-    headerHeight +
-    (podiumHeight > 0 ? podiumHeight + 24 : 0) +
-    tableHeight +
+    bannerH +
+    (podiumTotalH > 0 ? podiumTotalH : 0) +
+    tableHeaderHeight +
     legendHeight +
-    (tiebreakHeight > 0 ? tiebreakHeight + 16 : 0) +
+    (tiebreakHeight > 0 ? tiebreakHeight : 0) +
     footerHeight +
     padding;
 
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = totalHeight;
-  const ctx = canvas.getContext('2d');
+  // Quantidade de intervalos verticais entre blocos principais
+  const numSectionGaps = 2 + (podiumTotalH > 0 ? 1 : 0) + (tiebreakHeight > 0 ? 1 : 0);
+
+  let rowHeight = isVertical ? 44 : 36;
+  let sectionGap = 16;
+
+  if (isVertical) {
+    // Calcula espaço restante e distribui entre altura dos cards do pódio, linhas da tabela e espaçamentos
+    const minTableRowsH = countRows * 40;
+    const leftover = TARGET_H - (baseFixedH + minTableRowsH + numSectionGaps * 16);
+
+    if (leftover > 0) {
+      // 1. Expande os cards do Top 1, 2, 3 (até 148px cada)
+      if (topStandings.length >= 2) {
+        const addPerCard = Math.min(32, Math.floor((leftover * 0.35) / topStandings.length));
+        stackedCardH += addPerCard;
+        podiumTotalH = topStandings.length * stackedCardH + (topStandings.length - 1) * podiumCardGap;
+      }
+
+      // 2. Recalcula espaço restante para as linhas da tabela e gaps
+      const updatedFixedH =
+        padding +
+        bannerH +
+        (podiumTotalH > 0 ? podiumTotalH : 0) +
+        tableHeaderHeight +
+        legendHeight +
+        (tiebreakHeight > 0 ? tiebreakHeight : 0) +
+        footerHeight +
+        padding;
+
+      const availForRowsAndGaps = TARGET_H - updatedFixedH;
+      const maxRowH = 68;
+      rowHeight = Math.max(40, Math.min(maxRowH, Math.floor((availForRowsAndGaps - numSectionGaps * 16) / countRows)));
+
+      const remainingAfterRows = availForRowsAndGaps - countRows * rowHeight;
+      sectionGap = Math.max(14, Math.min(42, Math.floor(remainingAfterRows / numSectionGaps)));
+    } else {
+      const availForRows = Math.max(countRows * 34, TARGET_H - baseFixedH - numSectionGaps * 12);
+      rowHeight = Math.max(34, Math.floor(availForRows / countRows));
+      sectionGap = 12;
+    }
+  } else {
+    const availForRows = Math.max(countRows * 30, TARGET_H - baseFixedH - numSectionGaps * 14);
+    rowHeight = Math.max(30, Math.min(48, Math.floor(availForRows / countRows)));
+    sectionGap = 14;
+  }
+
+  const tableHeight = tableHeaderHeight + standings.length * rowHeight;
+  const naturalHeight =
+    padding +
+    bannerH +
+    sectionGap +
+    (podiumTotalH > 0 ? podiumTotalH + sectionGap : 0) +
+    tableHeight +
+    10 +
+    legendHeight +
+    (tiebreakHeight > 0 ? tiebreakHeight + sectionGap : 0) +
+    footerHeight +
+    padding;
+
+  const workH = Math.max(TARGET_H, naturalHeight);
+  const workCanvas = document.createElement('canvas');
+  workCanvas.width = TARGET_W;
+  workCanvas.height = workH;
+  const ctx = workCanvas.getContext('2d');
   if (!ctx) return;
 
-  // 1. Fundo Principal Elegante (Tema Noturno Yu-Gi-Oh Edison)
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, totalHeight);
-  bgGrad.addColorStop(0, '#121214');
-  bgGrad.addColorStop(0.5, '#18181b');
-  bgGrad.addColorStop(1, '#0e0e10');
+  // 1. Fundo Externo Verde Petróleo Midway
+  const bgGrad = ctx.createLinearGradient(0, 0, TARGET_W, workH);
+  bgGrad.addColorStop(0, '#042F29');
+  bgGrad.addColorStop(0.5, '#063C35');
+  bgGrad.addColorStop(1, '#0A4F46');
   ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, width, totalHeight);
+  ctx.fillRect(0, 0, TARGET_W, workH);
 
-  // Borda decorativa externa do card
-  ctx.strokeStyle = '#27272a';
+  // 2. Card Principal Branco ocupando toda a moldura do post
+  ctx.fillStyle = '#FFFFFF';
+  roundRect(ctx, outerMargin, outerMargin, TARGET_W - outerMargin * 2, workH - outerMargin * 2, 26);
+  ctx.fill();
+
+  ctx.strokeStyle = '#A7F3D0';
   ctx.lineWidth = 2;
-  roundRect(ctx, 12, 12, width - 24, totalHeight - 24, 16);
+  roundRect(ctx, outerMargin, outerMargin, TARGET_W - outerMargin * 2, workH - outerMargin * 2, 26);
   ctx.stroke();
 
   let curY = padding;
 
-  // 2. Cabeçalho Oficial
-  // Tag Superior
-  ctx.fillStyle = '#f59e0b';
-  ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-  ctx.fillText('YU-GI-OH! EDISON LEAGUE • RELATÓRIO OFICIAL DE TORNEIO', padding, curY + 16);
+  // 3. Banner Superior Midway Deep Petrol Teal
+  const bannerGrad = ctx.createLinearGradient(padding, curY, TARGET_W - padding, curY + bannerH);
+  bannerGrad.addColorStop(0, '#063C35');
+  bannerGrad.addColorStop(0.55, '#0A4F46');
+  bannerGrad.addColorStop(1, '#0D6E62');
 
-  // Nome do Torneio
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '900 32px system-ui, -apple-system, sans-serif';
-  ctx.fillText(tournament.name, padding, curY + 54);
+  ctx.fillStyle = bannerGrad;
+  roundRect(ctx, padding, curY, contentWidth, bannerH, 18);
+  ctx.fill();
 
-  // Metadados à direita
-  ctx.textAlign = 'right';
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '13px system-ui, -apple-system, sans-serif';
-  ctx.fillText(`Data: ${tournDate} • Formato Suíço Bo3`, width - padding, curY + 22);
-  ctx.fillStyle = '#fde68a';
-  ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
-  ctx.fillText(`${tournament.playerIds.length} Duelistas • ${tournament.totalRounds} Rodadas`, width - padding, curY + 48);
+  const emblemSize = isVertical ? 66 : 54;
+  drawMillenniumEmblem(ctx, padding + 20, curY + (bannerH - emblemSize) / 2, emblemSize);
+
+  const textStartX = padding + 20 + emblemSize + 16;
+  const fmtName = (tournament.format || 'Edison').toUpperCase();
+
+  ctx.fillStyle = '#6EE7B7';
+  ctx.font = `800 ${isVertical ? '12.5px' : '11.5px'} "Outfit", -apple-system, sans-serif`;
   ctx.textAlign = 'left';
+  ctx.fillText(`DUEL LEAGUE • FORMATO ${fmtName} • RESULTADO OFICIAL`, textStartX, curY + (isVertical ? 38 : 30));
 
-  // Linha divisória dourada
-  curY += 80;
-  const divGrad = ctx.createLinearGradient(padding, 0, width - padding, 0);
-  divGrad.addColorStop(0, '#f59e0b');
-  divGrad.addColorStop(0.5, '#a855f7');
-  divGrad.addColorStop(1, 'rgba(168, 85, 247, 0.1)');
-  ctx.strokeStyle = divGrad;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(padding, curY);
-  ctx.lineTo(width - padding, curY);
-  ctx.stroke();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `900 ${isVertical ? '28px' : '24px'} "Outfit", -apple-system, sans-serif`;
+  const displayTourName = tournament.name.length > 34 ? tournament.name.substring(0, 32) + '…' : tournament.name;
+  ctx.fillText(displayTourName, textStartX, curY + (isVertical ? 76 : 62));
 
-  curY += 24;
-
-  // 3. Molduras do TOP (Top 2, Top 3, Top 4 ou Top 5)
-  if (podiumHeight > 0 && topStandings.length >= 2) {
-    const numCards = topStandings.length;
-    let cardGap = 16;
-    let cardWidth = (contentWidth - cardGap * (numCards - 1)) / numCards;
-    let podiumStartX = padding;
-
-    if (numCards === 2) {
-      cardGap = 24;
-      cardWidth = 480;
-      podiumStartX = padding + (contentWidth - (2 * cardWidth + cardGap)) / 2;
-    } else if (numCards === 4) {
-      cardGap = 14;
-      cardWidth = (contentWidth - cardGap * 3) / 4;
-    } else if (numCards === 5) {
-      cardGap = 12;
-      cardWidth = (contentWidth - cardGap * 4) / 5;
-    }
-
-    topStandings.forEach((s, idx) => {
-      const rank = idx + 1;
-      const cX = podiumStartX + (cardWidth + cardGap) * idx;
-      const cY = curY;
-      const deckName = playerDecks[s.playerId] || 'Edison Deck';
-      const badgeW = Math.min(150, cardWidth - 24);
-
-      if (rank === 1) {
-        // --- 1º LUGAR: OURO IMPERIAL / MILLENNIUM ---
-        const goldBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
-        goldBg.addColorStop(0, 'rgba(245, 158, 11, 0.22)');
-        goldBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
-        ctx.fillStyle = goldBg;
-        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-        ctx.fill();
-
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 2;
-        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-        ctx.stroke();
-
-        const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
-        ribbonGrad.addColorStop(0, '#d97706');
-        ribbonGrad.addColorStop(1, '#b45309');
-        ctx.fillStyle = ribbonGrad;
-        roundRect(ctx, cX, cY, cardWidth, 32, 12);
-        ctx.fill();
-        ctx.fillRect(cX, cY + 16, cardWidth, 16);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 12px system-ui, -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('👑 1º LUGAR • CAMPEÃO', cX + cardWidth / 2, cY + 21);
-
-        ctx.fillStyle = '#fde68a';
-        ctx.font = numCards >= 5 ? '900 17px system-ui, -apple-system, sans-serif' : '900 20px system-ui, -apple-system, sans-serif';
-        ctx.fillText(s.playerName, cX + cardWidth / 2, cY + 70);
-
-        ctx.fillStyle = '#cbd5e1';
-        ctx.font = numCards >= 5 ? '12px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
-        ctx.fillText(deckName, cX + cardWidth / 2, cY + 96);
-
-        ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
-        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
-        ctx.fill();
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 1;
-        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
-        ctx.stroke();
-
-        ctx.fillStyle = '#fbbf24';
-        ctx.font = 'bold 12.5px system-ui, -apple-system, sans-serif';
-        ctx.fillText(`${s.matchPoints} pts (${s.matchWins}-${s.matchDraws}-${s.matchLosses})`, cX + cardWidth / 2, cY + 133);
-        ctx.textAlign = 'left';
-      } else if (rank === 2) {
-        // --- 2º LUGAR: PRATA / AÇO CROMADO ---
-        const silverBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
-        silverBg.addColorStop(0, 'rgba(148, 163, 184, 0.20)');
-        silverBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
-        ctx.fillStyle = silverBg;
-        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-        ctx.fill();
-
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 2;
-        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-        ctx.stroke();
-
-        const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
-        ribbonGrad.addColorStop(0, '#64748b');
-        ribbonGrad.addColorStop(1, '#475569');
-        ctx.fillStyle = ribbonGrad;
-        roundRect(ctx, cX, cY, cardWidth, 32, 12);
-        ctx.fill();
-        ctx.fillRect(cX, cY + 16, cardWidth, 16);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 12px system-ui, -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('🥈 2º LUGAR • VICE-CAMPEÃO', cX + cardWidth / 2, cY + 21);
-
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = numCards >= 5 ? '800 16px system-ui, -apple-system, sans-serif' : '800 19px system-ui, -apple-system, sans-serif';
-        ctx.fillText(s.playerName, cX + cardWidth / 2, cY + 70);
-
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = numCards >= 5 ? '12px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
-        ctx.fillText(deckName, cX + cardWidth / 2, cY + 96);
-
-        ctx.fillStyle = 'rgba(148, 163, 184, 0.2)';
-        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
-        ctx.fill();
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 1;
-        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
-        ctx.stroke();
-
-        ctx.fillStyle = '#e2e8f0';
-        ctx.font = 'bold 12.5px system-ui, -apple-system, sans-serif';
-        ctx.fillText(`${s.matchPoints} pts (${s.matchWins}-${s.matchDraws}-${s.matchLosses})`, cX + cardWidth / 2, cY + 133);
-        ctx.textAlign = 'left';
-      } else {
-        // --- 3º, 4º e 5º LUGAR: BRONZE NOBRE (Mesma cor para Top 4 e Top 5 conforme solicitado!) ---
-        const bronzeBg = ctx.createLinearGradient(cX, cY, cX, cY + podiumHeight);
-        bronzeBg.addColorStop(0, 'rgba(234, 88, 12, 0.22)');
-        bronzeBg.addColorStop(1, 'rgba(24, 24, 28, 0.96)');
-        ctx.fillStyle = bronzeBg;
-        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-        ctx.fill();
-
-        ctx.strokeStyle = '#ea580c';
-        ctx.lineWidth = 2;
-        roundRect(ctx, cX, cY, cardWidth, podiumHeight, 12);
-        ctx.stroke();
-
-        const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
-        ribbonGrad.addColorStop(0, '#ea580c');
-        ribbonGrad.addColorStop(1, '#c2410c');
-        ctx.fillStyle = ribbonGrad;
-        roundRect(ctx, cX, cY, cardWidth, 32, 12);
-        ctx.fill();
-        ctx.fillRect(cX, cY + 16, cardWidth, 16);
-
-        const ribbonTitle = rank === 3 ? '🥉 3º LUGAR • BRONZE NOBRE' : `🥉 ${rank}º LUGAR • TOP ${rank}`;
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 12px system-ui, -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(ribbonTitle, cX + cardWidth / 2, cY + 21);
-
-        ctx.fillStyle = '#ffedd5';
-        ctx.font = numCards >= 5 ? '800 16px system-ui, -apple-system, sans-serif' : '800 19px system-ui, -apple-system, sans-serif';
-        ctx.fillText(s.playerName, cX + cardWidth / 2, cY + 70);
-
-        ctx.fillStyle = '#fdba74';
-        ctx.font = numCards >= 5 ? '12px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
-        ctx.fillText(deckName, cX + cardWidth / 2, cY + 96);
-
-        ctx.fillStyle = 'rgba(234, 88, 12, 0.25)';
-        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
-        ctx.fill();
-        ctx.strokeStyle = '#ea580c';
-        ctx.lineWidth = 1;
-        roundRect(ctx, cX + cardWidth / 2 - badgeW / 2, cY + 114, badgeW, 28, 14);
-        ctx.stroke();
-
-        ctx.fillStyle = '#fed7aa';
-        ctx.font = 'bold 12.5px system-ui, -apple-system, sans-serif';
-        ctx.fillText(`${s.matchPoints} pts (${s.matchWins}-${s.matchDraws}-${s.matchLosses})`, cX + cardWidth / 2, cY + 133);
-        ctx.textAlign = 'left';
-      }
-    });
-
-    curY += podiumHeight + 24;
+  if (isVertical) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+    ctx.font = '600 13px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(
+      tournament.countsForLeague !== false ? 'Torneio Oficial da Liga • Pontuação Válida' : 'Torneio Freeplay',
+      textStartX,
+      curY + 106
+    );
   }
 
-  // 4. Tabela de Classificação Final
-  // Cabeçalho da Tabela
-  ctx.fillStyle = '#101420';
-  roundRect(ctx, padding, curY, contentWidth, tableHeaderHeight, 8);
+  // Metadados à direita no Banner
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#D1FAE5';
+  ctx.font = '600 12.5px "Outfit", -apple-system, sans-serif';
+  ctx.fillText(`Data: ${tournDate}`, TARGET_W - padding - 20, curY + (isVertical ? 40 : 32));
+
+  const badgeW = 205;
+  const badgeH = 30;
+  const badgeX = TARGET_W - padding - 20 - badgeW;
+  const badgeY = curY + (isVertical ? 58 : 46);
+  ctx.fillStyle = '#ECFDF5';
+  roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 15);
   ctx.fill();
-  ctx.strokeStyle = '#252d43';
-  ctx.lineWidth = 1;
-  roundRect(ctx, padding, curY, contentWidth, tableHeaderHeight, 8);
+
+  ctx.fillStyle = '#063C35';
+  ctx.font = '800 12px "Outfit", -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${tournament.playerIds.length} Duelistas • ${tournament.totalRounds} Rodadas`, badgeX + badgeW / 2, badgeY + 20);
+  ctx.textAlign = 'left';
+
+  curY += bannerH + sectionGap;
+
+  // 4. Pódio: No formato Vertical (9:16), Top 1, 2 e 3 empilhados um abaixo do outro com arte elaborada
+  if (podiumTotalH > 0 && topStandings.length >= 2) {
+    if (isVertical) {
+      topStandings.forEach((s, idx) => {
+        const rank = idx + 1;
+        const deckName = playerDecks[s.playerId] || 'Edison Deck';
+        const diffStr = s.gameDiff > 0 ? `+${s.gameDiff}` : `${s.gameDiff}`;
+        drawElaborateStackedPodiumCard(
+          ctx,
+          padding,
+          curY,
+          contentWidth,
+          stackedCardH,
+          rank,
+          s.playerName,
+          deckName,
+          `${s.matchPoints} PTS`,
+          `${s.matchWins}V - ${s.matchDraws}E - ${s.matchLosses}D (Saldo ${diffStr})`,
+          `OMW: ${s.omwPercentage ?? 0}% • PGW: ${s.pgwPercentage ?? 0}%`,
+          false
+        );
+        curY += stackedCardH + (idx < topStandings.length - 1 ? podiumCardGap : 0);
+      });
+      curY += sectionGap;
+    } else {
+      const numCards = topStandings.length;
+      const cardGap = numCards >= 4 ? 10 : 14;
+      const cardWidth = (contentWidth - cardGap * (numCards - 1)) / numCards;
+      const sqPodiumH = 136;
+
+      topStandings.forEach((s, idx) => {
+        const rank = idx + 1;
+        const cX = padding + (cardWidth + cardGap) * idx;
+        const cY = curY;
+        const deckName = playerDecks[s.playerId] || 'Edison Deck';
+        const pillW = Math.min(165, cardWidth - 16);
+
+        let borderColor = '#EA580C';
+        let ribbonStart = '#EA580C';
+        let ribbonEnd = '#C2410C';
+        let ribbonTitle = `${rank}º LUGAR`;
+        let pillBg = '#FFEDD5';
+        let pillBorder = '#FDBA74';
+        let pillText = '#9A3412';
+
+        if (rank === 1) {
+          borderColor = '#F59E0B';
+          ribbonStart = '#F59E0B';
+          ribbonEnd = '#D97706';
+          ribbonTitle = '1º LUGAR';
+          pillBg = '#FEF3C7';
+          pillBorder = '#FCD34D';
+          pillText = '#92400E';
+        } else if (rank === 2) {
+          borderColor = '#94A3B8';
+          ribbonStart = '#64748B';
+          ribbonEnd = '#475569';
+          ribbonTitle = '2º LUGAR';
+          pillBg = '#F1F5F9';
+          pillBorder = '#CBD5E1';
+          pillText = '#334155';
+        }
+
+        ctx.fillStyle = '#FFFFFF';
+        roundRect(ctx, cX, cY, cardWidth, sqPodiumH, 14);
+        ctx.fill();
+
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, cX, cY, cardWidth, sqPodiumH, 14);
+        ctx.stroke();
+
+        const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
+        ribbonGrad.addColorStop(0, ribbonStart);
+        ribbonGrad.addColorStop(1, ribbonEnd);
+        ctx.fillStyle = ribbonGrad;
+        roundRect(ctx, cX, cY, cardWidth, 30, 14);
+        ctx.fill();
+        ctx.fillRect(cX, cY + 16, cardWidth, 14);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `900 ${numCards >= 4 ? '10.5px' : '11.5px'} "Outfit", -apple-system, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(ribbonTitle, cX + cardWidth / 2, cY + 20);
+
+        ctx.fillStyle = '#0F172A';
+        ctx.font = `800 ${numCards >= 4 ? '14.5px' : '16.5px'} "Outfit", -apple-system, sans-serif`;
+        const maxNameLen = numCards >= 5 ? 13 : numCards === 4 ? 16 : 22;
+        const cleanPName = s.playerName.length > maxNameLen ? s.playerName.substring(0, maxNameLen - 1) + '…' : s.playerName;
+        ctx.fillText(cleanPName, cX + cardWidth / 2, cY + 60);
+
+        ctx.fillStyle = '#0D6E62';
+        ctx.font = `600 ${numCards >= 4 ? '11.5px' : '12.5px'} "Outfit", -apple-system, sans-serif`;
+        const cleanDName = deckName.length > maxNameLen + 2 ? deckName.substring(0, maxNameLen + 1) + '…' : deckName;
+        ctx.fillText(cleanDName, cX + cardWidth / 2, cY + 82);
+
+        const pY = cY + sqPodiumH - 38;
+        ctx.fillStyle = pillBg;
+        roundRect(ctx, cX + cardWidth / 2 - pillW / 2, pY, pillW, 26, 13);
+        ctx.fill();
+        ctx.strokeStyle = pillBorder;
+        ctx.lineWidth = 1;
+        roundRect(ctx, cX + cardWidth / 2 - pillW / 2, pY, pillW, 26, 13);
+        ctx.stroke();
+
+        ctx.fillStyle = pillText;
+        ctx.font = '800 11.5px "Outfit", -apple-system, sans-serif';
+        ctx.fillText(`${s.matchPoints} pts (${s.matchWins}V-${s.matchDraws}E-${s.matchLosses}D)`, cX + cardWidth / 2, pY + 17);
+        ctx.textAlign = 'left';
+      });
+
+      curY += sqPodiumH + sectionGap;
+    }
+  }
+
+  // 5. Tabela de Classificação Final (Enquadrada para 1080px de largura)
+  ctx.fillStyle = '#ECFDF5';
+  roundRect(ctx, padding, curY, contentWidth, tableHeaderHeight, 12);
+  ctx.fill();
+  ctx.strokeStyle = '#A7F3D0';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, padding, curY, contentWidth, tableHeaderHeight, 12);
   ctx.stroke();
 
-  // Colunas da Tabela
-  ctx.fillStyle = '#f59e0b';
-  ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#063C35';
+  ctx.font = '800 11px "Outfit", -apple-system, sans-serif';
 
   const colX = {
-    pos: padding + 15,
-    name: padding + 65,
-    deck: padding + 295,
-    pts: padding + 485,
-    ved: padding + 565,
-    games: padding + 645,
-    saldo: padding + 715,
-    by: padding + 775,
-    pmw: padding + 830,
-    omw: padding + 975,
-    pgw: padding + 1135,
-    ogw: padding + 1270,
+    pos: padding + 14,
+    name: padding + 62,
+    deck: padding + 255,
+    pts: padding + 435,
+    ved: padding + 505,
+    games: padding + 575,
+    saldo: padding + 642,
+    by: padding + 702,
+    omw: padding + 750,
+    pgw: padding + 838,
+    ogw: padding + 914,
   };
 
-  ctx.fillText('POS', colX.pos, curY + 26);
-  ctx.fillText('DUELISTA', colX.name, curY + 26);
-  ctx.fillText('DECK UTILIZADO', colX.deck, curY + 26);
-  ctx.fillText('PONTOS', colX.pts, curY + 26);
-  ctx.fillText('V-E-D', colX.ved, curY + 26);
-  ctx.fillText('GAMES', colX.games, curY + 26);
-  ctx.fillText('SALDO', colX.saldo, curY + 26);
-  ctx.fillText('BY', colX.by, curY + 26);
-  ctx.fillText('PMW%', colX.pmw, curY + 26);
-  ctx.fillStyle = '#fbbf24';
-  ctx.fillText('OMW% (MÍNIMOS)', colX.omw, curY + 26);
-  ctx.fillStyle = '#f59e0b';
-  ctx.fillText('PGW%', colX.pgw, curY + 26);
-  ctx.fillText('OGW%', colX.ogw, curY + 26);
+  const thTextY = curY + Math.round(tableHeaderHeight * 0.62);
+  ctx.fillText('POS', colX.pos, thTextY);
+  ctx.fillText('DUELISTA', colX.name, thTextY);
+  ctx.fillText('DECK', colX.deck, thTextY);
+  ctx.fillText('PTS', colX.pts, thTextY);
+  ctx.fillText('V-E-D', colX.ved, thTextY);
+  ctx.fillText('GAMES', colX.games, thTextY);
+  ctx.fillText('SALDO', colX.saldo, thTextY);
+  ctx.fillText('BY', colX.by, thTextY);
+  ctx.fillStyle = '#047857';
+  ctx.fillText('OMW%', colX.omw, thTextY);
+  ctx.fillStyle = '#063C35';
+  ctx.fillText('PGW%', colX.pgw, thTextY);
+  ctx.fillText('OGW%', colX.ogw, thTextY);
 
   curY += tableHeaderHeight;
 
-  // Linhas da Tabela
   standings.forEach((s, idx) => {
     const rowY = curY;
     const isEven = idx % 2 === 0;
 
-    // Fundo da linha
     if (idx === 0) {
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.10)';
-    } else if (idx <= 2) {
-      ctx.fillStyle = idx === 1 ? 'rgba(148, 163, 184, 0.08)' : 'rgba(234, 88, 12, 0.08)';
+      ctx.fillStyle = '#FFFBEB';
+    } else if (idx < topCut) {
+      ctx.fillStyle = '#F0FDF4';
     } else {
-      ctx.fillStyle = isEven ? 'rgba(32, 32, 36, 0.7)' : 'rgba(24, 24, 28, 0.5)';
+      ctx.fillStyle = isEven ? '#FFFFFF' : '#F8FAFC';
     }
     ctx.fillRect(padding, rowY, contentWidth, rowHeight);
 
-    // Linha divisória fina
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.strokeStyle = '#EEF2F6';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padding, rowY + rowHeight);
-    ctx.lineTo(width - padding, rowY + rowHeight);
+    ctx.lineTo(TARGET_W - padding, rowY + rowHeight);
     ctx.stroke();
 
-    // Texto da Linha
-    ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-    if (s.rank === 1) {
-      ctx.fillStyle = '#fbbf24';
-    } else if (s.rank === 2) {
-      ctx.fillStyle = '#e2e8f0';
-    } else if (s.rank <= topCut) {
-      ctx.fillStyle = '#fdba74';
-    } else {
-      ctx.fillStyle = '#94a3b8';
-    }
-    ctx.fillText(`${s.rank}º`, colX.pos, rowY + 23);
+    const textY = rowY + Math.round(rowHeight * 0.62);
+    const fontSize = isVertical && rowHeight >= 46 ? '13.5px' : '12.5px';
 
-    // Nome
-    ctx.fillStyle = '#ffffff';
-    ctx.font = s.rank <= topCut ? 'bold 13.5px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
-    ctx.fillText(s.isDropped ? `${s.playerName} [DROP]` : s.playerName, colX.name, rowY + 23);
+    ctx.font = `800 ${fontSize} "Outfit", -apple-system, sans-serif`;
+    ctx.fillStyle = s.rank === 1 ? '#B45309' : s.rank <= topCut ? '#0D6E62' : '#64748B';
+    ctx.fillText(`${s.rank}º`, colX.pos, textY);
 
-    // Deck
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = '12px system-ui, -apple-system, sans-serif';
-    ctx.fillText(playerDecks[s.playerId] || 'Edison Deck', colX.deck, rowY + 23);
+    ctx.fillStyle = '#0F172A';
+    ctx.font = s.rank <= topCut ? `800 ${fontSize} "Outfit", -apple-system, sans-serif` : `600 ${fontSize} "Outfit", -apple-system, sans-serif`;
+    const rawName = s.isDropped ? `${s.playerName} (Drop)` : s.playerName;
+    const truncName = rawName.length > 18 ? rawName.substring(0, 17) + '…' : rawName;
+    ctx.fillText(truncName, colX.name, textY);
 
-    // Pontos
-    ctx.fillStyle = s.rank === 1 ? '#fbbf24' : '#f8fafc';
-    ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`${s.matchPoints} pts`, colX.pts, rowY + 23);
+    ctx.fillStyle = '#475569';
+    ctx.font = `600 12px "Outfit", -apple-system, sans-serif`;
+    const rawDeck = playerDecks[s.playerId] || 'Edison Deck';
+    const truncDeck = rawDeck.length > 18 ? rawDeck.substring(0, 17) + '…' : rawDeck;
+    ctx.fillText(truncDeck, colX.deck, textY);
 
-    // V-E-D
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '12.5px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`${s.matchWins}-${s.matchDraws}-${s.matchLosses}`, colX.ved, rowY + 23);
+    ctx.fillStyle = '#0D6E62';
+    ctx.font = `800 ${fontSize} "Outfit", -apple-system, sans-serif`;
+    ctx.fillText(`${s.matchPoints} pts`, colX.pts, textY);
 
-    // Games
-    ctx.fillText(`${s.gamesWon}-${s.gamesLost}`, colX.games, rowY + 23);
+    ctx.fillStyle = '#334155';
+    ctx.font = '600 12px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(`${s.matchWins}-${s.matchDraws}-${s.matchLosses}`, colX.ved, textY);
+    ctx.fillText(`${s.gamesWon}-${s.gamesLost}`, colX.games, textY);
 
-    // Saldo
-    ctx.fillStyle = s.gameDiff > 0 ? '#34d399' : (s.gameDiff < 0 ? '#f43f5e' : '#94a3b8');
-    ctx.fillText(s.gameDiff > 0 ? `+${s.gameDiff}` : `${s.gameDiff}`, colX.saldo, rowY + 23);
+    ctx.fillStyle = s.gameDiff > 0 ? '#059669' : s.gameDiff < 0 ? '#DC2626' : '#64748B';
+    ctx.font = '700 12px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(s.gameDiff > 0 ? `+${s.gameDiff}` : `${s.gameDiff}`, colX.saldo, textY);
 
-    // BY
-    ctx.fillStyle = s.hadBy ? '#fbbf24' : '#64748b';
-    ctx.fillText(s.hadBy ? 'Sim' : '-', colX.by, rowY + 23);
+    ctx.fillStyle = s.hadBy ? '#B45309' : '#94A3B8';
+    ctx.font = '600 12px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(s.hadBy ? 'Sim' : '-', colX.by, textY);
 
-    // PMW% (Player Match Win %)
-    const pmwStr = `${(s.pmw ?? 0).toFixed(2)} (${s.pmwPercentage ?? 0}%)`;
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = '12px system-ui, -apple-system, sans-serif';
-    ctx.fillText(pmwStr, colX.pmw, rowY + 23);
+    ctx.fillStyle = '#0D6E62';
+    ctx.font = '800 12px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(`${s.omwPercentage ?? 0}%`, colX.omw, textY);
 
-    // OMW% (Mínimos - 1º Critério Oficial de Desempate)
-    const omwStr = `${(s.omw ?? 0).toFixed(2)} (${s.omwPercentage ?? 0}%)`;
-    ctx.fillStyle = '#fbbf24';
-    ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
-    ctx.fillText(omwStr, colX.omw, rowY + 23);
-
-    // PGW% (Player Game Win %)
-    const pgwStr = `${(s.pgw ?? 0).toFixed(2)} (${s.pgwPercentage ?? 0}%)`;
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = '12px system-ui, -apple-system, sans-serif';
-    ctx.fillText(pgwStr, colX.pgw, rowY + 23);
-
-    // OGW% (Opponent Game Win %)
-    const ogwStr = `${(s.ogw ?? 0).toFixed(2)} (${s.ogwPercentage ?? 0}%)`;
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '12px system-ui, -apple-system, sans-serif';
-    ctx.fillText(ogwStr, colX.ogw, rowY + 23);
+    ctx.fillStyle = '#475569';
+    ctx.font = '600 12px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(`${s.pgwPercentage ?? 0}%`, colX.pgw, textY);
+    ctx.fillText(`${s.ogwPercentage ?? 0}%`, colX.ogw, textY);
 
     curY += rowHeight;
   });
@@ -527,165 +1054,451 @@ export function exportTournamentResultsPNG(tournament: Tournament, players: Play
   curY += 12;
 
   // Legenda Oficial de Desempate
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '11px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#64748B';
+  ctx.font = '600 11px "Outfit", -apple-system, sans-serif';
   ctx.fillText(
-    '* Critérios Oficiais Suíço: Pontos > Sem BY > Mínimos (OMW%) > Saldo de Games > Confronto Direto > PGW% > OGW% (Piso: 0.33)',
-    padding + 8,
+    '* Desempate Suíço Oficial: Pontos > Sem BY > OMW% (Mínimos) > Saldo de Games > Confronto Direto > PGW% > OGW% (Piso: 33%)',
+    padding + 4,
     curY + 12
   );
 
-  curY += 24;
+  curY += legendHeight;
 
-  // 5. Observações de Desempate (se houver empates)
+  // 6. Observações de Desempate
   if (tiebreakNotes.length > 0) {
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
-    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 8);
+    ctx.fillStyle = '#FFFBEB';
+    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 12);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+    ctx.strokeStyle = '#FDE68A';
     ctx.lineWidth = 1;
-    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 8);
+    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 12);
     ctx.stroke();
 
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
-    ctx.fillText('📌 Observações Oficiais de Desempate (Duelistas com mesma pontuação):', padding + 16, curY + 20);
+    ctx.fillStyle = '#92400E';
+    ctx.font = '800 12px "Outfit", -apple-system, sans-serif';
+    ctx.fillText('📌 Observações de Desempate (Duelistas com mesma pontuação):', padding + 14, curY + 22);
 
     let noteY = curY + 44;
-    tiebreakNotes.forEach((note) => {
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = '12px system-ui, -apple-system, sans-serif';
-      const text = `• [${note.points} Pts] Empate entre ${note.players.join(', ')}: ${note.reasons.join(' | ')}`;
-      ctx.fillText(text.length > 130 ? text.substring(0, 127) + '...' : text, padding + 16, noteY);
-      noteY += 26;
+    ctx.fillStyle = '#78350F';
+    ctx.font = '600 11.5px "Outfit", -apple-system, sans-serif';
+    tourTiebreakLines.forEach((line) => {
+      ctx.fillText(line, padding + 14, noteY);
+      noteY += tiebreakLineHeight;
     });
-
-    curY += tiebreakHeight + 16;
   }
 
-  // 6. Rodapé Oficial
-  ctx.fillStyle = '#64748b';
-  ctx.font = '11.5px system-ui, -apple-system, sans-serif';
-  ctx.fillText('Edison League Manager • Sistema Oficial de Torneios Yu-Gi-Oh! Edison Format (2010)', padding, curY + 22);
+  // 7. Rodapé Oficial fixado na base do Card
+  const footerY = workH - outerMargin - 44;
+  ctx.strokeStyle = '#E2E8F0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, footerY - 8);
+  ctx.lineTo(TARGET_W - padding, footerY - 8);
+  ctx.stroke();
+
+  ctx.fillStyle = '#0D6E62';
+  ctx.font = '800 12px "Outfit", -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Duel League • Gestão de Torneios & Ranking Oficial', padding, footerY + 14);
 
   ctx.textAlign = 'right';
-  ctx.fillText(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} • Imagem Oficial (PNG)`, width - padding, curY + 22);
+  ctx.fillStyle = '#64748B';
+  ctx.font = '600 11.5px "Outfit", -apple-system, sans-serif';
+  ctx.fillText(
+    `Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+    TARGET_W - padding,
+    footerY + 14
+  );
   ctx.textAlign = 'left';
 
-  // 7. Dispara o download da imagem PNG em página única
-  const safeFilename = `Resultado_${tournament.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-  downloadCanvasAsPNG(canvas, safeFilename);
+  // Garante a resolução final exata (1080x1080 ou 1080x1920)
+  let finalCanvas = workCanvas;
+  if (workH !== TARGET_H) {
+    finalCanvas = document.createElement('canvas');
+    finalCanvas.width = TARGET_W;
+    finalCanvas.height = TARGET_H;
+    const fCtx = finalCanvas.getContext('2d');
+    if (fCtx) {
+      fCtx.fillStyle = '#063C35';
+      fCtx.fillRect(0, 0, TARGET_W, TARGET_H);
+      const scale = Math.min(TARGET_W / workCanvas.width, TARGET_H / workCanvas.height);
+      const drawW = workCanvas.width * scale;
+      const drawH = workCanvas.height * scale;
+      const drawX = (TARGET_W - drawW) / 2;
+      const drawY = (TARGET_H - drawH) / 2;
+      fCtx.drawImage(workCanvas, drawX, drawY, drawW, drawH);
+    }
+  }
+
+  const suffix = isVertical ? 'Stories_9x16' : 'Feed_1x1';
+  const safeFilename = `Resultado_${tournament.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_${suffix}`;
+  downloadCanvasAsPNG(finalCanvas, safeFilename);
 }
 
 /**
- * Exporta o Ranking Geral da Liga Oficial como imagem PNG em página única
+ * Exporta o Ranking Geral da Liga Oficial como imagem PNG para Instagram
+ * (Permite escolher entre Formato Quadrado 1080x1080 e Formato Reto da Tela 1080x1920)
  */
-export function exportLeagueRankingPNG(players: Player[]): void {
+export function exportLeagueRankingPNG(
+  players: Player[],
+  format?: InstagramExportFormat
+): void {
+  if (!format) {
+    showInstagramFormatSelector('Exportar Ranking Geral da Liga', (chosenFormat) => {
+      exportLeagueRankingPNG(players, chosenFormat);
+    });
+    return;
+  }
+
   const activePlayers = sortPlayersForLeague(players.filter((p) => p.active));
   const tiebreakNotes = getLeagueTiebreakExplanations(activePlayers);
+  const top3 = activePlayers.slice(0, 3);
+  const isVertical = format === 'vertical';
 
-  const width = 1200;
-  const padding = 40;
-  const contentWidth = width - padding * 2;
+  const TARGET_W = 1080;
+  const TARGET_H = isVertical ? 1920 : 1080;
+  const outerMargin = 24;
+  const padding = 48;
+  const contentWidth = TARGET_W - padding * 2; // 984px
 
-  const headerHeight = 110;
-  const tableHeaderHeight = 44;
-  const rowHeight = 36;
+  const bannerH = isVertical ? 136 : 104;
+  const tableHeaderHeight = isVertical ? 46 : 40;
+  const footerHeight = 46;
+
+  // Pré-calcula linhas de desempate da Liga
+  const maxTiebreakTextWidth = contentWidth - 32;
+  const tempCanvas = document.createElement('canvas');
+  const tempCtx = tempCanvas.getContext('2d');
+  if (tempCtx) {
+    tempCtx.font = '12px "Outfit", -apple-system, sans-serif';
+  }
+  const leagueTiebreakLines: string[] = [];
+  if (tempCtx && tiebreakNotes.length > 0) {
+    tiebreakNotes.forEach((note) => {
+      const rawText = `• [${note.points} Pts] Empate entre ${note.players.join(', ')}: ${note.reasons.join(' | ')}`;
+      const wrapped = wrapCanvasText(tempCtx, rawText, maxTiebreakTextWidth);
+      leagueTiebreakLines.push(...wrapped);
+    });
+  }
+
+  const tiebreakLineHeight = isVertical ? 22 : 19;
+  const tiebreakHeight =
+    tiebreakNotes.length > 0 ? 38 + leagueTiebreakLines.length * tiebreakLineHeight : 0;
+
+  const podiumCardGap = 12;
+  let stackedCardH = 116;
+  let podiumTotalH =
+    top3.length >= 2
+      ? isVertical
+        ? top3.length * stackedCardH + (top3.length - 1) * podiumCardGap
+        : 136
+      : 0;
+
+  const countRows = Math.max(1, activePlayers.length);
+  const baseFixedH =
+    padding +
+    bannerH +
+    (podiumTotalH > 0 ? podiumTotalH : 0) +
+    tableHeaderHeight +
+    (tiebreakHeight > 0 ? tiebreakHeight : 0) +
+    footerHeight +
+    padding;
+
+  const numSectionGaps = 2 + (podiumTotalH > 0 ? 1 : 0) + (tiebreakHeight > 0 ? 1 : 0);
+
+  let rowHeight = isVertical ? 44 : 36;
+  let sectionGap = 16;
+
+  if (isVertical) {
+    const minTableRowsH = countRows * 40;
+    const leftover = TARGET_H - (baseFixedH + minTableRowsH + numSectionGaps * 16);
+
+    if (leftover > 0) {
+      if (top3.length >= 2) {
+        const addPerCard = Math.min(32, Math.floor((leftover * 0.35) / top3.length));
+        stackedCardH += addPerCard;
+        podiumTotalH = top3.length * stackedCardH + (top3.length - 1) * podiumCardGap;
+      }
+
+      const updatedFixedH =
+        padding +
+        bannerH +
+        (podiumTotalH > 0 ? podiumTotalH : 0) +
+        tableHeaderHeight +
+        (tiebreakHeight > 0 ? tiebreakHeight : 0) +
+        footerHeight +
+        padding;
+
+      const availForRowsAndGaps = TARGET_H - updatedFixedH;
+      const maxRowH = 68;
+      rowHeight = Math.max(40, Math.min(maxRowH, Math.floor((availForRowsAndGaps - numSectionGaps * 16) / countRows)));
+
+      const remainingAfterRows = availForRowsAndGaps - countRows * rowHeight;
+      sectionGap = Math.max(14, Math.min(42, Math.floor(remainingAfterRows / numSectionGaps)));
+    } else {
+      const availForRows = Math.max(countRows * 34, TARGET_H - baseFixedH - numSectionGaps * 12);
+      rowHeight = Math.max(34, Math.floor(availForRows / countRows));
+      sectionGap = 12;
+    }
+  } else {
+    const availForRows = Math.max(countRows * 30, TARGET_H - baseFixedH - numSectionGaps * 14);
+    rowHeight = Math.max(30, Math.min(48, Math.floor(availForRows / countRows)));
+    sectionGap = 14;
+  }
+
   const tableHeight = tableHeaderHeight + activePlayers.length * rowHeight;
-  const tiebreakHeight = tiebreakNotes.length > 0 ? 32 + tiebreakNotes.length * 28 : 0;
-  const footerHeight = 60;
+  const naturalHeight =
+    padding +
+    bannerH +
+    sectionGap +
+    (podiumTotalH > 0 ? podiumTotalH + sectionGap : 0) +
+    tableHeight +
+    sectionGap +
+    (tiebreakHeight > 0 ? tiebreakHeight + sectionGap : 0) +
+    footerHeight +
+    padding;
 
-  const totalHeight = padding + headerHeight + tableHeight + (tiebreakHeight > 0 ? tiebreakHeight + 16 : 0) + footerHeight + padding;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = totalHeight;
-  const ctx = canvas.getContext('2d');
+  const workH = Math.max(TARGET_H, naturalHeight);
+  const workCanvas = document.createElement('canvas');
+  workCanvas.width = TARGET_W;
+  workCanvas.height = workH;
+  const ctx = workCanvas.getContext('2d');
   if (!ctx) return;
 
-  // Fundo
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, totalHeight);
-  bgGrad.addColorStop(0, '#121214');
-  bgGrad.addColorStop(0.5, '#18181b');
-  bgGrad.addColorStop(1, '#0e0e10');
+  // 1. Fundo Externo Verde Petróleo Midway
+  const bgGrad = ctx.createLinearGradient(0, 0, TARGET_W, workH);
+  bgGrad.addColorStop(0, '#042F29');
+  bgGrad.addColorStop(0.5, '#063C35');
+  bgGrad.addColorStop(1, '#0A4F46');
   ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, width, totalHeight);
+  ctx.fillRect(0, 0, TARGET_W, workH);
 
-  // Borda decorativa
-  ctx.strokeStyle = '#27272a';
+  // 2. Card Principal Branco
+  ctx.fillStyle = '#FFFFFF';
+  roundRect(ctx, outerMargin, outerMargin, TARGET_W - outerMargin * 2, workH - outerMargin * 2, 26);
+  ctx.fill();
+
+  ctx.strokeStyle = '#A7F3D0';
   ctx.lineWidth = 2;
-  roundRect(ctx, 12, 12, width - 24, totalHeight - 24, 16);
+  roundRect(ctx, outerMargin, outerMargin, TARGET_W - outerMargin * 2, workH - outerMargin * 2, 26);
   ctx.stroke();
 
   let curY = padding;
 
-  // Cabeçalho
-  ctx.fillStyle = '#f59e0b';
-  ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-  ctx.fillText('YU-GI-OH! EDISON LEAGUE • CLASSIFICAÇÃO GERAL DA TEMPORADA', padding, curY + 16);
+  // 3. Banner Superior Midway Deep Petrol Teal
+  const bannerGrad = ctx.createLinearGradient(padding, curY, TARGET_W - padding, curY + bannerH);
+  bannerGrad.addColorStop(0, '#063C35');
+  bannerGrad.addColorStop(0.55, '#0A4F46');
+  bannerGrad.addColorStop(1, '#0D6E62');
 
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '900 32px system-ui, -apple-system, sans-serif';
-  ctx.fillText('Ranking Oficial da Liga', padding, curY + 54);
+  ctx.fillStyle = bannerGrad;
+  roundRect(ctx, padding, curY, contentWidth, bannerH, 18);
+  ctx.fill();
+
+  const emblemSize = isVertical ? 66 : 54;
+  drawMillenniumEmblem(ctx, padding + 20, curY + (bannerH - emblemSize) / 2, emblemSize);
+
+  const textStartX = padding + 20 + emblemSize + 16;
+
+  ctx.fillStyle = '#6EE7B7';
+  ctx.font = `800 ${isVertical ? '12.5px' : '11.5px'} "Outfit", -apple-system, sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.fillText('DUEL LEAGUE • CLASSIFICAÇÃO GERAL DA TEMPORADA', textStartX, curY + (isVertical ? 38 : 30));
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `900 ${isVertical ? '30px' : '26px'} "Outfit", -apple-system, sans-serif`;
+  ctx.fillText('Ranking Oficial da Liga', textStartX, curY + (isVertical ? 76 : 62));
+
+  if (isVertical) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
+    ctx.font = '600 13px "Outfit", -apple-system, sans-serif';
+    ctx.fillText('Pontuação Acumulada, Troféus e Aproveitamento Oficial', textStartX, curY + 106);
+  }
 
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '13px system-ui, -apple-system, sans-serif';
-  ctx.fillText(`Emissão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, width - padding, curY + 22);
-  ctx.fillStyle = '#fde68a';
-  ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
-  ctx.fillText(`${activePlayers.length} Duelistas Ativos`, width - padding, curY + 48);
+  ctx.fillStyle = '#D1FAE5';
+  ctx.font = '600 12.5px "Outfit", -apple-system, sans-serif';
+  ctx.fillText(`Atualizado em ${new Date().toLocaleDateString('pt-BR')}`, TARGET_W - padding - 20, curY + (isVertical ? 40 : 32));
+
+  const badgeW = 165;
+  const badgeH = 30;
+  const badgeX = TARGET_W - padding - 20 - badgeW;
+  const badgeY = curY + (isVertical ? 58 : 46);
+  ctx.fillStyle = '#ECFDF5';
+  roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 15);
+  ctx.fill();
+
+  ctx.fillStyle = '#063C35';
+  ctx.font = '800 12px "Outfit", -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${activePlayers.length} Duelistas Ativos`, badgeX + badgeW / 2, badgeY + 20);
   ctx.textAlign = 'left';
 
-  curY += 80;
-  ctx.strokeStyle = '#f59e0b';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(padding, curY);
-  ctx.lineTo(width - padding, curY);
-  ctx.stroke();
+  curY += bannerH + sectionGap;
 
-  curY += 24;
-
-  // Cabeçalho da Tabela
-  ctx.fillStyle = '#101420';
-  roundRect(ctx, padding, curY, contentWidth, tableHeaderHeight, 8);
-  ctx.fill();
-  ctx.strokeStyle = '#252d43';
-  ctx.lineWidth = 1;
-  roundRect(ctx, padding, curY, contentWidth, tableHeaderHeight, 8);
-  ctx.stroke();
-
-  ctx.fillStyle = '#f59e0b';
-  ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
-
-  const colX = {
-    pos: padding + 20,
-    name: padding + 80,
-    deck: padding + 350,
-    pts: padding + 580,
-    v: padding + 680,
-    e: padding + 740,
-    d: padding + 800,
-    part: padding + 870,
-    trophies: padding + 960,
-    winRate: padding + 1060,
+  const getPlayerMostUsedDeck = (pl: Player) => {
+    if (!pl.decksHistory || pl.decksHistory.length === 0) return 'Edison Deck';
+    const counts: Record<string, number> = {};
+    for (const h of pl.decksHistory) {
+      if (h.countsForLeague === false) continue;
+      counts[h.deckName] = (counts[h.deckName] || 0) + 1;
+    }
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sorted.length > 0 ? sorted[0][0] : 'Edison Deck';
   };
 
-  ctx.fillText('POS', colX.pos, curY + 26);
-  ctx.fillText('DUELISTA', colX.name, curY + 26);
-  ctx.fillText('DECK PRINCIPAL', colX.deck, curY + 26);
-  ctx.fillText('PONTOS', colX.pts, curY + 26);
-  ctx.fillText('V', colX.v, curY + 26);
-  ctx.fillText('E', colX.e, curY + 26);
-  ctx.fillText('D', colX.d, curY + 26);
-  ctx.fillText('PART.', colX.part, curY + 26);
-  ctx.fillText('TÍTULOS', colX.trophies, curY + 26);
-  ctx.fillText('WIN RATE', colX.winRate, curY + 26);
+  // 4. Pódio dos 3 Melhores da Liga: No formato Vertical (9:16), empilhados um abaixo do outro com arte elaborada
+  if (podiumTotalH > 0 && top3.length >= 2) {
+    if (isVertical) {
+      top3.forEach((p, idx) => {
+        const rank = idx + 1;
+        const deckName = getPlayerMostUsedDeck(p);
+        const totalM = p.wins + p.draws + p.losses;
+        const wr = totalM > 0 ? ((p.wins / totalM) * 100).toFixed(1) : '0.0';
+        const titlesCount = p.tournamentTitles || 0;
+        drawElaborateStackedPodiumCard(
+          ctx,
+          padding,
+          curY,
+          contentWidth,
+          stackedCardH,
+          rank,
+          p.name,
+          deckName,
+          `${p.points} PTS`,
+          `${p.wins}V - ${p.draws}E - ${p.losses}D (${wr}% WR)`,
+          `${titlesCount} ${titlesCount === 1 ? 'Título' : 'Títulos'} • ${p.participations} ${p.participations === 1 ? 'Torneio' : 'Torneios'}`,
+          true
+        );
+        curY += stackedCardH + (idx < top3.length - 1 ? podiumCardGap : 0);
+      });
+      curY += sectionGap;
+    } else {
+      const numCards = top3.length;
+      const cardGap = 14;
+      const cardWidth = (contentWidth - cardGap * (numCards - 1)) / numCards;
+      const sqPodiumH = 136;
+
+      top3.forEach((p, idx) => {
+        const rank = idx + 1;
+        const cX = padding + (cardWidth + cardGap) * idx;
+        const cY = curY;
+        const deckName = getPlayerMostUsedDeck(p);
+        const pillW = Math.min(175, cardWidth - 16);
+
+        let borderColor = '#EA580C';
+        let ribbonStart = '#EA580C';
+        let ribbonEnd = '#C2410C';
+        let ribbonTitle = '3º LUGAR';
+        let pillBg = '#FFEDD5';
+        let pillBorder = '#FDBA74';
+        let pillText = '#9A3412';
+
+        if (rank === 1) {
+          borderColor = '#F59E0B';
+          ribbonStart = '#F59E0B';
+          ribbonEnd = '#D97706';
+          ribbonTitle = '1º LUGAR';
+          pillBg = '#FEF3C7';
+          pillBorder = '#FCD34D';
+          pillText = '#92400E';
+        } else if (rank === 2) {
+          borderColor = '#94A3B8';
+          ribbonStart = '#64748B';
+          ribbonEnd = '#475569';
+          ribbonTitle = '2º LUGAR';
+          pillBg = '#F1F5F9';
+          pillBorder = '#CBD5E1';
+          pillText = '#334155';
+        }
+
+        ctx.fillStyle = '#FFFFFF';
+        roundRect(ctx, cX, cY, cardWidth, sqPodiumH, 14);
+        ctx.fill();
+
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, cX, cY, cardWidth, sqPodiumH, 14);
+        ctx.stroke();
+
+        const ribbonGrad = ctx.createLinearGradient(cX, cY, cX + cardWidth, cY);
+        ribbonGrad.addColorStop(0, ribbonStart);
+        ribbonGrad.addColorStop(1, ribbonEnd);
+        ctx.fillStyle = ribbonGrad;
+        roundRect(ctx, cX, cY, cardWidth, 30, 14);
+        ctx.fill();
+        ctx.fillRect(cX, cY + 16, cardWidth, 14);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '900 11.5px "Outfit", -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ribbonTitle, cX + cardWidth / 2, cY + 20);
+
+        ctx.fillStyle = '#0F172A';
+        ctx.font = '800 16.5px "Outfit", -apple-system, sans-serif';
+        const cleanName = p.name.length > 20 ? p.name.substring(0, 19) + '…' : p.name;
+        ctx.fillText(cleanName, cX + cardWidth / 2, cY + 60);
+
+        ctx.fillStyle = '#0D6E62';
+        ctx.font = '600 12.5px "Outfit", -apple-system, sans-serif';
+        const cleanDeck = deckName.length > 22 ? deckName.substring(0, 21) + '…' : deckName;
+        ctx.fillText(cleanDeck, cX + cardWidth / 2, cY + 82);
+
+        const pY = cY + sqPodiumH - 38;
+        ctx.fillStyle = pillBg;
+        roundRect(ctx, cX + cardWidth / 2 - pillW / 2, pY, pillW, 26, 13);
+        ctx.fill();
+        ctx.strokeStyle = pillBorder;
+        ctx.lineWidth = 1;
+        roundRect(ctx, cX + cardWidth / 2 - pillW / 2, pY, pillW, 26, 13);
+        ctx.stroke();
+
+        ctx.fillStyle = pillText;
+        ctx.font = '800 11.5px "Outfit", -apple-system, sans-serif';
+        ctx.fillText(`${p.points} pts • ${p.wins}V-${p.draws}E-${p.losses}D`, cX + cardWidth / 2, pY + 17);
+        ctx.textAlign = 'left';
+      });
+
+      curY += sqPodiumH + sectionGap;
+    }
+  }
+
+  // 5. Cabeçalho da Tabela
+  ctx.fillStyle = '#ECFDF5';
+  roundRect(ctx, padding, curY, contentWidth, tableHeaderHeight, 12);
+  ctx.fill();
+  ctx.strokeStyle = '#A7F3D0';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, padding, curY, contentWidth, tableHeaderHeight, 12);
+  ctx.stroke();
+
+  ctx.fillStyle = '#063C35';
+  ctx.font = '800 11.5px "Outfit", -apple-system, sans-serif';
+
+  const colX = {
+    pos: padding + 18,
+    name: padding + 76,
+    deck: padding + 310,
+    pts: padding + 540,
+    ved: padding + 640,
+    part: padding + 748,
+    trophies: padding + 825,
+    winRate: padding + 905,
+  };
+
+  const thTextY = curY + Math.round(tableHeaderHeight * 0.62);
+  ctx.fillText('POS', colX.pos, thTextY);
+  ctx.fillText('DUELISTA', colX.name, thTextY);
+  ctx.fillText('DECK PRINCIPAL', colX.deck, thTextY);
+  ctx.fillText('PONTOS', colX.pts, thTextY);
+  ctx.fillText('V - E - D', colX.ved, thTextY);
+  ctx.fillText('PART.', colX.part, thTextY);
+  ctx.fillText('TÍTULOS', colX.trophies, thTextY);
+  ctx.fillText('WIN RATE', colX.winRate, thTextY);
 
   curY += tableHeaderHeight;
 
-  // Linhas
+  // 6. Linhas da Tabela
   activePlayers.forEach((p, idx) => {
     const rowY = curY;
     const isEven = idx % 2 === 0;
@@ -694,105 +1507,132 @@ export function exportLeagueRankingPNG(players: Player[]): void {
     const winRate = totalMatches > 0 ? ((p.wins / totalMatches) * 100).toFixed(1) : '0.0';
 
     if (rank === 1) {
-      ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
-    } else if (rank === 2) {
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.08)';
-    } else if (rank === 3) {
-      ctx.fillStyle = 'rgba(234, 88, 12, 0.08)';
+      ctx.fillStyle = '#FFFBEB';
+    } else if (rank <= 3) {
+      ctx.fillStyle = '#F0FDF4';
     } else {
-      ctx.fillStyle = isEven ? 'rgba(32, 32, 36, 0.7)' : 'rgba(24, 24, 28, 0.5)';
+      ctx.fillStyle = isEven ? '#FFFFFF' : '#F8FAFC';
     }
     ctx.fillRect(padding, rowY, contentWidth, rowHeight);
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.strokeStyle = '#EEF2F6';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padding, rowY + rowHeight);
-    ctx.lineTo(width - padding, rowY + rowHeight);
+    ctx.lineTo(TARGET_W - padding, rowY + rowHeight);
     ctx.stroke();
 
-    ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-    ctx.fillStyle = rank === 1 ? '#fbbf24' : (rank === 2 ? '#e2e8f0' : (rank === 3 ? '#fdba74' : '#94a3b8'));
-    ctx.fillText(`${rank}º`, colX.pos, rowY + 23);
+    const textY = rowY + Math.round(rowHeight * 0.62);
+    const fontSize = isVertical && rowHeight >= 46 ? '14px' : '13px';
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = rank <= 3 ? 'bold 13.5px system-ui, -apple-system, sans-serif' : '13px system-ui, -apple-system, sans-serif';
-    ctx.fillText(p.name, colX.name, rowY + 23);
+    ctx.font = `800 ${fontSize} "Outfit", -apple-system, sans-serif`;
+    ctx.fillStyle = rank === 1 ? '#B45309' : rank <= 3 ? '#0D6E62' : '#64748B';
+    ctx.fillText(`${rank}º`, colX.pos, textY);
 
-    const getPlayerMostUsedDeck = (pl: Player) => {
-      if (!pl.decksHistory || pl.decksHistory.length === 0) return '-';
-      const counts: Record<string, number> = {};
-      for (const h of pl.decksHistory) {
-        if (h.countsForLeague === false) continue;
-        counts[h.deckName] = (counts[h.deckName] || 0) + 1;
-      }
-      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-      return sorted.length > 0 ? sorted[0][0] : '-';
-    };
+    ctx.fillStyle = '#0F172A';
+    ctx.font = rank <= 3 ? `800 ${fontSize} "Outfit", -apple-system, sans-serif` : `600 ${fontSize} "Outfit", -apple-system, sans-serif`;
+    const cleanName = p.name.length > 22 ? p.name.substring(0, 21) + '…' : p.name;
+    ctx.fillText(cleanName, colX.name, textY);
 
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = '12px system-ui, -apple-system, sans-serif';
-    ctx.fillText(getPlayerMostUsedDeck(p), colX.deck, rowY + 23);
+    ctx.fillStyle = '#475569';
+    ctx.font = '600 12.5px "Outfit", -apple-system, sans-serif';
+    const deckStr = getPlayerMostUsedDeck(p);
+    const cleanDeck = deckStr.length > 22 ? deckStr.substring(0, 21) + '…' : deckStr;
+    ctx.fillText(cleanDeck, colX.deck, textY);
 
-    ctx.fillStyle = rank === 1 ? '#fbbf24' : '#f8fafc';
-    ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`${p.points} pts`, colX.pts, rowY + 23);
+    ctx.fillStyle = '#0D6E62';
+    ctx.font = `900 ${fontSize} "Outfit", -apple-system, sans-serif`;
+    ctx.fillText(`${p.points} pts`, colX.pts, textY);
 
-    ctx.fillStyle = '#34d399';
-    ctx.fillText(`${p.wins}`, colX.v, rowY + 23);
-    ctx.fillStyle = '#fbbf24';
-    ctx.fillText(`${p.draws}`, colX.e, rowY + 23);
-    ctx.fillStyle = '#f43f5e';
-    ctx.fillText(`${p.losses}`, colX.d, rowY + 23);
+    ctx.fillStyle = '#334155';
+    ctx.font = '700 12.5px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(`${p.wins}V - ${p.draws}E - ${p.losses}D`, colX.ved, textY);
 
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '12.5px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`${p.participations}`, colX.part, rowY + 23);
-    ctx.fillText(`${p.tournamentTitles || 0}`, colX.trophies, rowY + 23);
-    ctx.fillText(`${winRate}%`, colX.winRate, rowY + 23);
+    ctx.fillStyle = '#475569';
+    ctx.font = '600 12.5px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(`${p.participations}`, colX.part, textY);
+
+    ctx.fillStyle = (p.tournamentTitles || 0) > 0 ? '#B45309' : '#94A3B8';
+    ctx.font = (p.tournamentTitles || 0) > 0 ? '800 13px "Outfit", -apple-system, sans-serif' : '600 12.5px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(`${p.tournamentTitles || 0}`, colX.trophies, textY);
+
+    ctx.fillStyle = '#0F172A';
+    ctx.font = '800 12.5px "Outfit", -apple-system, sans-serif';
+    ctx.fillText(`${winRate}%`, colX.winRate, textY);
 
     curY += rowHeight;
   });
 
   curY += 16;
 
-  // Observações de Desempate da Liga (se houver empates)
+  // 7. Observações de Desempate da Liga
   if (tiebreakNotes.length > 0) {
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
-    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 8);
+    ctx.fillStyle = '#FFFBEB';
+    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 12);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+    ctx.strokeStyle = '#FDE68A';
     ctx.lineWidth = 1;
-    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 8);
+    roundRect(ctx, padding, curY, contentWidth, tiebreakHeight, 12);
     ctx.stroke();
 
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
-    ctx.fillText('📌 Critérios Oficiais de Desempate da Liga (Duelistas com mesma pontuação):', padding + 16, curY + 20);
+    ctx.fillStyle = '#92400E';
+    ctx.font = '800 12px "Outfit", -apple-system, sans-serif';
+    ctx.fillText('📌 Critérios Oficiais de Desempate da Liga (Duelistas com mesma pontuação):', padding + 14, curY + 22);
 
     let noteY = curY + 44;
-    tiebreakNotes.forEach((note) => {
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = '12px system-ui, -apple-system, sans-serif';
-      const text = `• [${note.points} Pts] Empate entre ${note.players.join(', ')}: ${note.reasons.join(' | ')}`;
-      ctx.fillText(text.length > 130 ? text.substring(0, 127) + '...' : text, padding + 16, noteY);
-      noteY += 26;
+    ctx.fillStyle = '#78350F';
+    ctx.font = '600 11.5px "Outfit", -apple-system, sans-serif';
+    leagueTiebreakLines.forEach((line) => {
+      ctx.fillText(line, padding + 14, noteY);
+      noteY += tiebreakLineHeight;
     });
-
-    curY += tiebreakHeight + 16;
   }
 
-  // Rodapé
-  ctx.fillStyle = '#64748b';
-  ctx.font = '11.5px system-ui, -apple-system, sans-serif';
-  ctx.fillText('Edison League Manager • Documento Oficial de Classificação', padding, curY + 22);
+  // 8. Rodapé Oficial fixado na base do Card
+  const footerY = workH - outerMargin - 44;
+  ctx.strokeStyle = '#E2E8F0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, footerY - 8);
+  ctx.lineTo(TARGET_W - padding, footerY - 8);
+  ctx.stroke();
+
+  ctx.fillStyle = '#0D6E62';
+  ctx.font = '800 12px "Outfit", -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Duel League • Classificação Oficial da Temporada', padding, footerY + 14);
 
   ctx.textAlign = 'right';
-  ctx.fillText('Imagem Oficial em Alta Resolução (PNG)', width - padding, curY + 22);
+  ctx.fillStyle = '#64748B';
+  ctx.font = '600 11.5px "Outfit", -apple-system, sans-serif';
+  ctx.fillText(
+    `Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+    TARGET_W - padding,
+    footerY + 14
+  );
   ctx.textAlign = 'left';
 
+  let finalCanvas = workCanvas;
+  if (workH !== TARGET_H) {
+    finalCanvas = document.createElement('canvas');
+    finalCanvas.width = TARGET_W;
+    finalCanvas.height = TARGET_H;
+    const fCtx = finalCanvas.getContext('2d');
+    if (fCtx) {
+      fCtx.fillStyle = '#063C35';
+      fCtx.fillRect(0, 0, TARGET_W, TARGET_H);
+      const scale = Math.min(TARGET_W / workCanvas.width, TARGET_H / workCanvas.height);
+      const drawW = workCanvas.width * scale;
+      const drawH = workCanvas.height * scale;
+      const drawX = (TARGET_W - drawW) / 2;
+      const drawY = (TARGET_H - drawH) / 2;
+      fCtx.drawImage(workCanvas, drawX, drawY, drawW, drawH);
+    }
+  }
+
   const dateStr = new Date().toISOString().split('T')[0];
-  downloadCanvasAsPNG(canvas, `Ranking_Liga_Edison_${dateStr}`);
+  const suffix = isVertical ? 'Stories_9x16' : 'Feed_1x1';
+  downloadCanvasAsPNG(finalCanvas, `Ranking_Liga_${dateStr}_${suffix}`);
 }
 
 /**
@@ -879,7 +1719,7 @@ function drawBanlistBadge(
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${isSmall ? 9 : 11}px system-ui, -apple-system, sans-serif`;
+    ctx.font = `bold ${isSmall ? 9 : 11}px "Outfit", -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('1', centerX, centerY + 0.5);
@@ -890,7 +1730,7 @@ function drawBanlistBadge(
     ctx.stroke();
 
     ctx.fillStyle = '#f59e0b';
-    ctx.font = `bold ${isSmall ? 9 : 11}px system-ui, -apple-system, sans-serif`;
+    ctx.font = `bold ${isSmall ? 9 : 11}px "Outfit", -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('2', centerX, centerY + 0.5);
@@ -924,7 +1764,7 @@ function drawFallbackCard(
   ctx.stroke();
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${isSmall ? 8 : 9.5}px system-ui, sans-serif`;
+  ctx.font = `bold ${isSmall ? 8 : 9.5}px "Outfit", sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -1206,13 +2046,13 @@ export async function exportDecklistImagePNG(
 
   // Nome do Deck e Jogador
   ctx.fillStyle = '#fbbf24';
-  ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+  ctx.font = 'bold 22px "Outfit", -apple-system, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(deckData.deckName || 'Edison Deck', paddingX, 36);
+  ctx.fillText(deckData.deckName || 'Yugioh Deck', paddingX, 36);
 
   ctx.fillStyle = '#94a3b8';
-  ctx.font = '12.5px system-ui, -apple-system, sans-serif';
+  ctx.font = '12.5px "Outfit", -apple-system, sans-serif';
   const subtitle = `Duelista: ${deckData.playerName || 'Jogador'} • Formato Edison (Março 2010) • Yu-Gi-Oh! TCG`;
   ctx.fillText(subtitle, paddingX, 60);
 
@@ -1234,7 +2074,7 @@ export async function exportDecklistImagePNG(
     ctx.stroke();
 
     ctx.fillStyle = fg;
-    ctx.font = 'bold 11.5px system-ui, -apple-system, sans-serif';
+    ctx.font = 'bold 11.5px "Outfit", -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, x + w / 2, y + 14);
@@ -1271,7 +2111,7 @@ export async function exportDecklistImagePNG(
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
+    ctx.font = 'bold 14px "Outfit", -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`${val}`, paddingX + railWidth / 2, bY + boxH / 2);
@@ -1304,7 +2144,7 @@ export async function exportDecklistImagePNG(
     'DECK',
     paddingX + railWidth / 2,
     stripDeckY + stripDeckH / 2,
-    'bold 22px system-ui, -apple-system, sans-serif',
+    'bold 22px "Outfit", -apple-system, sans-serif',
     '#ffffff'
   );
 
@@ -1370,7 +2210,7 @@ export async function exportDecklistImagePNG(
     'SIDE',
     paddingX + railWidth / 2,
     sideY + subGridH / 2,
-    'bold 15px system-ui, -apple-system, sans-serif',
+    'bold 15px "Outfit", -apple-system, sans-serif',
     '#ffffff'
   );
 
@@ -1433,7 +2273,7 @@ export async function exportDecklistImagePNG(
     'EXTRA',
     paddingX + railWidth / 2,
     extraY + subGridH / 2,
-    'bold 14px system-ui, -apple-system, sans-serif',
+    'bold 14px "Outfit", -apple-system, sans-serif',
     '#ffffff'
   );
 
@@ -1482,7 +2322,7 @@ export async function exportDecklistImagePNG(
   ctx.stroke();
 
   ctx.fillStyle = '#94a3b8';
-  ctx.font = '11.5px system-ui, -apple-system, sans-serif';
+  ctx.font = '11.5px "Outfit", -apple-system, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillText('Yu-Gi-Oh! Edison League Manager • Imagem Oficial de Decklist', paddingX, footerY + footerH / 2);

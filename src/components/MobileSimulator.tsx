@@ -40,41 +40,43 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
   const isNative = Capacitor.isNativePlatform();
   const searchParams = new URLSearchParams(window.location.search);
   const isEmbedded = window.self !== window.top || searchParams.get('embedded') === 'true';
+  const isSimParam = searchParams.get('sim');
 
-  // Detecta se o acesso é feito a partir de um smartphone/tablet real (iOS, Android, tela pequena)
-  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobileUA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isSmallScreen = window.innerWidth <= 820;
-    return isMobileUA || isSmallScreen;
-  });
+  // Se estiver dentro do iframe do próprio simulador ou no APK nativo do Android/iOS:
+  // Renderiza a aplicação diretamente em tela cheia
+  if (isNative || isEmbedded) {
+    return <>{children}</>;
+  }
 
-  useEffect(() => {
-    const checkMobile = () => {
-      const isMobileUA = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const isSmallScreen = window.innerWidth <= 820;
-      setIsMobileDevice(isMobileUA || isSmallScreen);
-    };
+  // Detecta dispositivo móvel real pelo User-Agent
+  const isMobileUA = typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Se for celular real (iOS / Android), aplicativo nativo ou dentro de um iframe:
-  // Renderiza a aplicação pura em tela cheia sem carcaça de simulador
-  if (isNative || isEmbedded || isMobileDevice) {
+  // Se for celular real e o usuário não tiver forçado ?sim=true:
+  if (isMobileUA && isSimParam !== 'true') {
     return <>{children}</>;
   }
 
   // Estado do simulador apenas em navegadores de Computador / Desktop
   const [isSimActive, setIsSimActive] = useState<boolean>(() => {
-    // Ativa apenas se a URL tiver ?sim=true explicitamente (ex: atalho Simular Celular no PC.bat)
-    return searchParams.get('sim') === 'true';
+    if (isSimParam === 'true') return true;
+    if (isSimParam === 'false') return false;
+    const saved = localStorage.getItem('edison_sim_active');
+    if (saved !== null) return saved === 'true';
+    return true; // No desktop, o simulador abre ATIVO por padrão!
   });
+
+  const handleToggleSim = (active: boolean) => {
+    setIsSimActive(active);
+    try {
+      localStorage.setItem('edison_sim_active', String(active));
+    } catch {
+      // Ignora erro de localStorage
+    }
+  };
 
   const [selectedDevice, setSelectedDevice] = useState<DeviceModel>('iphone');
   const [isLandscape, setIsLandscape] = useState(false);
-  const [currentTime, setCurrentTime] = useState('17:50');
+  const [currentTime, setCurrentTime] = useState('10:00');
 
   useEffect(() => {
     const updateClock = () => {
@@ -100,7 +102,7 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
         <button
           id="btn-open-mobile-sim"
           className="btn-floating-sim-toggle"
-          onClick={() => setIsSimActive(true)}
+          onClick={() => handleToggleSim(true)}
           title="Abrir Simulador de Celular"
         >
           <Smartphone size={20} />
@@ -155,7 +157,7 @@ export const MobileSimulator: React.FC<MobileSimulatorProps> = ({ children }) =>
           {/* Alternar para Desktop */}
           <button
             className="sim-tool-btn"
-            onClick={() => setIsSimActive(false)}
+            onClick={() => handleToggleSim(false)}
             title="Fechar simulador e ver site em tela cheia"
           >
             <Monitor size={16} />

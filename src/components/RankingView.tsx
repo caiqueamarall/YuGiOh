@@ -5,7 +5,6 @@ import {
   Award,
   Search,
   UserCheck,
-  Flame,
   Shield,
   FileDown,
   ImageDown,
@@ -21,14 +20,13 @@ import { sortPlayersForLeague, getLeagueTiebreakExplanations } from '../utils/sw
 interface RankingViewProps {
   players: Player[];
   onSelectPlayer: (player: Player) => void;
-  onNavigateToTournament: () => void;
+  onNavigateToTournament?: () => void;
   onNavigateToPlayers?: () => void;
 }
 
 export const RankingView: React.FC<RankingViewProps> = ({
   players,
   onSelectPlayer,
-  onNavigateToTournament,
   onNavigateToPlayers,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,101 +58,105 @@ export const RankingView: React.FC<RankingViewProps> = ({
 
   return (
     <div className="view-container">
-      {/* Top Banner Compacto e Elegante */}
+      {/* Top Banner Compacto e Elegante com Menu de Opções */}
       <div className="hero-banner">
-        <div className="hero-content">
-          <div className="hero-tag">
-            <Trophy size={14} className="text-gold" />
-            <span>TABELA OFICIAL DA LIGA EDISON</span>
+        {/* Linha Superior: Tag Oficial da Liga e Ações Rápidas de Exportação */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px' }}>
+          <div className="hero-tag" style={{ margin: 0 }}>
+            <Trophy size={12} />
+            <span>TABELA OFICIAL DA LIGA</span>
           </div>
-          <h2 className="hero-title">Ranking Geral dos Duelistas</h2>
-          <p className="hero-subtitle hide-on-xs">
-            Pontuação consolidada dos torneios da temporada. Toque em qualquer jogador para ver suas estatísticas.
-          </p>
+
+          <div className="ranking-export-actions">
+            <button
+              type="button"
+              className="btn-export-pill"
+              onClick={() => exportLeagueRankingPDF(sortedPlayers)}
+              title="Exportar Ranking da Liga em PDF"
+            >
+              <FileDown size={14} />
+              <span>PDF</span>
+            </button>
+            <button
+              type="button"
+              className="btn-export-pill"
+              onClick={() => exportLeagueRankingPNG(sortedPlayers)}
+              title="Exportar Ranking da Liga em PNG"
+            >
+              <ImageDown size={14} />
+              <span>PNG</span>
+            </button>
+          </div>
         </div>
-        <div className="hero-action-group">
-          <button
-            id="btn-export-ranking-pdf"
-            className="btn-pdf-export-main"
-            onClick={() => exportLeagueRankingPDF(sortedPlayers)}
-            title="Exportar Classificação da Liga em PDF"
-          >
-            <FileDown size={16} />
-            <span>Exportar PDF</span>
-          </button>
-          <button
-            id="btn-export-ranking-png"
-            className="btn-png-export-main"
-            onClick={() => exportLeagueRankingPNG(sortedPlayers)}
-            title="Exportar Classificação da Liga em Imagem PNG (Página Única)"
-          >
-            <ImageDown size={16} />
-            <span>Exportar PNG</span>
-          </button>
-          <button
-            id="btn-ranking-new-tournament"
-            className="btn-primary-gold"
-            onClick={onNavigateToTournament}
-          >
-            <Flame size={16} />
-            <span>Novo Torneio</span>
-          </button>
+
+        {/* Título e Subtítulo com Largura Completa e Espaçamento Harmonioso */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <h2 className="hero-title" style={{ margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.01em' }}>
+            Ranking Geral
+          </h2>
+          <p className="hero-subtitle" style={{ margin: 0, fontSize: '13px', lineHeight: 1.45, color: 'var(--text-muted)' }}>
+            Classificação acumulada da temporada ({players.length} duelistas)
+          </p>
         </div>
       </div>
 
-      {/* Pódio dos 3 Melhores */}
+      {/* Pódio dos 3 Melhores (Card layout moderno inspirado no print) */}
       {sortedPlayers.length >= 2 && (
-        <div className="podium-grid">
-          {/* 2º Lugar */}
-          {top3[1] && (
+        <div className="podium-container">
+          {/* 1º Lugar (Campeão) */}
+          {top3[0] && (
             <div
-              className="podium-card podium-silver cursor-pointer"
-              onClick={() => onSelectPlayer(top3[1])}
-              title="Ver estatísticas deste duelista"
+              className="podium-card rank-1"
+              onClick={() => onSelectPlayer(top3[0])}
+              style={{ cursor: 'pointer' }}
+              title="Ver detalhes de estatísticas"
             >
-              <div className="podium-badge">
-                <Medal size={22} className="text-silver" />
-                <span>2º LUGAR</span>
+              <div className="podium-header-badge badge-gold">
+                <Trophy size={13} />
+                <span>1º LUGAR</span>
               </div>
-              <div className="podium-avatar" style={{ borderColor: '#94A3B8' }}>
-                {top3[1].name.substring(0, 2).toUpperCase()}
+              <div
+                className="podium-avatar"
+                style={{
+                  backgroundColor: top3[0].avatarColor || '#10B981',
+                }}
+              >
+                {top3[0].name.substring(0, 2).toUpperCase()}
               </div>
-              <h3 className="podium-name">{top3[1].name}</h3>
-              {getMostUsedDeck(top3[1]) && (
-                <span className="podium-deck">Deck: {getMostUsedDeck(top3[1])}</span>
-              )}
-              <div className="podium-stats">
-                <span className="stat-highlight">{top3[1].points} pts</span>
-                <span className="stat-sub">
-                  {top3[1].wins}V - {top3[1].draws}E - {top3[1].losses}D
-                </span>
+              <div className="podium-name" style={{ fontSize: '13.5px' }}>
+                {top3[0].name}
+              </div>
+              <div className="podium-points">
+                {top3[0].points} pts
+              </div>
+              <div className="podium-sub-stats" style={{ color: 'var(--amber-700)', fontWeight: 700 }}>
+                {top3[0].wins} Vitórias • {top3[0].trophies} Troféus
               </div>
             </div>
           )}
 
-          {/* 1º Lugar */}
-          {top3[0] && (
+          {/* 2º Lugar */}
+          {top3[1] && (
             <div
-              className="podium-card podium-gold cursor-pointer"
-              onClick={() => onSelectPlayer(top3[0])}
-              title="Ver estatísticas deste duelista"
+              className="podium-card rank-2"
+              onClick={() => onSelectPlayer(top3[1])}
+              style={{ cursor: 'pointer' }}
+              title="Ver detalhes de estatísticas"
             >
-              <div className="podium-crown">
-                <Trophy size={28} className="text-gold" />
-                <span>CAMPEÃO ATUAL</span>
+              <div className="podium-header-badge badge-silver">
+                <Medal size={13} />
+                <span>2º LUGAR</span>
               </div>
-              <div className="podium-avatar main-avatar" style={{ borderColor: 'var(--gold-400)' }}>
-                {top3[0].name.substring(0, 2).toUpperCase()}
+              <div
+                className="podium-avatar"
+                style={{ backgroundColor: top3[1].avatarColor || '#0D6E62' }}
+              >
+                {top3[1].name.substring(0, 2).toUpperCase()}
               </div>
-              <h3 className="podium-name main-name">{top3[0].name}</h3>
-              {getMostUsedDeck(top3[0]) && (
-                <span className="podium-deck">Deck: {getMostUsedDeck(top3[0])}</span>
-              )}
-              <div className="podium-stats">
-                <span className="stat-highlight text-gold">{top3[0].points} pts</span>
-                <span className="stat-sub">
-                  {top3[0].wins} Vitórias • {top3[0].trophies} Troféus
-                </span>
+              <div className="podium-name">{top3[1].name}</div>
+              <div className="podium-points">{top3[1].points} pts</div>
+              <div className="podium-sub-stats">
+                {top3[1].wins}V - {top3[1].draws}E - {top3[1].losses}D
               </div>
             </div>
           )}
@@ -162,55 +164,57 @@ export const RankingView: React.FC<RankingViewProps> = ({
           {/* 3º Lugar */}
           {top3[2] && (
             <div
-              className="podium-card podium-bronze cursor-pointer"
+              className="podium-card rank-3"
               onClick={() => onSelectPlayer(top3[2])}
-              title="Ver estatísticas deste duelista"
+              style={{ cursor: 'pointer' }}
+              title="Ver detalhes de estatísticas"
             >
-              <div className="podium-badge">
-                <Award size={22} className="text-bronze" />
+              <div className="podium-header-badge badge-bronze">
+                <Award size={13} />
                 <span>3º LUGAR</span>
               </div>
-              <div className="podium-avatar" style={{ borderColor: '#CD7F32' }}>
+              <div
+                className="podium-avatar"
+                style={{ backgroundColor: top3[2].avatarColor || '#3B82F6' }}
+              >
                 {top3[2].name.substring(0, 2).toUpperCase()}
               </div>
-              <h3 className="podium-name">{top3[2].name}</h3>
-              {getMostUsedDeck(top3[2]) && (
-                <span className="podium-deck">Deck: {getMostUsedDeck(top3[2])}</span>
-              )}
-              <div className="podium-stats">
-                <span className="stat-highlight">{top3[2].points} pts</span>
-                <span className="stat-sub">
-                  {top3[2].wins}V - {top3[2].draws}E - {top3[2].losses}D
-                </span>
+              <div className="podium-name">{top3[2].name}</div>
+              <div className="podium-points">{top3[2].points} pts</div>
+              <div className="podium-sub-stats">
+                {top3[2].wins}V - {top3[2].draws}E - {top3[2].losses}D
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Barra de Filtro e Busca */}
-      <div className="ranking-toolbar">
-        <div className="search-box">
-          <Search size={18} className="search-icon" />
-          <input
-            id="input-search-ranking"
-            type="text"
-            placeholder="Buscar por duelista ou deck..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="toolbar-info">
-          <UserCheck size={16} />
-          <span>{filteredPlayers.length} duelistas listados</span>
+      {/* Barra de Pesquisa e Filtro */}
+      <div className="players-search-bar">
+        <Search size={18} style={{ color: 'var(--text-dim)' }} />
+        <input
+          id="input-search-ranking"
+          type="text"
+          className="players-search-input"
+          placeholder="Buscar por duelista ou deck..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <div className="players-count-legend">
+          <UserCheck size={14} style={{ flexShrink: 0 }} />
+          <span>{filteredPlayers.length} {filteredPlayers.length === 1 ? 'duelista listado' : 'duelistas listados'}</span>
         </div>
       </div>
 
+      {/* Lista do Ranking Geral */}
       {filteredPlayers.length === 0 ? (
-        <div className="empty-state-card-compact">
-          <Users size={32} className="text-muted" />
-          <h4 style={{ margin: '8px 0 4px', fontSize: '15px' }}>Nenhum duelista encontrado</h4>
-          <p className="text-muted text-xs">
+        <div
+          className="hero-banner"
+          style={{ textAlign: 'center', padding: '36px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+        >
+          <Users size={36} style={{ color: 'var(--text-dim)', marginBottom: '10px' }} />
+          <h4 style={{ fontSize: '16px', fontWeight: 800 }}>Nenhum duelista encontrado</h4>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             {searchTerm
               ? `Nenhum resultado para a busca "${searchTerm}".`
               : 'Cadastre os primeiros duelistas da liga para começar a pontuação.'}
@@ -218,9 +222,9 @@ export const RankingView: React.FC<RankingViewProps> = ({
           {!searchTerm && onNavigateToPlayers && (
             <button
               type="button"
-              className="btn-primary-gold"
+              className="btn-action-pill btn-action-primary"
               onClick={onNavigateToPlayers}
-              style={{ marginTop: '12px' }}
+              style={{ marginTop: '16px' }}
             >
               <UserPlus size={16} />
               <span>Cadastrar Primeiro Duelista</span>
@@ -228,232 +232,165 @@ export const RankingView: React.FC<RankingViewProps> = ({
           )}
         </div>
       ) : (
-        <>
-          {/* Lista em Cards para Mobile */}
-          <div className="ranking-mobile-list">
-            {filteredPlayers.map((player) => {
-              const rankIndex = sortedPlayers.findIndex((p) => p.id === player.id) + 1;
-              const mostDeck = getMostUsedDeck(player);
-              const isTopCut = rankIndex <= 12;
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {filteredPlayers.map((player) => {
+            const rankIndex = sortedPlayers.findIndex((p) => p.id === player.id) + 1;
+            const mostDeck = getMostUsedDeck(player);
 
-              return (
-                <React.Fragment key={player.id}>
-                  <div
-                    className={`ranking-card-mobile ${rankIndex === 1 ? 'top-1' : ''} ${isTopCut ? 'topcut' : ''}`}
-                    onClick={() => onSelectPlayer(player)}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div className="ranking-card-left">
-                      <span className={`mobile-rank-badge rank-${rankIndex <= 3 ? rankIndex : 'other'}`}>
-                        {rankIndex}º
-                      </span>
-                      <div
-                        className="mobile-avatar"
-                        style={{ backgroundColor: player.avatarColor || '#3B82F6' }}
-                      >
-                        {player.name.substring(0, 2).toUpperCase()}
+            let rankClass = '';
+            if (rankIndex === 1) rankClass = 'top-1';
+            else if (rankIndex === 2) rankClass = 'top-2';
+            else if (rankIndex === 3) rankClass = 'top-3';
+
+            return (
+              <React.Fragment key={player.id}>
+                <div
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1.5px solid var(--border-subtle)',
+                    borderRadius: '16px',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    boxShadow: 'var(--shadow-xs)',
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                  }}
+                  onClick={() => onSelectPlayer(player)}
+                  role="button"
+                  tabIndex={0}
+                  title="Clique para ver estatísticas detalhadas"
+                >
+                  {/* Lado Esquerdo: Posição, Avatar e Informações */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                    <span className={`rank-pill ${rankClass}`} style={{ flexShrink: 0 }}>
+                      {rankIndex}º
+                    </span>
+
+                    <div
+                      className="duelist-mini-avatar"
+                      style={{
+                        backgroundColor: player.avatarColor || '#0D6E62',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {player.name.substring(0, 2).toUpperCase()}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            color: 'var(--text-main)',
+                            whiteSpace: 'normal',
+                            wordBreak: 'break-word',
+                            lineHeight: 1.25,
+                          }}
+                        >
+                          {player.name}
+                        </span>
                       </div>
-                      <div className="mobile-player-details">
-                        <div className="mobile-player-name-row">
-                          <span className="mobile-player-name">{player.name}</span>
-                          {isTopCut && <span className="badge-topcut-tag">TOP 12</span>}
-                        </div>
+
+                      <div style={{ marginTop: '2px', fontSize: '11px', color: 'var(--text-muted)' }}>
                         {mostDeck ? (
-                          <span className="mobile-deck-tag">
-                            <Shield size={10} />
+                          <span style={{ color: 'var(--purple-600)', fontWeight: 600 }}>
+                            <Shield size={10} style={{ display: 'inline', marginRight: '3px', verticalAlign: '-1px' }} />
                             {mostDeck}
                           </span>
+                        ) : player.age ? (
+                          <span>{player.age} anos</span>
                         ) : (
-                          player.age ? <span className="text-muted" style={{ fontSize: '11px' }}>{player.age} anos</span> : null
+                          <span>{player.participations} part.</span>
                         )}
                       </div>
                     </div>
-
-                    <div className="ranking-card-right">
-                      <span className="mobile-points">{player.points} pts</span>
-                      <span className="mobile-record">
-                        {player.wins}V - {player.draws}E - {player.losses}D
-                      </span>
-                    </div>
                   </div>
 
-                  {/* Linha de corte Top Cut no mobile */}
-                  {rankIndex === 12 && filteredPlayers.length > 12 && (
-                    <div className="mobile-topcut-divider">
-                      <span>✂️ Linha de Corte • Top 12</span>
-                    </div>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </div>
-
-          {/* Tabela do Ranking (Desktop / Tablet) */}
-          <div className="table-responsive-wrapper hide-on-mobile">
-            <table className="ranking-table" id="ranking-league-table">
-              <thead>
-                <tr>
-                  <th className="th-center" style={{ width: '80px' }}>Posição</th>
-                  <th className="th-left">Player</th>
-                  <th className="th-center" style={{ width: '110px' }}>Pontuação</th>
-                  <th className="th-center" style={{ width: '90px' }}>Vitórias</th>
-                  <th className="th-center" style={{ width: '90px' }}>Empates</th>
-                  <th className="th-center" style={{ width: '90px' }}>Derrotas</th>
-                  <th className="th-center" style={{ width: '120px' }}>Participações</th>
-                  <th className="th-center" style={{ width: '100px' }}>Troféus</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPlayers.map((player) => {
-                  const rankIndex = sortedPlayers.findIndex((p) => p.id === player.id) + 1;
-                  const mostDeck = getMostUsedDeck(player);
-
-                  let rankBadgeClass = 'rank-pill-normal';
-                  let rankIcon = null;
-
-                  if (rankIndex === 1) {
-                    rankBadgeClass = 'rank-pill-gold';
-                    rankIcon = <Trophy size={14} className="text-gold" />;
-                  } else if (rankIndex === 2) {
-                    rankBadgeClass = 'rank-pill-silver';
-                    rankIcon = <Medal size={14} />;
-                  } else if (rankIndex === 3) {
-                    rankBadgeClass = 'rank-pill-bronze';
-                    rankIcon = <Award size={14} />;
-                  }
-
-                  const isTopCut = rankIndex <= 12;
-
-                  return (
-                    <React.Fragment key={player.id}>
-                      <tr className={`ranking-row ${rankIndex <= 3 ? 'top-tier' : ''} ${isTopCut ? 'topcut-qualified-row' : ''}`}>
-                        {/* Posição */}
-                        <td className="td-center">
-                          <div className={`rank-pill ${rankBadgeClass}`}>
-                            {rankIcon}
-                            <span>{rankIndex}º</span>
-                          </div>
-                        </td>
-
-                        {/* Player (Clicável para estatísticas) */}
-                        <td className="td-left">
-                          <button
-                            type="button"
-                            className="player-cell-btn"
-                            onClick={() => onSelectPlayer(player)}
-                            title="Ver estatísticas detalhadas deste duelista"
-                          >
-                            <div
-                              className="player-avatar-sm"
-                              style={{ backgroundColor: player.avatarColor || '#3B82F6' }}
-                            >
-                              {player.name.substring(0, 2).toUpperCase()}
-                            </div>
-                            <div className="player-meta text-left">
-                              <div className="player-name-wrapper">
-                                <span className="player-name-link">{player.name}</span>
-                                {isTopCut && (
-                                  <span className="badge-topcut-tag" title="Classificado para o Top Cut">
-                                    TOP CUT
-                                  </span>
-                                )}
-                              </div>
-                              <div className="player-submeta">
-                                {player.age ? (
-                                  <span className="player-age-badge">{player.age} anos</span>
-                                ) : null}
-                                {mostDeck && (
-                                  <span className="player-deck-badge" title="Deck mais jogado">
-                                    <Shield size={11} />
-                                    {mostDeck}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </button>
-                        </td>
-
-                        {/* Pontuação */}
-                        <td className="td-center">
-                          <span className="score-badge-main">{player.points} pts</span>
-                        </td>
-
-                        {/* Vitórias */}
-                        <td className="td-center">
-                          <span className="stat-win-badge">{player.wins}</span>
-                        </td>
-
-                        {/* Empates */}
-                        <td className="td-center">
-                          <span className="stat-draw-badge">{player.draws}</span>
-                        </td>
-
-                        {/* Derrotas */}
-                        <td className="td-center">
-                          <span className="stat-loss-badge">{player.losses}</span>
-                        </td>
-
-                        {/* Participações */}
-                        <td className="td-center">
-                          <span className="stat-part-badge">{player.participations}</span>
-                        </td>
-
-                        {/* Troféus */}
-                        <td className="td-center">
-                          <div className="trophy-badge">
-                            <Trophy size={14} className="text-gold" />
-                            <span>{player.trophies}</span>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Linha de Corte Top Cut (Top 12) */}
-                      {rankIndex === 12 && filteredPlayers.length > 12 && (
-                        <tr key="topcut-cut-line" className="topcut-divider-row">
-                          <td colSpan={8}>
-                            <div className="topcut-divider-bar">
-                              <span className="topcut-divider-badge">
-                                ✂️ LINHA DE CORTE • TOP 12 CLASSIFICADOS PARA O TORNEIO FINAL
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Observações de Desempate da Liga */}
-          {tiebreakNotes.length > 0 && (
-            <div className="tiebreak-explanations-card" style={{ marginTop: '16px' }}>
-              <div className="tiebreak-explanations-title">
-                <Info size={15} className="text-gold" />
-                <span>Observações de Desempate da Liga (Duelistas com mesma pontuação):</span>
-              </div>
-              <div className="tiebreak-explanations-list">
-                {tiebreakNotes.map((note) => (
-                  <div key={note.points} className="tiebreak-note-group">
-                    <span className="tiebreak-note-badge">{note.points} Pts</span>
-                    <div className="tiebreak-note-content">
-                      <span className="tiebreak-tied-names">
-                        Empate entre: <strong>{note.players.join(', ')}</strong>
-                      </span>
-                      <ul className="tiebreak-reasons-list">
-                        {note.reasons.map((r, idx) => (
-                          <li key={idx}>{r}</li>
-                        ))}
-                      </ul>
-                    </div>
+                  {/* Lado Direito: Pontos e Registro V - E - D */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+                    <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--purple-700)' }}>
+                      {player.points} pts
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: 600 }}>
+                      {player.wins}V - {player.draws}E - {player.losses}D
+                    </span>
                   </div>
-                ))}
+                </div>
+              </React.Fragment>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Observações de Desempate da Liga */}
+      {tiebreakNotes.length > 0 && (
+        <div
+          className="hero-banner"
+          style={{ background: '#FFFFFF', border: '1px solid var(--border-purple-light)' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <Info size={16} style={{ color: 'var(--purple-600)' }} />
+            <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>
+              Critérios de Desempate Aplicados na Liga:
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {tiebreakNotes.map((note) => (
+              <div
+                key={note.points}
+                style={{
+                  background: 'var(--purple-50)',
+                  border: '1px solid var(--border-purple-light)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '5px',
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span
+                    style={{
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      color: 'var(--purple-700)',
+                      background: '#FFFFFF',
+                      border: '1px solid var(--border-purple-light)',
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      width: 'fit-content',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Empate em {note.points} {note.points === 1 ? 'ponto' : 'pontos'}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-main)', fontWeight: 600, lineHeight: 1.35 }}>
+                    Empate entre: <strong style={{ color: 'var(--purple-700)' }}>{note.players.join(', ')}</strong>
+                  </span>
+                </div>
+                <ul
+                  style={{
+                    paddingLeft: '16px',
+                    fontSize: '11.5px',
+                    color: 'var(--text-body)',
+                    margin: '2px 0 0 0',
+                    textAlign: 'justify',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {note.reasons.map((r, idx) => (
+                    <li key={idx} style={{ marginBottom: '2px' }}>{r}</li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          )}
-        </>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

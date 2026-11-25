@@ -12,22 +12,22 @@ interface MetricAxis {
   rawValue: string;
 }
 
-export const RadarChart: React.FC<RadarChartProps> = ({ player, size = 320 }) => {
+export const RadarChart: React.FC<RadarChartProps> = ({ player, size = 300 }) => {
   const center = size / 2;
-  const radius = (size / 2) - 48; // margem para rótulos
+  const radius = (size / 2) - 58; // Margem para garantir que os rótulos não fiquem cortados
 
   // 1. Calcula as 6 métricas para o diagrama de radar:
   const totalMatches = player.wins + player.draws + player.losses;
   const winRate = totalMatches > 0 ? (player.wins / totalMatches) * 100 : 0;
   
-  // Assiduidade (normalizada para até 10 torneios = 100)
+  // Assiduidade (normalizada para até 6 torneios = 100)
   const attendanceScore = Math.min(100, (player.participations / 6) * 100);
 
   // Eficiência de pontos (média de pontos por torneio, máx 9 pts = 100)
   const pointsPerTournament = player.participations > 0 ? player.points / player.participations : 0;
   const efficiencyScore = Math.min(100, (pointsPerTournament / 9) * 100);
 
-  // Troféus (normalizado para até 8 troféus = 100)
+  // Troféus (normalizado para até 6 troféus = 100)
   const trophyScore = Math.min(100, (player.trophies / 6) * 100);
 
   // Versatilidade de Decks (quantos decks diferentes o jogador já usou)
@@ -71,11 +71,21 @@ export const RadarChart: React.FC<RadarChartProps> = ({ player, size = 320 }) =>
 
   return (
     <div className="radar-chart-container">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="radar-svg">
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        className="radar-svg"
+        style={{
+          width: '100%',
+          maxWidth: '260px',
+          height: 'auto',
+          display: 'block',
+          margin: '0 auto',
+        }}
+      >
         <defs>
           <linearGradient id="radarFill" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="#A855F7" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#0D6E62" stopOpacity="0.45" />
+            <stop offset="100%" stopColor="#059669" stopOpacity="0.18" />
           </linearGradient>
           <filter id="radarGlow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -98,10 +108,10 @@ export const RadarChart: React.FC<RadarChartProps> = ({ player, size = 320 }) =>
             <polygon
               key={`level-${lvlIdx}`}
               points={levelPoints}
-              fill={lvlIdx === levels.length - 1 ? 'rgba(255, 255, 255, 0.02)' : 'none'}
-              stroke="rgba(255, 255, 255, 0.1)"
+              fill={lvlIdx === levels.length - 1 ? 'rgba(13, 110, 98, 0.04)' : 'none'}
+              stroke="#CBD5E1"
               strokeWidth="1"
-              strokeDasharray={lvlIdx < levels.length - 1 ? '2 2' : 'none'}
+              strokeDasharray={lvlIdx < levels.length - 1 ? '3 3' : 'none'}
             />
           );
         })}
@@ -119,8 +129,8 @@ export const RadarChart: React.FC<RadarChartProps> = ({ player, size = 320 }) =>
               y1={center}
               x2={x}
               y2={y}
-              stroke="rgba(255, 255, 255, 0.14)"
-              strokeWidth="1"
+              stroke="#E2E8F0"
+              strokeWidth="1.2"
             />
           );
         })}
@@ -129,7 +139,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({ player, size = 320 }) =>
         <polygon
           points={pointsString}
           fill="url(#radarFill)"
-          stroke="#F59E0B"
+          stroke="#0D6E62"
           strokeWidth="2.5"
           filter="url(#radarGlow)"
         />
@@ -139,7 +149,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({ player, size = 320 }) =>
           const { x, y } = getCoordinates(axis.value, i);
           return (
             <g key={`point-${i}`}>
-              <circle cx={x} cy={y} r="4.5" fill="#F59E0B" stroke="#fff" strokeWidth="1.5" />
+              <circle cx={x} cy={y} r="4.5" fill="#0D6E62" stroke="#FFFFFF" strokeWidth="2" />
             </g>
           );
         })}
@@ -147,7 +157,7 @@ export const RadarChart: React.FC<RadarChartProps> = ({ player, size = 320 }) =>
         {/* Rótulos dos Eixos */}
         {axes.map((axis, i) => {
           const angle = i * angleStep - Math.PI / 2;
-          const labelDist = radius + 22;
+          const labelDist = radius + 20;
           const lx = center + labelDist * Math.cos(angle);
           const ly = center + labelDist * Math.sin(angle);
 
@@ -157,14 +167,16 @@ export const RadarChart: React.FC<RadarChartProps> = ({ player, size = 320 }) =>
                 textAnchor="middle"
                 dominantBaseline="central"
                 className="radar-label-text"
+                style={{ fontSize: '10px', fontWeight: 700 }}
               >
                 {axis.label}
               </text>
               <text
                 textAnchor="middle"
                 dominantBaseline="central"
-                y="12"
+                y="11"
                 className="radar-sublabel-text"
+                style={{ fontSize: '9.5px', fontWeight: 800 }}
               >
                 {axis.rawValue}
               </text>

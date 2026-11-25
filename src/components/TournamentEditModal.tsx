@@ -8,11 +8,9 @@ import {
   AlertTriangle,
   Sparkles,
   Info,
-  Layers,
 } from 'lucide-react';
-import type { Player, Tournament, Decklist } from '../types';
+import type { Player, Tournament } from '../types';
 import { calculateTournamentStandings, getTournamentTopCut } from '../utils/swissEngine';
-import { DecklistModal } from './DecklistModal';
 
 interface TournamentEditModalProps {
   tournament: Tournament;
@@ -35,12 +33,6 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
   const [activeTab, setActiveTab] = useState<'matches' | 'decks' | 'info'>('matches');
   const [selectedRoundNum, setSelectedRoundNum] = useState<number>(1);
   const [showPreviewDrawer, setShowPreviewDrawer] = useState<boolean>(true);
-  const [activeDecklistModal, setActiveDecklistModal] = useState<{
-    playerId: string;
-    playerName: string;
-    deckName: string;
-    decklist?: Decklist | null;
-  } | null>(null);
 
   const playerMap = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
 
@@ -140,11 +132,11 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
-          background: '#161619',
-          border: '1px solid rgba(245, 158, 11, 0.35)',
-          borderRadius: '12px',
+          background: '#FFFFFF',
+          border: '1.5px solid #CBD5E1',
+          borderRadius: '20px',
           overflow: 'hidden',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.85)',
+          boxShadow: '0 25px 60px rgba(15, 23, 42, 0.25)',
         }}
       >
         {/* Header do Modal */}
@@ -152,34 +144,34 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
           className="modal-header"
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, rgba(168, 85, 247, 0.08) 100%)',
+            borderBottom: '1px solid #EEF2F6',
+            background: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                background: 'rgba(245, 158, 11, 0.2)',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: 'var(--purple-50, #ECFDF5)',
+                border: '1px solid var(--border-purple, #A7F3D0)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#fbbf24',
+                color: 'var(--purple-600, #0D6E62)',
               }}
             >
               <Swords size={20} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '17px', color: '#fff', fontWeight: 800 }}>
+              <h3 style={{ margin: 0, fontSize: '17px', color: '#0F172A', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
                 Editar Torneio do Histórico
               </h3>
-              <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+              <span style={{ fontSize: '12px', color: '#64748B', fontFamily: 'var(--font-body)', display: 'block', marginTop: '2px' }}>
                 Ajuste placares, decks e configurações com recálculo automático da Liga
               </span>
             </div>
@@ -191,106 +183,112 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
             onClick={onClose}
             title="Fechar"
             style={{
-              background: 'transparent',
+              background: '#F1F5F9',
               border: 'none',
-              color: '#94a3b8',
+              color: '#64748B',
               cursor: 'pointer',
               padding: '6px',
-              borderRadius: '6px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Abas Superiores com Rolagem Suave */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            padding: '10px 16px 0',
-            background: '#161619',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            WebkitOverflowScrolling: 'touch',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveTab('matches')}
+        {/* Abas Superiores em Segmented Control Elegante */}
+        <div style={{ padding: '10px 16px', background: '#FFFFFF', borderBottom: '1px solid #E2E8F0' }}>
+          <div
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 16px',
-              fontSize: '13px',
-              fontWeight: 700,
-              background: activeTab === 'matches' ? 'rgba(245, 158, 11, 0.15)' : 'transparent',
-              color: activeTab === 'matches' ? '#fbbf24' : '#94a3b8',
-              border: 'none',
-              borderBottom: activeTab === 'matches' ? '2px solid #f59e0b' : '2px solid transparent',
-              cursor: 'pointer',
-              borderRadius: '6px 6px 0 0',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '4px',
+              padding: '4px',
+              background: '#F1F5F9',
+              borderRadius: '12px',
             }}
           >
-            <Swords size={15} />
-            <span>Placares das Rodadas</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('matches')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '9px 8px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                fontFamily: 'var(--font-title)',
+                background: activeTab === 'matches' ? '#FFFFFF' : 'transparent',
+                color: activeTab === 'matches' ? '#0D6E62' : '#64748B',
+                border: 'none',
+                borderRadius: '8px',
+                boxShadow: activeTab === 'matches' ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Swords size={15} />
+              <span>Placares</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('decks')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 16px',
-              fontSize: '13px',
-              fontWeight: 700,
-              background: activeTab === 'decks' ? 'rgba(52, 211, 153, 0.15)' : 'transparent',
-              color: activeTab === 'decks' ? '#34d399' : '#94a3b8',
-              border: 'none',
-              borderBottom: activeTab === 'decks' ? '2px solid #34d399' : '2px solid transparent',
-              cursor: 'pointer',
-              borderRadius: '6px 6px 0 0',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            <Shield size={15} />
-            <span>Decks dos Duelistas</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('decks')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '9px 8px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                fontFamily: 'var(--font-title)',
+                background: activeTab === 'decks' ? '#FFFFFF' : 'transparent',
+                color: activeTab === 'decks' ? '#059669' : '#64748B',
+                border: 'none',
+                borderRadius: '8px',
+                boxShadow: activeTab === 'decks' ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Shield size={15} />
+              <span>Decks</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('info')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 16px',
-              fontSize: '13px',
-              fontWeight: 700,
-              background: activeTab === 'info' ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
-              color: activeTab === 'info' ? '#c084fc' : '#94a3b8',
-              border: 'none',
-              borderBottom: activeTab === 'info' ? '2px solid #a855f7' : '2px solid transparent',
-              cursor: 'pointer',
-              borderRadius: '6px 6px 0 0',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            <Calendar size={15} />
-            <span>Dados Gerais</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('info')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '9px 8px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                fontFamily: 'var(--font-title)',
+                background: activeTab === 'info' ? '#FFFFFF' : 'transparent',
+                color: activeTab === 'info' ? '#0D6E62' : '#64748B',
+                border: 'none',
+                borderRadius: '8px',
+                boxShadow: activeTab === 'info' ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Calendar size={15} />
+              <span>Geral</span>
+            </button>
+          </div>
         </div>
 
         {/* Corpo com Scroll */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px', background: '#F8FAFC' }}>
           {/* Aba de Placares */}
           {activeTab === 'matches' && (
             <div>
@@ -304,7 +302,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                   flexWrap: 'wrap',
                 }}
               >
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginRight: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', marginRight: '6px' }}>
                   Rodada:
                 </span>
                 {editedTournament.rounds.map((r) => (
@@ -314,12 +312,13 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                     onClick={() => setSelectedRoundNum(r.roundNumber)}
                     style={{
                       padding: '6px 14px',
-                      borderRadius: '6px',
+                      borderRadius: '8px',
                       fontSize: '12px',
                       fontWeight: 700,
-                      background: selectedRoundNum === r.roundNumber ? '#f59e0b' : 'rgba(255, 255, 255, 0.05)',
-                      color: selectedRoundNum === r.roundNumber ? '#000' : '#e2e8f0',
-                      border: selectedRoundNum === r.roundNumber ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                      background: selectedRoundNum === r.roundNumber ? '#0D6E62' : '#FFFFFF',
+                      color: selectedRoundNum === r.roundNumber ? '#FFFFFF' : '#334155',
+                      border: selectedRoundNum === r.roundNumber ? 'none' : '1px solid #CBD5E1',
+                      boxShadow: selectedRoundNum === r.roundNumber ? '0 2px 8px rgba(13, 110, 98, 0.3)' : 'none',
                       cursor: 'pointer',
                     }}
                   >
@@ -343,30 +342,31 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                           key={m.id}
                           style={{
                             padding: '12px 14px',
-                            background: 'rgba(245, 158, 11, 0.05)',
-                            border: '1px solid rgba(245, 158, 11, 0.25)',
-                            borderRadius: '8px',
+                            background: '#FFFDF5',
+                            border: '1px solid #FDE68A',
+                            borderRadius: '10px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                           }}
                         >
                           <div>
-                            <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 800 }}>
+                            <span style={{ fontSize: '11px', color: '#B45309', fontWeight: 800 }}>
                               MESA {m.tableNumber} • FOLGA AUTOMÁTICA BY
                             </span>
-                            <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginTop: '2px' }}>
-                              {p1?.name} <span style={{ fontSize: '11px', color: '#94a3b8' }}>({p1Deck})</span>
+                            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginTop: '2px' }}>
+                              {p1?.name} <span style={{ fontSize: '11px', color: '#64748B' }}>({p1Deck})</span>
                             </div>
                           </div>
                           <span
                             style={{
-                              background: 'rgba(245, 158, 11, 0.15)',
-                              color: '#fbbf24',
+                              background: '#FEF3C7',
+                              color: '#B45309',
                               fontSize: '11px',
                               fontWeight: 700,
                               padding: '3px 8px',
                               borderRadius: '4px',
+                              border: '1px solid #FDE68A',
                             }}
                           >
                             +3 Pts • Saldo 0 (BY)
@@ -380,33 +380,46 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                         key={m.id}
                         style={{
                           padding: '14px 16px',
-                          background: '#1c1c20',
-                          border: '1px solid rgba(255, 255, 255, 0.09)',
-                          borderRadius: '10px',
+                          background: '#FFFFFF',
+                          border: '1px solid #E2E8F0',
+                          borderRadius: '12px',
+                          boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
                         }}
                       >
                         <div
                           style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
+                            flexDirection: 'column',
+                            gap: '8px',
                             marginBottom: '12px',
-                            flexWrap: 'wrap',
-                            gap: '6px',
                           }}
                         >
-                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b', letterSpacing: '0.05em' }}>
-                            MESA {m.tableNumber}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 800, color: '#0D6E62', letterSpacing: '0.06em' }}>
+                              MESA {m.tableNumber}
+                            </span>
+                            <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#94A3B8' }}>
+                              Atalhos de placar
+                            </span>
+                          </div>
 
-                          {/* Atalhos de Placar Rápido */}
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {/* Atalhos de Placar Rápido em linha única e uniforme (incluindo 3-0 e 0-3) */}
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(7, 1fr)',
+                              gap: '4px',
+                              width: '100%',
+                            }}
+                          >
                             {[
-                              { label: '2 - 0', g1: 2, g2: 0, draw: false },
-                              { label: '2 - 1', g1: 2, g2: 1, draw: false },
-                              { label: '1 - 2', g1: 1, g2: 2, draw: false },
-                              { label: '0 - 2', g1: 0, g2: 2, draw: false },
-                              { label: '1 - 1 Empate', g1: 1, g2: 1, draw: true },
+                              { label: '3-0', g1: 3, g2: 0, draw: false },
+                              { label: '2-0', g1: 2, g2: 0, draw: false },
+                              { label: '2-1', g1: 2, g2: 1, draw: false },
+                              { label: '1-1', g1: 1, g2: 1, draw: true },
+                              { label: '1-2', g1: 1, g2: 2, draw: false },
+                              { label: '0-2', g1: 0, g2: 2, draw: false },
+                              { label: '0-3', g1: 0, g2: 3, draw: false },
                             ].map((preset) => (
                               <button
                                 key={preset.label}
@@ -422,24 +435,33 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                                   )
                                 }
                                 style={{
-                                  padding: '3px 8px',
-                                  fontSize: '10.5px',
+                                  padding: '6px 2px',
+                                  fontSize: '11px',
                                   fontWeight: 700,
+                                  letterSpacing: '0.015em',
+                                  whiteSpace: 'nowrap',
+                                  textAlign: 'center',
                                   background:
                                     m.gameWins1 === preset.g1 &&
                                     m.gameWins2 === preset.g2 &&
                                     m.isDraw === preset.draw
-                                      ? '#f59e0b'
-                                      : 'rgba(255, 255, 255, 0.07)',
+                                      ? '#0D6E62'
+                                      : '#F1F5F9',
                                   color:
                                     m.gameWins1 === preset.g1 &&
                                     m.gameWins2 === preset.g2 &&
                                     m.isDraw === preset.draw
-                                      ? '#000'
-                                      : '#cbd5e1',
-                                  border: 'none',
-                                  borderRadius: '4px',
+                                      ? '#FFFFFF'
+                                      : '#334155',
+                                  border:
+                                    m.gameWins1 === preset.g1 &&
+                                    m.gameWins2 === preset.g2 &&
+                                    m.isDraw === preset.draw
+                                      ? '1px solid #0D6E62'
+                                      : '1px solid #E2E8F0',
+                                  borderRadius: '8px',
                                   cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
                                 }}
                               >
                                 {preset.label}
@@ -463,7 +485,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                               style={{
                                 fontWeight: 700,
                                 fontSize: '13.5px',
-                                color: '#fff',
+                                color: '#0F172A',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
@@ -475,7 +497,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                             <span
                               style={{
                                 fontSize: '11px',
-                                color: '#94a3b8',
+                                color: '#64748B',
                                 display: 'block',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -492,7 +514,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                             <input
                               type="number"
                               min="0"
-                              max="2"
+                              max="3"
                               value={m.gameWins1 ?? 0}
                               onChange={(e) =>
                                 handleUpdateMatchScore(
@@ -509,19 +531,19 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                                 height: '38px',
                                 textAlign: 'center',
                                 padding: '4px',
-                                background: '#121214',
-                                border: '1px solid #3f3f46',
-                                borderRadius: '6px',
-                                color: '#fff',
+                                background: '#F8FAFC',
+                                border: '1.5px solid #CBD5E1',
+                                borderRadius: '8px',
+                                color: '#0F172A',
                                 fontWeight: 800,
                                 fontSize: '16px',
                               }}
                             />
-                            <span style={{ color: '#64748b', fontWeight: 800, fontSize: '13px' }}>x</span>
+                            <span style={{ color: '#94A3B8', fontWeight: 800, fontSize: '13px' }}>x</span>
                             <input
                               type="number"
                               min="0"
-                              max="2"
+                              max="3"
                               value={m.gameWins2 ?? 0}
                               onChange={(e) =>
                                 handleUpdateMatchScore(
@@ -538,10 +560,10 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                                 height: '38px',
                                 textAlign: 'center',
                                 padding: '4px',
-                                background: '#121214',
-                                border: '1px solid #3f3f46',
-                                borderRadius: '6px',
-                                color: '#fff',
+                                background: '#F8FAFC',
+                                border: '1.5px solid #CBD5E1',
+                                borderRadius: '8px',
+                                color: '#0F172A',
                                 fontWeight: 800,
                                 fontSize: '16px',
                               }}
@@ -554,7 +576,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                               style={{
                                 fontWeight: 700,
                                 fontSize: '13.5px',
-                                color: '#fff',
+                                color: '#0F172A',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
@@ -566,7 +588,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                             <span
                               style={{
                                 fontSize: '11px',
-                                color: '#94a3b8',
+                                color: '#64748B',
                                 display: 'block',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -579,18 +601,18 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                           </div>
                         </div>
 
-                        {/* Checkboxes de Empate e WO alinhadas */}
+                        {/* Opções de Empate e WO */}
                         <div
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '24px',
+                            justifyContent: 'flex-start',
+                            gap: '16px',
                             marginTop: '12px',
                             paddingTop: '10px',
-                            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                            fontSize: '11.5px',
-                            color: '#cbd5e1',
+                            borderTop: '1px solid #EEF2F6',
+                            fontSize: '12px',
+                            color: '#334155',
                             flexWrap: 'wrap',
                           }}
                         >
@@ -621,7 +643,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                                 height: '16px',
                                 minWidth: '16px',
                                 minHeight: '16px',
-                                accentColor: '#f59e0b',
+                                accentColor: '#0D6E62',
                                 cursor: 'pointer',
                                 margin: 0,
                                 padding: 0,
@@ -657,7 +679,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                                 height: '16px',
                                 minWidth: '16px',
                                 minHeight: '16px',
-                                accentColor: '#f59e0b',
+                                accentColor: '#0D6E62',
                                 cursor: 'pointer',
                                 margin: 0,
                                 padding: 0,
@@ -679,13 +701,13 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div
                 style={{
-                  background: 'rgba(52, 211, 153, 0.08)',
-                  border: '1px solid rgba(52, 211, 153, 0.25)',
-                  borderRadius: '8px',
+                  background: '#ECFDF5',
+                  border: '1px solid #A7F3D0',
+                  borderRadius: '10px',
                   padding: '10px 14px',
                   marginBottom: '10px',
                   fontSize: '12px',
-                  color: '#a7f3d0',
+                  color: '#065F46',
                 }}
               >
                 Edite os nomes dos decks utilizados pelos duelistas especificamente neste torneio.
@@ -702,64 +724,69 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      gap: '14px',
-                      padding: '10px 14px',
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
+                      gap: '10px',
+                      padding: '10px 12px',
+                      background: '#FFFFFF',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '12px',
+                      boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+                      width: '100%',
+                      boxSizing: 'border-box',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '160px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        flex: '0 1 40%',
+                        minWidth: '80px',
+                        maxWidth: '45%',
+                        overflow: 'hidden',
+                      }}
+                    >
                       <div
                         className="player-avatar-sm"
-                        style={{ backgroundColor: p?.avatarColor || '#3B82F6' }}
+                        style={{ backgroundColor: p?.avatarColor || '#0D6E62', flexShrink: 0 }}
                       >
                         {p?.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span style={{ fontWeight: 700, fontSize: '13px', color: '#fff' }}>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '13px',
+                          color: '#0F172A',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={p?.name}
+                      >
                         {p?.name}
                       </span>
                     </div>
 
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
                       <input
                         type="text"
                         value={currentDeck}
                         onChange={(e) => handleUpdatePlayerDeck(pid, e.target.value)}
-                        placeholder="Nome do Deck (ex: Diva Zombie, Blackwing...)"
+                        placeholder="Nome do Deck..."
                         style={{
-                          flex: 1,
-                          padding: '8px 12px',
-                          background: '#161619',
-                          border: '1px solid #3f3f46',
-                          borderRadius: '6px',
-                          color: '#fff',
+                          width: '100%',
+                          minWidth: 0,
+                          boxSizing: 'border-box',
+                          padding: '8px 11px',
+                          background: '#F8FAFC',
+                          border: '1.5px solid #CBD5E1',
+                          borderRadius: '8px',
+                          color: '#0F172A',
                           fontSize: '13px',
+                          fontWeight: 600,
+                          letterSpacing: '0.01em',
+                          outline: 'none',
                         }}
                       />
-                      {(() => {
-                        const dl = editedTournament.playerDecklists?.[pid];
-                        const hasDl = dl && ((dl.mainDeck?.length || 0) > 0 || (dl.extraDeck?.length || 0) > 0);
-                        const countTotal = hasDl ? dl.mainDeck.reduce((a, b) => a + (b.count || 1), 0) : 0;
-                        return (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setActiveDecklistModal({
-                                playerId: pid,
-                                playerName: p?.name || 'Duelista',
-                                deckName: currentDeck || 'Edison Deck',
-                                decklist: dl || null,
-                              })
-                            }
-                            className={hasDl ? 'badge-decklist-has' : 'btn-decklist-add'}
-                            title="Montar ou visualizar Decklist deste jogador"
-                          >
-                            <Layers size={11} />
-                            <span>{hasDl ? `Decklist (${countTotal})` : '+ Decklist'}</span>
-                          </button>
-                        );
-                      })()}
                     </div>
                   </div>
                 );
@@ -771,7 +798,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
           {activeTab === 'info' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                   Nome do Torneio:
                 </label>
                 <input
@@ -781,17 +808,17 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    background: '#161619',
-                    border: '1px solid #3f3f46',
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
                     borderRadius: '8px',
-                    color: '#fff',
+                    color: '#0F172A',
                     fontSize: '14px',
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#cbd5e1', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                   Data do Torneio (AAAA-MM-DD):
                 </label>
                 <input
@@ -801,10 +828,10 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    background: '#161619',
-                    border: '1px solid #3f3f46',
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
                     borderRadius: '8px',
-                    color: '#fff',
+                    color: '#0F172A',
                     fontSize: '14px',
                   }}
                 />
@@ -818,7 +845,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                     gap: '8px',
                     cursor: 'pointer',
                     fontSize: '13px',
-                    color: '#e2e8f0',
+                    color: '#334155',
                     userSelect: 'none',
                   }}
                 >
@@ -833,7 +860,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                       height: '16px',
                       minWidth: '16px',
                       minHeight: '16px',
-                      accentColor: '#f59e0b',
+                      accentColor: '#0D6E62',
                       cursor: 'pointer',
                       margin: 0,
                     }}
@@ -843,7 +870,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
               </div>
 
               <div style={{ marginTop: '16px' }}>
-                <label style={{ fontSize: '13px', color: '#e2e8f0', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                <label style={{ fontSize: '13px', color: '#0F172A', display: 'block', marginBottom: '8px', fontWeight: 700 }}>
                   Quantitativo do TOP do Torneio:
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
@@ -856,12 +883,9 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                         type="button"
                         className={`btn-top-select ${isSelected ? 'selected' : ''}`}
                         onClick={() => setEditedTournament((prev) => ({ ...prev, topCut: num }))}
-                        style={{ padding: '8px 6px' }}
+                        style={{ padding: '12px 6px' }}
                       >
                         <span className="top-cut-number">TOP {num}</span>
-                        <span className="top-cut-label">
-                          {num === 2 ? 'Finalistas' : num === 3 ? 'Pódio Clássico' : num === 4 ? 'Semifinais' : 'Top 5'}
-                        </span>
                       </button>
                     );
                   })}
@@ -874,7 +898,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
           <div
             style={{
               marginTop: '22px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              borderTop: '1px solid #E2E8F0',
               paddingTop: '16px',
             }}
           >
@@ -883,25 +907,43 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '10px',
+                gap: '10px',
+                marginBottom: '12px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={16} className="text-gold" />
-                <h4 style={{ margin: 0, fontSize: '14px', color: '#fff', fontWeight: 800 }}>
-                  Prévia Recalculada da Classificação
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                <Sparkles size={15} className="text-gold" style={{ flexShrink: 0 }} />
+                <h4
+                  style={{
+                    margin: 0,
+                    fontSize: '13.5px',
+                    color: '#0F172A',
+                    fontWeight: 800,
+                    letterSpacing: '0.01em',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  Prévia da Classificação
                 </h4>
               </div>
               <button
                 type="button"
                 onClick={() => setShowPreviewDrawer(!showPreviewDrawer)}
                 style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  fontSize: '11px',
+                  background: '#ECFDF5',
+                  border: '1px solid #A7F3D0',
+                  borderRadius: '999px',
+                  padding: '4px 12px',
+                  color: '#0D6E62',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  letterSpacing: '0.015em',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                   cursor: 'pointer',
-                  textDecoration: 'underline',
+                  textDecoration: 'none',
                 }}
               >
                 {showPreviewDrawer ? 'Ocultar Prévia' : 'Exibir Prévia'}
@@ -914,22 +956,22 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                 {newChamp?.id !== originalChamp?.id && (
                   <div
                     style={{
-                      background: 'rgba(239, 68, 68, 0.12)',
-                      border: '1px solid rgba(239, 68, 68, 0.4)',
-                      borderRadius: '8px',
+                      background: '#FEF2F2',
+                      border: '1px solid #FECACA',
+                      borderRadius: '10px',
                       padding: '10px 14px',
                       marginBottom: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      color: '#fca5a5',
+                      color: '#991B1B',
                       fontSize: '12.5px',
                     }}
                   >
                     <AlertTriangle size={18} style={{ flexShrink: 0 }} />
                     <div>
                       <strong>Atenção: O Campeão deste torneio foi alterado!</strong>
-                      <div style={{ marginTop: '2px', color: '#fed7aa' }}>
+                      <div style={{ marginTop: '2px', color: '#B91C1C' }}>
                         Anterior: <strong>{originalChamp?.name}</strong> ➔ Novo Campeão: <strong>{newChamp?.name}</strong>
                       </div>
                     </div>
@@ -938,11 +980,12 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
 
                 <div
                   style={{
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    maxHeight: '220px',
+                    background: '#FFFFFF',
+                    borderRadius: '10px',
+                    border: '1px solid #E2E8F0',
+                    maxHeight: '260px',
                     overflowY: 'auto',
+                    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
                   }}
                 >
                   <table className="compact-table" style={{ margin: 0 }}>
@@ -972,12 +1015,12 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                                   {s.rank}º
                                 </span>
                                 {rankDiff > 0 && (
-                                  <span style={{ color: '#34d399', fontSize: '10px', fontWeight: 800 }}>
+                                  <span style={{ color: '#059669', fontSize: '10px', fontWeight: 800 }}>
                                     ▲{rankDiff}
                                   </span>
                                 )}
                                 {rankDiff < 0 && (
-                                  <span style={{ color: '#f87171', fontSize: '10px', fontWeight: 800 }}>
+                                  <span style={{ color: '#DC2626', fontSize: '10px', fontWeight: 800 }}>
                                     ▼{Math.abs(rankDiff)}
                                   </span>
                                 )}
@@ -985,7 +1028,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                             </td>
                             <td className="text-left">
                               <strong>{s.playerName}</strong>
-                              <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '6px' }}>
+                              <span style={{ fontSize: '11px', color: '#64748B', marginLeft: '6px' }}>
                                 ({editedTournament.playerDecks?.[s.playerId] || 'Edison'})
                               </span>
                             </td>
@@ -997,7 +1040,7 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                                     fontSize: '10px',
                                     fontWeight: 800,
                                     marginLeft: '4px',
-                                    color: ptsDiff > 0 ? '#34d399' : '#f87171',
+                                    color: ptsDiff > 0 ? '#059669' : '#DC2626',
                                   }}
                                 >
                                   ({ptsDiff > 0 ? `+${ptsDiff}` : ptsDiff})
@@ -1019,15 +1062,22 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
                 <div
                   style={{
                     marginTop: '10px',
+                    padding: '10px 12px',
+                    background: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '10px',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '11px',
-                    color: '#94a3b8',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    fontSize: '11.5px',
+                    lineHeight: 1.5,
+                    letterSpacing: '0.01em',
+                    color: '#64748B',
+                    textAlign: 'justify',
                   }}
                 >
-                  <Info size={13} className="text-gold" />
-                  <span>
+                  <Info size={14} className="text-gold" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span style={{ flex: 1 }}>
                     Ao salvar, toda a pontuação da Liga e os troféus dos duelistas serão recalculados e atualizados automaticamente.
                   </span>
                 </div>
@@ -1039,21 +1089,33 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
         {/* Rodapé com Ações */}
         <div
           style={{
-            padding: '14px 20px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-            background: '#161619',
+            padding: '12px 16px',
+            borderTop: '1px solid #EEF2F6',
+            background: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
             gap: '10px',
-            flexWrap: 'wrap',
+            flexShrink: 0,
           }}
         >
           <button
             type="button"
             className="btn-secondary-action"
             onClick={onClose}
-            style={{ padding: '8px 18px', fontSize: '13px' }}
+            style={{
+              padding: '10px 18px',
+              fontSize: '13px',
+              borderRadius: '12px',
+              background: '#F1F5F9',
+              border: '1px solid #CBD5E1',
+              color: '#334155',
+              cursor: 'pointer',
+              fontWeight: 700,
+              letterSpacing: '0.015em',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
           >
             Cancelar
           </button>
@@ -1063,48 +1125,30 @@ export const TournamentEditModal: React.FC<TournamentEditModalProps> = ({
             className="btn-primary-gold"
             onClick={handleConfirmSave}
             style={{
-              padding: '8px 20px',
+              flex: 1,
+              padding: '10px 16px',
               fontSize: '13px',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-              color: '#000',
-              fontWeight: 800,
-              borderRadius: '6px',
+              justifyContent: 'center',
+              gap: '8px',
+              background: 'var(--purple-gradient)',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              letterSpacing: '0.02em',
+              lineHeight: 1.3,
+              borderRadius: '12px',
               border: 'none',
               cursor: 'pointer',
+              boxShadow: 'var(--shadow-purple)',
+              whiteSpace: 'nowrap',
             }}
           >
-            <Save size={16} />
-            <span>Confirmar Alterações &amp; Recalcular Liga</span>
+            <Save size={15} style={{ flexShrink: 0 }} />
+            <span>Salvar e Recalcular Liga</span>
           </button>
         </div>
       </div>
-
-      {/* Modal de Decklist Edison */}
-      {activeDecklistModal && (
-        <DecklistModal
-          decklist={activeDecklistModal.decklist}
-          playerName={activeDecklistModal.playerName}
-          defaultDeckName={activeDecklistModal.deckName}
-          onSave={(savedDecklist) => {
-            setEditedTournament((prev) => ({
-              ...prev,
-              playerDecks: {
-                ...(prev.playerDecks || {}),
-                [activeDecklistModal.playerId]: savedDecklist.deckName,
-              },
-              playerDecklists: {
-                ...(prev.playerDecklists || {}),
-                [activeDecklistModal.playerId]: savedDecklist,
-              },
-            }));
-            setActiveDecklistModal(null);
-          }}
-          onClose={() => setActiveDecklistModal(null)}
-        />
-      )}
     </div>
   );
 };

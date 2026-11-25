@@ -57,21 +57,21 @@ export function getMatchScoreBreakdown(match: Match): {
     };
   }
 
-  // Partida normal Bo3 decidida
+  // Partida normal Bo3 / Bo5 decidida
   const p1Wins = match.gameWins1;
   const p2Wins = match.gameWins2;
 
   let p1Points = 0;
   let p2Points = 0;
 
-  if (p1Wins >= 2) {
+  if (p1Wins >= 2 || (match.winnerId === match.player1Id && p1Wins > p2Wins)) {
     p1Points = 3;
   } else if (p1Wins === 1 && p2Wins < 2) {
     // 1 vitória única se a partida acabou por tempo sem o outro ter 2
     p1Points = 1;
   }
 
-  if (p2Wins >= 2) {
+  if (p2Wins >= 2 || (match.winnerId === match.player2Id && p2Wins > p1Wins)) {
     p2Points = 3;
   } else if (p2Wins === 1 && p1Wins < 2) {
     p2Points = 1;
@@ -971,7 +971,7 @@ export function recalculateAllPlayerStats(
       const p = playerStatsMap.get(standing.playerId);
       if (!p) continue;
 
-      const deckName = playerDecks[standing.playerId] || 'Edison Deck';
+      const deckName = playerDecks[standing.playerId] || 'Yugioh Deck';
       const decklist = tourn.playerDecklists?.[standing.playerId];
       const isChampion = standing.playerId === championId;
       const isDropped = droppedSet.has(standing.playerId);

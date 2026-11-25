@@ -339,17 +339,56 @@ export const RoundTimer: React.FC<RoundTimerProps> = ({ tournamentId, roundNumbe
           <div
             className="modal-card round-timer-modal-card"
             onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '420px',
+              width: '92%',
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              boxShadow: '0 20px 48px -8px rgba(15, 23, 42, 0.25)',
+              border: '1.5px solid #E2E8F0',
+              overflow: 'hidden',
+            }}
           >
-            <div className="modal-header" style={{ marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Clock size={18} className="text-gold" />
-                <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', fontWeight: 800 }}>
-                  Tempo da Rodada {roundNumber}
-                </h3>
+            {/* Cabeçalho Limpo e Alinhado */}
+            <div
+              className="modal-header-row"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                borderBottom: '1px solid #E2E8F0',
+                background: '#FFFFFF',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '12px',
+                    background: '#ECFDF5',
+                    border: '1px solid #A7F3D0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#059669',
+                  }}
+                >
+                  <Clock size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '16px', color: '#0F172A', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
+                    Tempo da Rodada {roundNumber}
+                  </h3>
+                  <span style={{ fontSize: '12px', color: '#64748B' }}>
+                    Duração oficial do cronômetro
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
-                className="btn-modal-close"
+                className="btn-close-modal"
                 onClick={() => setShowEditModal(false)}
                 title="Fechar"
                 aria-label="Fechar"
@@ -358,83 +397,93 @@ export const RoundTimer: React.FC<RoundTimerProps> = ({ tournamentId, roundNumbe
               </button>
             </div>
 
-            <p style={{ margin: '0 0 14px', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.4' }}>
-              Toque em um atalho para aplicar imediatamente ou digite um tempo específico para casos excepcionais.
-            </p>
-
-            {/* Presets Rápidos com Aplicação Imediata em 1 Toque */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
-                Atalhos Rápidos (1 toque para aplicar):
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {[30, 35, 40, 45, 50, 60].map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => handleSaveCustomMinutes(preset)}
-                    className={`timer-preset-btn ${initialMinutes === preset ? 'active' : ''}`}
-                    title={`Aplicar ${preset} minutos`}
-                  >
-                    <span style={{ fontSize: '14px' }}>{preset} min</span>
-                    {preset === 40 && <span className="timer-preset-tag">Padrão TCG</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Input Manual de Minutos */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
-                Ou Digite os Minutos:
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <input
-                    type="number"
-                    min="1"
-                    max="180"
-                    value={customMinutesInput}
-                    onChange={(e) => setCustomMinutesInput(e.target.value)}
-                    placeholder="Ex: 40"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      paddingRight: '62px',
-                      background: '#161619',
-                      border: '1px solid #3f3f46',
-                      borderRadius: '8px',
-                      color: '#fff',
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#64748b', pointerEvents: 'none', fontWeight: 600 }}>
-                    minutos
-                  </span>
+            <div style={{ padding: '20px' }}>
+              {/* Presets Rápidos com Aplicação Imediata em 1 Toque */}
+              <div style={{ marginBottom: '18px' }}>
+                <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#64748B', marginBottom: '8px' }}>
+                  Atalhos de Tempo:
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[30, 35, 40, 45, 50, 60].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => handleSaveCustomMinutes(preset)}
+                      className={`timer-preset-btn ${initialMinutes === preset ? 'active' : ''}`}
+                      title={`Aplicar ${preset} minutos`}
+                    >
+                      <span style={{ fontSize: '14px', fontWeight: 800 }}>{preset} min</span>
+                      {preset === 40 && <span className="timer-preset-tag">Padrão TCG</span>}
+                    </button>
+                  ))}
                 </div>
+              </div>
+
+              {/* Input Manual de Minutos */}
+              <div>
+                <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#64748B', marginBottom: '6px' }}>
+                  Tempo Customizado:
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="180"
+                      value={customMinutesInput}
+                      onChange={(e) => setCustomMinutesInput(e.target.value)}
+                      placeholder="Ex: 40"
+                      style={{
+                        width: '100%',
+                        padding: '11px 14px',
+                        paddingRight: '68px',
+                        background: '#F8FAFC',
+                        border: '1.5px solid #CBD5E1',
+                        borderRadius: '12px',
+                        color: '#0F172A',
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '12.5px', color: '#64748B', pointerEvents: 'none', fontWeight: 600 }}>
+                      minutos
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary-action"
+                    onClick={() => handleSaveCustomMinutes(parseInt(customMinutesInput) || 40)}
+                    style={{
+                      padding: '11px 20px',
+                      fontSize: '13.5px',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      borderRadius: '12px',
+                      flexShrink: 0,
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
+                    }}
+                  >
+                    Aplicar
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '14px', borderTop: '1px solid #E2E8F0' }}>
                 <button
                   type="button"
-                  className="btn-primary-gold"
-                  onClick={() => handleSaveCustomMinutes(parseInt(customMinutesInput) || 40)}
-                  style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', borderRadius: '8px', flexShrink: 0 }}
+                  className="btn-secondary-action"
+                  onClick={() => setShowEditModal(false)}
+                  style={{ padding: '9px 20px', fontSize: '13px', borderRadius: '10px' }}
                 >
-                  Aplicar
+                  Cancelar / Fechar
                 </button>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              <button
-                type="button"
-                className="btn-secondary-action"
-                onClick={() => setShowEditModal(false)}
-                style={{ padding: '8px 18px', fontSize: '13px' }}
-              >
-                Cancelar / Fechar
-              </button>
             </div>
           </div>
         </div>

@@ -15,15 +15,15 @@ export const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const navItems: { id: ActiveTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     {
-      id: 'ranking',
-      label: 'Ranking',
-      icon: <Trophy size={19} />,
-    },
-    {
       id: 'tournament',
       label: 'Torneio',
       icon: <Swords size={19} />,
       badge: activeTournament ? `R${activeTournament.currentRound}` : undefined,
+    },
+    {
+      id: 'ranking',
+      label: 'Ranking',
+      icon: <Trophy size={19} />,
     },
     {
       id: 'players',
@@ -37,7 +37,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     },
     {
       id: 'settings',
-      label: 'Regras',
+      label: 'Ajustes',
       icon: <Settings size={19} />,
     },
   ];

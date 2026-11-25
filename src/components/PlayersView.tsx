@@ -6,11 +6,11 @@ import {
   Edit2,
   Trash2,
   Shield,
-  Trophy,
   X,
   Download,
   Upload,
-  BarChart2
+  BarChart2,
+  MoreHorizontal
 } from 'lucide-react';
 import type { Player } from '../types';
 import { exportPlayersToCSV, parsePlayersFromCSV, downloadFile } from '../utils/csvHelper';
@@ -25,14 +25,14 @@ interface PlayersViewProps {
 }
 
 const AVATAR_COLORS = [
-  '#10B981', // Emerald
-  '#8B5CF6', // Purple
+  '#0D6E62', // Deep Petrol Teal (2.0 primary)
+  '#059669', // Emerald
+  '#10B981', // Mint Green
   '#F59E0B', // Amber
   '#EF4444', // Red
   '#06B6D4', // Cyan
   '#EC4899', // Pink
   '#3B82F6', // Blue
-  '#84CC16', // Lime
 ];
 
 export const PlayersView: React.FC<PlayersViewProps> = ({
@@ -43,10 +43,14 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
   onSelectPlayer,
   onImportPlayers,
 }) => {
-  // Estado do formulário de novo jogador (apenas informações básicas: nome e idade)
+  // Estado do formulário de novo jogador
   const [name, setName] = useState('');
   const [age, setAge] = useState<number | ''>('');
   const [selectedColor, setSelectedColor] = useState(AVATAR_COLORS[0]);
+
+  // Modais e Menus
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [activeMenuPlayerId, setActiveMenuPlayerId] = useState<string | null>(null);
 
   // Edição
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
@@ -130,302 +134,399 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
 
   return (
     <div className="view-container">
-      {/* Banner Superior */}
-      <div className="hero-banner">
-        <div className="hero-content">
+      {/* Banner Superior Minimalista & Responsivo */}
+      <div className="players-header-card">
+        <div className="players-header-top">
           <div className="hero-tag">
-            <Users size={14} className="text-gold" />
-            <span>CADASTRO & DUELISTAS</span>
+            <Users size={13} />
+            <span>DUELISTAS</span>
             <span
               style={{
-                marginLeft: '6px',
-                background: 'rgba(245, 158, 11, 0.2)',
-                color: '#fbbf24',
-                padding: '1px 7px',
+                marginLeft: '4px',
+                background: 'var(--teal-100, #D1FAE5)',
+                color: 'var(--teal-700, #047857)',
+                padding: '1px 6px',
                 borderRadius: '999px',
-                fontSize: '11px',
+                fontSize: '10px',
                 fontWeight: 800,
               }}
-              title="Total de duelistas adicionados"
             >
               {players.length}
             </span>
           </div>
-          <h2 className="hero-title">Duelistas da Liga</h2>
-          <p className="hero-subtitle hide-on-xs">
-            Gerencie os participantes da liga com facilidade ({players.length} {players.length === 1 ? 'duelista adicionado' : 'duelistas adicionados'}).
+
+          <button
+            id="btn-open-add-player"
+            className="btn-action-pill btn-action-primary"
+            onClick={() => setShowAddModal(true)}
+            title="Cadastrar novo duelista"
+          >
+            <UserPlus size={14} />
+            <span>+ Novo Duelista</span>
+          </button>
+        </div>
+
+        <div>
+          <h2 className="players-header-title">Duelistas da Liga</h2>
+          <p className="players-header-sub">
+            {players.length} {players.length === 1 ? 'participante cadastrado' : 'participantes cadastrados'}
           </p>
         </div>
-      </div>
 
-      <div className="players-layout-grid">
-        {/* Formulário de Cadastro Básico */}
-        <div className="player-form-card">
-          <div className="form-card-header">
-            <div className="icon-badge">
-              <UserPlus size={20} className="text-gold" />
-            </div>
-            <div>
-              <h3>Cadastrar Duelista</h3>
-              <p className="text-muted text-xs">Informações cadastrais básicas do participante.</p>
-            </div>
-          </div>
+        <div className="players-header-actions">
+          <button
+            type="button"
+            className="btn-action-pill btn-action-secondary"
+            onClick={() => csvInputRef.current?.click()}
+            title="Importar Duelistas de arquivo CSV"
+          >
+            <Upload size={13} />
+            <span>Importar CSV</span>
+          </button>
 
-          <form onSubmit={handleCreate} className="player-create-form">
-            <div className="form-group">
-              <label htmlFor="input-player-name" className="form-label">
-                Nome do Jogador *
-              </label>
-              <input
-                id="input-player-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Caique"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="input-player-age" className="form-label">
-                Idade (Opcional)
-              </label>
-              <input
-                id="input-player-age"
-                type="number"
-                min="6"
-                max="99"
-                value={age}
-                onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="Ex: 24 (Opcional)"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Cor do Avatar:</label>
-              <div className="avatar-colors-picker">
-                {AVATAR_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`color-dot ${selectedColor === c ? 'selected' : ''}`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setSelectedColor(c)}
-                    aria-label={`Cor ${c}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <button id="btn-submit-player" type="submit" className="btn-primary-gold w-full mt-2">
-              <UserPlus size={18} />
-              <span>Salvar Duelista</span>
-            </button>
-          </form>
+          <button
+            type="button"
+            className="btn-action-pill btn-action-secondary"
+            onClick={handleExportCSV}
+            title="Exportar Duelistas em formato CSV"
+          >
+            <Download size={13} />
+            <span>Exportar CSV</span>
+          </button>
         </div>
 
-        {/* Lista de Jogadores & Botões de CSV */}
-        <div className="players-list-column">
-          <div className="list-toolbar">
-            <div className="search-box">
-              <Search size={18} className="search-icon" />
-              <input
-                id="input-search-players"
-                type="text"
-                placeholder="Pesquisar por nome..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+        <input
+          type="file"
+          ref={csvInputRef}
+          style={{ display: 'none' }}
+          accept=".csv"
+          onChange={handleImportCSVFile}
+        />
+      </div>
 
-            {/* Ações de CSV */}
-            <div className="csv-actions-group">
-              <button
-                id="btn-export-players-csv"
-                className="btn-secondary-action"
-                onClick={handleExportCSV}
-                title="Exportar dados de jogadores em arquivo CSV"
-              >
-                <Download size={15} />
-                <span>Exportar CSV</span>
-              </button>
-
-              <button
-                id="btn-import-players-csv"
-                className="btn-secondary-action"
-                onClick={() => csvInputRef.current?.click()}
-                title="Carregar jogadores a partir de um arquivo CSV"
-              >
-                <Upload size={15} />
-                <span>Importar CSV</span>
-              </button>
-
-              <input
-                type="file"
-                ref={csvInputRef}
-                style={{ display: 'none' }}
-                accept=".csv"
-                onChange={handleImportCSVFile}
-              />
-
-              {players.length > 0 && (
-                <button
-                  id="btn-clear-all-players"
-                  className="btn-danger-ghost"
-                  style={{ padding: '6px 12px', fontSize: '13px' }}
-                  onClick={() => {
-                    if (confirm(`Tem certeza de que deseja apagar todos os ${players.length} duelistas cadastrados?`)) {
-                      onImportPlayers([]);
-                    }
-                  }}
-                  title="Apagar todos os duelistas e recomeçar do zero"
-                >
-                  <Trash2 size={15} />
-                  <span>Zerar Duelistas</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Legenda simples com contagem total de duelistas adicionados */}
+      {/* Lista de Jogadores & Busca */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="players-search-bar">
+          <Search size={18} style={{ color: 'var(--text-dim)' }} />
+          <input
+            id="input-search-players"
+            type="text"
+            className="players-search-input"
+            placeholder="Pesquisar por nome..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           <div className="players-count-legend">
-            <Users size={13} className="text-gold" />
+            <Users size={14} style={{ flexShrink: 0 }} />
             <span>
               {searchTerm ? (
-                <>Mostrando <strong>{filteredPlayers.length}</strong> de <strong>{players.length}</strong> {players.length === 1 ? 'jogador adicionado' : 'jogadores adicionados'}</>
+                <><strong>{filteredPlayers.length}</strong> de <strong>{players.length}</strong></>
               ) : (
-                <>Total: <strong>{players.length}</strong> {players.length === 1 ? 'jogador adicionado' : 'jogadores adicionados'}</>
+                <><strong>{players.length}</strong> cadastrados</>
               )}
             </span>
           </div>
+        </div>
 
+        {filteredPlayers.length === 0 ? (
+          <div
+            className="hero-banner"
+            style={{ textAlign: 'center', padding: '36px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+          >
+            <Users size={36} style={{ color: 'var(--text-dim)', marginBottom: '8px' }} />
+            <h4 style={{ fontSize: '15px', fontWeight: 800 }}>Nenhum duelista encontrado</h4>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: '14px' }}>
+              {searchTerm ? `Sem resultados para "${searchTerm}".` : 'Cadastre seu primeiro jogador na liga.'}
+            </p>
+            <button
+              type="button"
+              className="btn-action-pill btn-action-primary"
+              onClick={() => setShowAddModal(true)}
+            >
+              <UserPlus size={15} />
+              <span>Cadastrar Novo Duelista</span>
+            </button>
+          </div>
+        ) : (
           <div className="players-cards-container">
-            {filteredPlayers.length === 0 ? (
-              <div className="empty-state-card">
-                <Users size={32} className="text-muted" />
-                <p>Nenhum duelista encontrado.</p>
-              </div>
-            ) : (
-              filteredPlayers.map((player) => {
-                const mostDeck = getMostUsedDeck(player);
+            {filteredPlayers.map((player, idx) => {
+              const mostDeck = getMostUsedDeck(player);
 
-                return (
-                  <div key={player.id} className="player-profile-card">
-                    <div className="profile-header">
+              const isMenuActive = activeMenuPlayerId === player.id;
+              const isNearBottom = filteredPlayers.length >= 3 && idx >= filteredPlayers.length - 2;
+
+              return (
+                <div
+                  key={player.id}
+                  className={`player-card ${isMenuActive ? 'menu-active' : ''}`}
+                  onClick={() => onSelectPlayer(player)}
+                  style={{
+                    cursor: 'pointer',
+                    position: 'relative',
+                    zIndex: isMenuActive ? 1200 : 1,
+                  }}
+                >
+                  <div>
+                    <div className="player-card-header">
                       <div
-                        className="profile-avatar cursor-pointer"
-                        style={{ backgroundColor: player.avatarColor || '#3B82F6' }}
-                        onClick={() => onSelectPlayer(player)}
+                        className="duelist-mini-avatar"
+                        style={{
+                          backgroundColor: player.avatarColor || '#0D6E62',
+                          width: '44px',
+                          height: '44px',
+                          fontSize: '15px',
+                        }}
+                        title="Ver radar de habilidades"
                       >
                         {player.name.substring(0, 2).toUpperCase()}
                       </div>
 
-                      <div className="profile-details cursor-pointer" onClick={() => onSelectPlayer(player)}>
-                        <div className="profile-name-row">
-                          <h4 className="profile-name">{player.name}</h4>
-                          {player.age ? (
-                            <span className="profile-age-tag">{player.age} anos</span>
-                          ) : null}
-                        </div>
-                        {mostDeck ? (
-                          <span className="profile-deck">
-                            <Shield size={12} />
-                            Mais jogado: <strong>{mostDeck}</strong>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="player-card-name">
+                            {player.name}
                           </span>
-                        ) : (
-                          <span className="profile-deck-none">Nenhum torneio ainda</span>
-                        )}
+                          {player.age && (
+                            <span style={{ fontSize: '11px', color: 'var(--text-dim)', background: '#F1F5F9', padding: '1px 6px', borderRadius: '999px' }}>
+                              {player.age} anos
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ marginTop: '2px' }}>
+                          {mostDeck ? (
+                            <span className="duelist-row-deck" style={{ fontSize: '11px' }}>
+                              <Shield size={11} style={{ display: 'inline', marginRight: '3px', verticalAlign: '-1px' }} />
+                              {mostDeck}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Nenhum torneio ainda</span>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="profile-actions">
+                      {/* Submenu mini pop-up de ações do duelista */}
+                      <div className="popover-anchor" onClick={(e) => e.stopPropagation()}>
                         <button
-                          className="btn-icon-action"
-                          onClick={() => onSelectPlayer(player)}
-                          title="Ver diagrama de radar e estatísticas"
-                        >
-                          <BarChart2 size={16} className="text-gold" />
-                        </button>
-                        <button
-                          className="btn-icon-action"
-                          onClick={() => setEditingPlayer(player)}
-                          title="Editar jogador"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          className="btn-icon-action btn-danger-action"
-                          onClick={() => {
-                            if (confirm(`Deseja realmente excluir ${player.name}?`)) {
-                              onDeletePlayer(player.id);
-                            }
+                          type="button"
+                          className={`btn-more-options ${activeMenuPlayerId === player.id ? 'active' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuPlayerId(activeMenuPlayerId === player.id ? null : player.id);
                           }}
-                          title="Excluir jogador"
+                          title="Opções do Duelista"
+                          aria-label="Opções do Duelista"
                         >
-                          <Trash2 size={16} />
+                          <MoreHorizontal size={18} />
                         </button>
+
+                        {activeMenuPlayerId === player.id && (
+                          <>
+                            <div
+                              className="popover-backdrop"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuPlayerId(null);
+                              }}
+                            />
+                            <div className={`popover-dropdown ${isNearBottom ? 'popover-up' : ''}`}>
+                              <button
+                                type="button"
+                                className="popover-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuPlayerId(null);
+                                  onSelectPlayer(player);
+                                }}
+                              >
+                                <BarChart2 size={14} style={{ color: 'var(--purple-600)' }} />
+                                <span>Radar & Estatísticas</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="popover-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuPlayerId(null);
+                                  setEditingPlayer(player);
+                                }}
+                              >
+                                <Edit2 size={14} />
+                                <span>Editar Duelista</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="popover-item danger"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuPlayerId(null);
+                                  if (confirm(`Deseja realmente excluir ${player.name}?`)) {
+                                    onDeletePlayer(player.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 size={14} />
+                                <span>Excluir Duelista</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    <div
-                      className="profile-stats-grid cursor-pointer"
-                      onClick={() => onSelectPlayer(player)}
-                      title="Clique para abrir detalhes do duelista"
-                    >
-                      <div className="stat-box">
+                    {/* Grade de Estatísticas Rápidas */}
+                    <div className="player-card-stats-grid" style={{ marginTop: '12px' }}>
+                      <div className="stat-item-col">
+                        <span className="stat-value">{player.points}</span>
                         <span className="stat-label">Pontos</span>
-                        <span className="stat-value text-gold">{player.points}</span>
                       </div>
-                      <div className="stat-box">
+                      <div className="stat-item-col">
+                        <span className="stat-value" style={{ color: 'var(--emerald-600)' }}>{player.wins}</span>
                         <span className="stat-label">Vitórias</span>
-                        <span className="stat-value text-green">{player.wins}</span>
                       </div>
-                      <div className="stat-box">
-                        <span className="stat-label">Empates</span>
-                        <span className="stat-value">{player.draws}</span>
-                      </div>
-                      <div className="stat-box">
-                        <span className="stat-label">Derrotas</span>
-                        <span className="stat-value text-red">{player.losses}</span>
-                      </div>
-                      <div className="stat-box">
-                        <span className="stat-label">Torneios</span>
-                        <span className="stat-value">{player.participations}</span>
-                      </div>
-                      <div className="stat-box">
+                      <div className="stat-item-col">
+                        <span className="stat-value" style={{ color: 'var(--amber-600)' }}>{player.trophies}</span>
                         <span className="stat-label">Troféus</span>
-                        <span className="stat-value text-gold flex items-center justify-center gap-1">
-                          <Trophy size={12} />
-                          {player.trophies}
-                        </span>
                       </div>
                     </div>
                   </div>
-                );
-              })
-            )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Cadastro de Novo Duelista */}
+      {showAddModal && (
+        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
+          <div className="modal-content-card" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-row">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <UserPlus size={18} style={{ color: 'var(--purple-600)' }} />
+                <h3 className="modal-title">Novo Duelista</h3>
+              </div>
+              <button
+                type="button"
+                className="btn-close-modal"
+                onClick={() => setShowAddModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                handleCreate(e);
+                setShowAddModal(false);
+              }}
+              className="modal-body"
+              style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+            >
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                  Nome do Duelista *
+                </label>
+                <input
+                  id="input-player-name"
+                  type="text"
+                  className="input-clean"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Caique"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                  Idade (Opcional)
+                </label>
+                <input
+                  id="input-player-age"
+                  type="number"
+                  min="6"
+                  max="99"
+                  className="input-clean"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="Ex: 24 (Opcional)"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '8px' }}>
+                  Cor do Avatar:
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {AVATAR_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: c,
+                        border: selectedColor === c ? '3px solid #0F172A' : '2px solid #FFFFFF',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        transition: 'transform 150ms ease',
+                        transform: selectedColor === c ? 'scale(1.15)' : 'scale(1)',
+                      }}
+                      onClick={() => setSelectedColor(c)}
+                      aria-label={`Cor ${c}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-action-pill"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  id="btn-submit-player"
+                  type="submit"
+                  className="btn-action-pill btn-action-primary"
+                >
+                  <UserPlus size={16} />
+                  <span>Cadastrar</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Modal de Edição Básica */}
       {editingPlayer && (
         <div className="modal-backdrop">
-          <div className="modal-card">
-            <div className="modal-header">
-              <h3>Editar Duelista</h3>
+          <div className="modal-content-card" style={{ maxWidth: '420px' }}>
+            <div className="modal-header-row">
+              <h3 className="modal-title">Editar Duelista</h3>
               <button
-                className="btn-modal-close"
+                className="btn-close-modal"
                 onClick={() => setEditingPlayer(null)}
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleUpdate} className="modal-form">
-              <div className="form-group">
-                <label className="form-label">Nome:</label>
+            <form onSubmit={handleUpdate} className="modal-body">
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                  Nome:
+                </label>
                 <input
                   type="text"
+                  className="input-clean"
                   value={editingPlayer.name}
                   onChange={(e) =>
                     setEditingPlayer({ ...editingPlayer, name: e.target.value })
@@ -434,12 +535,15 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Idade (Opcional):</label>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                  Idade (Opcional):
+                </label>
                 <input
                   type="number"
                   min="6"
                   max="99"
+                  className="input-clean"
                   value={editingPlayer.age ?? ''}
                   onChange={(e) =>
                     setEditingPlayer({
@@ -451,15 +555,15 @@ export const PlayersView: React.FC<PlayersViewProps> = ({
                 />
               </div>
 
-              <div className="modal-actions">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="btn-action-pill"
                   onClick={() => setEditingPlayer(null)}
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="btn-primary-gold">
+                <button type="submit" className="btn-action-pill btn-action-primary">
                   Salvar Alterações
                 </button>
               </div>

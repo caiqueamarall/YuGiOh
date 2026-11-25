@@ -1,5 +1,4 @@
 import React from 'react';
-import { Trophy } from 'lucide-react';
 import type { Tournament } from '../types';
 
 interface HeaderProps {
@@ -12,28 +11,27 @@ export const Header: React.FC<HeaderProps> = ({ activeTournament, onNavigateToTo
     <header className="app-header">
       <div className="header-container">
         <div className="brand-group">
-          <div className="brand-icon-wrapper">
+          <div className="brand-icon-wrapper" title="Duel League">
             <img
-              src="./icon.png"
-              alt="Edison League"
+              src={`${import.meta.env.BASE_URL}duel-league-logo.png`}
+              alt="Duel League Logo"
               className="brand-logo-img"
-              width="36"
-              height="36"
             />
-          </div>
-          <div className="brand-text-col">
-            <h1 className="brand-title">Edison League</h1>
-            <span className="brand-subtitle">Formato Edison (2010)</span>
           </div>
         </div>
 
         <div className="header-actions">
-          {activeTournament ? (
+          {!activeTournament ? (
+            <div className="header-right-meta">
+              <span className="brand-subtitle">Gestão de Torneios</span>
+              <span className="brand-format-tag">Edison Format</span>
+            </div>
+          ) : (
             <button
               id="header-btn-active-tournament"
               className="btn-tournament-live"
               onClick={onNavigateToTournament}
-              title="Ver torneio em andamento"
+              title="Ver rodada do torneio em andamento"
             >
               <span className="live-dot" />
               <div className="live-info">
@@ -43,11 +41,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTournament, onNavigateToTo
                 </span>
               </div>
             </button>
-          ) : (
-            <div className="tournament-idle-pill">
-              <Trophy size={14} className="text-gold" />
-              <span>Liga Ativa</span>
-            </div>
           )}
         </div>
       </div>

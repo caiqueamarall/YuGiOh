@@ -15,10 +15,10 @@ import {
   Trash2,
   AlertTriangle,
   Edit2,
-  Layers,
   X,
   Medal,
   Award,
+  MoreHorizontal,
 } from 'lucide-react';
 import type { Player, Tournament, Decklist } from '../types';
 import { exportTournamentResultsPDF } from '../utils/pdfGenerator';
@@ -31,7 +31,6 @@ import {
 import { StatInfoModal, type TiebreakStatType } from './StatInfoModal';
 import { TournamentEditModal } from './TournamentEditModal';
 import { DecklistModal } from './DecklistModal';
-import { getDeckCardCounts } from '../utils/cardDatabase';
 
 interface HistoryViewProps {
   tournaments: Tournament[];
@@ -47,6 +46,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   onUpdateTournament,
 }) => {
   const [expandedTournamentId, setExpandedTournamentId] = useState<string | null>(null);
+  const [activeMenuTournamentId, setActiveMenuTournamentId] = useState<string | null>(null);
   const [tournamentToDelete, setTournamentToDelete] = useState<Tournament | null>(null);
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
   const [selectedStatModal, setSelectedStatModal] = useState<TiebreakStatType | null>(null);
@@ -99,7 +99,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   // Salva edição rápida de deck
   const handleSaveQuickDeck = () => {
     if (!quickDeckModal) return;
-    const sanitizedDeck = quickDeckValue.trim() || 'Edison Deck';
+    const sanitizedDeck = quickDeckValue.trim() || 'Yugioh Deck';
     const updatedTournament: Tournament = {
       ...quickDeckModal.tournament,
       playerDecks: {
@@ -136,24 +136,39 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             </p>
           </div>
         ) : (
-          completedTournaments.map((tournament) => {
+          completedTournaments.map((tournament, idx) => {
             const isExpanded = expandedTournamentId === tournament.id;
             const standings = calculateTournamentStandings(tournament, players);
             const tourTopCut = getTournamentTopCut(tournament);
             const topStandings = standings.slice(0, Math.min(tourTopCut, standings.length));
             const champion = standings[0] ? playerMap.get(standings[0].playerId) : (tournament.championId ? playerMap.get(tournament.championId) : null);
 
+            const isMenuActive = activeMenuTournamentId === tournament.id;
+            const isNearBottom = completedTournaments.length >= 3 && idx === completedTournaments.length - 1;
+
             return (
-              <div key={tournament.id} className="history-card">
+              <div
+                key={tournament.id}
+                className={`history-card ${isMenuActive ? 'menu-active' : ''}`}
+                style={{
+                  position: 'relative',
+                  zIndex: isMenuActive ? 100 : 1,
+                }}
+              >
                 <div className="history-card-header" onClick={() => toggleExpand(tournament.id)}>
                   <div className="history-header-top-row">
                     <div className="history-main-info">
                       <div className="history-icon-box">
-                        <Trophy size={20} className="text-gold" />
+                        <Trophy size={16} className="text-gold" />
                       </div>
                       <div className="history-text-details">
                         <div className="history-title-row">
                           <h3 className="history-title">{tournament.name}</h3>
+                          {tournament.format && (
+                            <span className="badge-tournament-format">
+                              {tournament.format}
+                            </span>
+                          )}
                           {tournament.countsForLeague !== false ? (
                             <span className="badge-league-official">Oficial da Liga</span>
                           ) : (
@@ -162,84 +177,122 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                         </div>
                         <div className="history-meta-row">
                           <span className="history-meta-item">
-                            <Calendar size={12} />
+                            <Calendar size={11} />
                             <span>{formatTournamentDate(tournament.date)}</span>
                           </span>
                           <span className="history-meta-item">
-                            <Users size={12} />
+                            <Users size={11} />
                             <span>{tournament.playerIds.length} duelistas</span>
                           </span>
                           <span className="history-meta-item">
-                            <Swords size={12} />
+                            <Swords size={11} />
                             <span>{tournament.totalRounds} rodadas</span>
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <button className="btn-expand-history" aria-label="Expandir detalhes">
-                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </button>
-                  </div>
+                    <div className="history-header-actions" onClick={(e) => e.stopPropagation()}>
+                      {/* Submenu mini pop-up de ações do torneio */}
+                      <div className="popover-anchor">
+                        <button
+                          type="button"
+                          className={`btn-more-options ${activeMenuTournamentId === tournament.id ? 'active' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuTournamentId(activeMenuTournamentId === tournament.id ? null : tournament.id);
+                          }}
+                          title="Opções do Torneio"
+                          aria-label="Opções do Torneio"
+                        >
+                          <MoreHorizontal size={18} />
+                        </button>
 
-                  <div className="history-actions-strip">
-                    {champion && (
-                      <div className="champion-preview-badge">
-                        <Trophy size={12} className="text-gold" />
-                        <span>1º: <strong>{champion.name}</strong></span>
+                        {activeMenuTournamentId === tournament.id && (
+                          <>
+                            <div
+                              className="popover-backdrop"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveMenuTournamentId(null);
+                              }}
+                            />
+                            <div className={`popover-dropdown ${isNearBottom ? 'popover-up' : ''}`}>
+                              <button
+                                type="button"
+                                className="popover-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuTournamentId(null);
+                                  setEditingTournament(tournament);
+                                }}
+                              >
+                                <Edit2 size={14} />
+                                <span>Editar Torneio</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="popover-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuTournamentId(null);
+                                  exportTournamentResultsPDF(tournament, players);
+                                }}
+                              >
+                                <FileDown size={14} />
+                                <span>Exportar PDF</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="popover-item"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuTournamentId(null);
+                                  exportTournamentResultsPNG(tournament, players);
+                                }}
+                              >
+                                <ImageDown size={14} />
+                                <span>Exportar PNG</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="popover-item danger"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuTournamentId(null);
+                                  setTournamentToDelete(tournament);
+                                }}
+                              >
+                                <Trash2 size={14} />
+                                <span>Excluir Registro</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
-                    )}
-                    <div className="history-btn-group">
+
                       <button
                         type="button"
-                        className="btn-edit-history-sm"
+                        className="btn-expand-history"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditingTournament(tournament);
+                          toggleExpand(tournament.id);
                         }}
-                        title="Editar placares e dados deste torneio"
+                        aria-label="Expandir detalhes"
                       >
-                        <Edit2 size={12} />
-                        <span>Editar</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-export-pdf-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          exportTournamentResultsPDF(tournament, players);
-                        }}
-                        title="Exportar resultado e chaveamento deste torneio em PDF"
-                      >
-                        <FileDown size={13} />
-                        <span>PDF</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-export-png-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          exportTournamentResultsPNG(tournament, players);
-                        }}
-                        title="Exportar resultado em Imagem PNG (Página Única)"
-                      >
-                        <ImageDown size={13} />
-                        <span>PNG</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-delete-history-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTournamentToDelete(tournament);
-                        }}
-                        title="Remover este torneio do histórico"
-                      >
-                        <Trash2 size={13} />
-                        <span>Remover</span>
+                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                       </button>
                     </div>
                   </div>
+
+                  {!isExpanded && champion && (
+                    <div className="history-actions-strip">
+                      <div className="champion-preview-badge">
+                        <Trophy size={11} className="text-gold" />
+                        <span>1º Lugar: <strong>{champion.name}</strong></span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {isExpanded && (
@@ -260,7 +313,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                         const pillColor = isFirst ? 'gold' : isSecond ? 'silver' : 'bronze';
                         const playerObj = playerMap.get(s.playerId);
                         const pName = playerObj?.name || s.playerName;
-                        const pDeck = tournament.playerDecks?.[s.playerId] || 'Edison Deck';
+                        const pDeck = tournament.playerDecks?.[s.playerId] || 'Yugioh Deck';
 
                         return (
                           <div key={s.playerId} className={`podium-mini-pill ${pillColor}`}>
@@ -294,11 +347,23 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                       const playerDecks = tournament.playerDecks || {};
                       return (
                         <div className="history-standings-section" style={{ marginTop: '14px', marginBottom: '18px' }}>
-                          <div className="standings-table-header-row">
-                            <h4 className="compact-title" style={{ margin: 0, fontSize: '13.5px' }}>
-                              Classificação Final &amp; Desempates
-                            </h4>
-                            <span className="badge-swiss-stats">Critérios Oficiais Suíço</span>
+                          <div
+                            className="standings-table-header-row"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: '8px',
+                              marginBottom: '10px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <h4 className="compact-title" style={{ margin: 0, fontSize: '13px', fontWeight: 800 }}>
+                                Classificação Final
+                              </h4>
+                              <span className="badge-swiss-stats">Critérios Oficiais Suíço</span>
+                            </div>
                           </div>
 
                           {/* Card Informativo de Critérios de Desempate (Padrão TCG em Inglês com botão informativo) */}
@@ -311,50 +376,18 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                               <div className="tiebreaker-item" title="Player Match Win Percentage">
                                 <span className="tb-code">PMW%</span>
                                 <span className="tb-label">Player Match Win %</span>
-                                <button
-                                  type="button"
-                                  className="btn-tb-info"
-                                  onClick={() => setSelectedStatModal('PMW')}
-                                  title="Clique para entender o PMW%"
-                                >
-                                  <Info size={13} />
-                                </button>
                               </div>
                               <div className="tiebreaker-item" title="Opponents' Match Win Percentage">
                                 <span className="tb-code">OMW%</span>
                                 <span className="tb-label">Opponents' Match Win %</span>
-                                <button
-                                  type="button"
-                                  className="btn-tb-info"
-                                  onClick={() => setSelectedStatModal('OMW')}
-                                  title="Clique para entender o OMW% (Mínimos)"
-                                >
-                                  <Info size={13} />
-                                </button>
                               </div>
                               <div className="tiebreaker-item" title="Player Game Win Percentage">
                                 <span className="tb-code">PGW%</span>
                                 <span className="tb-label">Player Game Win %</span>
-                                <button
-                                  type="button"
-                                  className="btn-tb-info"
-                                  onClick={() => setSelectedStatModal('PGW')}
-                                  title="Clique para entender o PGW%"
-                                >
-                                  <Info size={13} />
-                                </button>
                               </div>
                               <div className="tiebreaker-item" title="Opponents' Game Win Percentage">
                                 <span className="tb-code">OGW%</span>
                                 <span className="tb-label">Opponents' Game Win %</span>
-                                <button
-                                  type="button"
-                                  className="btn-tb-info"
-                                  onClick={() => setSelectedStatModal('OGW')}
-                                  title="Clique para entender o OGW%"
-                                >
-                                  <Info size={13} />
-                                </button>
                               </div>
                             </div>
                             <div className="tiebreaker-rule-note">
@@ -362,145 +395,121 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                             </div>
                           </div>
 
-                          <div className="table-responsive-wrapper">
-                            <table className="compact-table">
-                              <thead>
-                                <tr>
-                                  <th>Pos</th>
-                                  <th className="text-left">Jogador</th>
-                                  <th>Deck</th>
-                                  <th>Pontos</th>
-                                  <th>V-E-D</th>
-                                  <th>Games</th>
-                                  <th>Saldo</th>
-                                  <th>BY</th>
-                                  <th title="Player Match Win Rate: Aproveitamento em partidas">PMW%</th>
-                                  <th title="Opponent Match Win Rate: Força dos oponentes">OMW%</th>
-                                  <th title="Player Game Win Rate: Aproveitamento em duelos individuais">PGW%</th>
-                                  <th title="Opponent Game Win Rate: Força dos games dos oponentes">OGW%</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {standings.map((s) => (
-                                  <tr key={s.playerId} className={s.rank === 1 ? 'champion-row' : ''}>
-                                    <td>
-                                      <span className={`rank-tag ${s.rank <= tourTopCut ? 'top' : ''}`}>{s.rank}º</span>
-                                    </td>
-                                    <td className="text-left">
-                                      <strong>{s.playerName}</strong>
-                                    </td>
-                                    <td className="text-center">
-                                      <div className="standings-deck-cell">
-                                        <div className="standings-deck-name-row">
-                                          <span
-                                            className="player-deck-badge"
-                                            title={playerDecks[s.playerId] || 'Edison'}
-                                            onClick={() =>
-                                              openQuickDeckEdit(
-                                                tournament,
-                                                s.playerId,
-                                                playerDecks[s.playerId] || ''
-                                              )
-                                            }
-                                            style={{ cursor: 'pointer' }}
-                                          >
-                                            <Shield size={11} style={{ flexShrink: 0 }} />
-                                            <span className="standings-deck-name-text">
-                                              {playerDecks[s.playerId] || 'Edison'}
-                                            </span>
-                                          </span>
-                                          <button
-                                            type="button"
-                                            className="btn-deck-edit-inline"
-                                            onClick={() =>
-                                              openQuickDeckEdit(
-                                                tournament,
-                                                s.playerId,
-                                                playerDecks[s.playerId] || ''
-                                              )
-                                            }
-                                            title={`Editar deck de ${s.playerName}`}
-                                          >
-                                            <Edit2 size={10} />
-                                          </button>
+                          {/* MODO CARDS: Visualização moderna, agradável e mobile-first sem rolagem horizontal */}
+                          <div className="standings-cards-list">
+                              {standings.map((s) => {
+                                const isFirst = s.rank === 1;
+                                const isSecond = s.rank === 2;
+                                const isThird = s.rank === 3;
+                                const isTopCut = s.rank <= tourTopCut;
+                                const currentDeck = playerDecks[s.playerId] || 'Yugioh Deck';
+
+                                return (
+                                  <div
+                                    key={s.playerId}
+                                    className={`standing-card-item ${
+                                      isFirst ? 'champion-standing' : isTopCut ? 'topcut-standing' : ''
+                                    }`}
+                                  >
+                                    {/* Linha Superior: Posição, Nome e Pontuação */}
+                                    <div className="sc-header-row">
+                                      <div className="sc-player-col">
+                                        <div
+                                          className={`sc-rank-badge ${
+                                            isFirst
+                                              ? 'rank-gold'
+                                              : isSecond
+                                              ? 'rank-silver'
+                                              : isThird
+                                              ? 'rank-bronze'
+                                              : isTopCut
+                                              ? 'rank-topcut'
+                                              : 'rank-standard'
+                                          }`}
+                                        >
+                                          {isFirst && <Trophy size={13} />}
+                                          {isSecond && <Medal size={13} />}
+                                          {isThird && <Award size={13} />}
+                                          <span>{s.rank}º</span>
                                         </div>
-                                        <div className="standings-deck-actions-row">
-                                          {tournament.playerDecklists?.[s.playerId] ? (
-                                            <button
-                                              type="button"
-                                              className="badge-decklist-has"
-                                              onClick={() =>
-                                                setHistoryDecklistModal({
-                                                  tournament,
-                                                  playerId: s.playerId,
-                                                  playerName: s.playerName,
-                                                  deckName: playerDecks[s.playerId] || 'Edison Deck',
-                                                  decklist: tournament.playerDecklists?.[s.playerId] || null,
-                                                })
-                                              }
-                                              title="Ver / Editar Decklist completa"
-                                            >
-                                              <Layers size={10} style={{ flexShrink: 0 }} />
-                                              <span>Decklist ({getDeckCardCounts(tournament.playerDecklists[s.playerId]).totalCount})</span>
-                                            </button>
-                                          ) : (
-                                            <button
-                                              type="button"
-                                              className="btn-decklist-add"
-                                              onClick={() =>
-                                                setHistoryDecklistModal({
-                                                  tournament,
-                                                  playerId: s.playerId,
-                                                  playerName: s.playerName,
-                                                  deckName: playerDecks[s.playerId] || 'Edison Deck',
-                                                  decklist: null,
-                                                })
-                                              }
-                                              title="Adicionar Decklist para este jogador"
-                                            >
-                                              <Layers size={10} style={{ flexShrink: 0 }} />
-                                              <span>+ Decklist</span>
-                                            </button>
-                                          )}
+
+                                        <div className="sc-name-group">
+                                          <span className="sc-player-name">{s.playerName}</span>
+                                          {s.isDropped && <span className="sc-drop-badge">Dropou</span>}
                                         </div>
                                       </div>
-                                    </td>
-                                    <td>
-                                      <span className="points-bold">{s.matchPoints} pts</span>
-                                    </td>
-                                    <td>{s.matchWins}-{s.matchDraws}-{s.matchLosses}</td>
-                                    <td>{s.gamesWon} - {s.gamesLost}</td>
-                                    <td>{s.gameDiff > 0 ? `+${s.gameDiff}` : s.gameDiff}</td>
-                                    <td>{s.hadBy ? <span className="had-by-tag">Teve BY</span> : <span className="text-muted">-</span>}</td>
-                                    <td>
-                                      <div className="stat-pct-badge" title={`Player Match Win%: ${s.pmwPercentage}%`}>
-                                        <span className="dec-val">{s.pmw.toFixed(2)}</span>
-                                        <span className="pct-val">{s.pmwPercentage}%</span>
+
+                                      <div className="sc-points-badge" title={`${s.matchPoints} pontos oficiais conquistados`}>
+                                        <span className="sc-pts-val">{s.matchPoints}</span>
+                                        <span className="sc-pts-lbl">pts</span>
                                       </div>
-                                    </td>
-                                    <td>
-                                      <div className="stat-pct-badge highlight" title={`Opponent Match Win%: ${s.omwPercentage}% (1º Critério TCG)`}>
-                                        <span className="dec-val">{s.omw.toFixed(2)}</span>
-                                        <span className="pct-val">{s.omwPercentage}%</span>
+                                    </div>
+
+                                    {/* Linha do Meio: Deck Usado com Edição Rápida de 1 toque */}
+                                    <div className="sc-deck-row">
+                                      <button
+                                        type="button"
+                                        className="sc-deck-chip"
+                                        onClick={() =>
+                                          openQuickDeckEdit(
+                                            tournament,
+                                            s.playerId,
+                                            playerDecks[s.playerId] || ''
+                                          )
+                                        }
+                                        title={`Toque para alterar o deck de ${s.playerName}`}
+                                      >
+                                        <Shield size={12} className="sc-deck-icon" />
+                                        <span className="sc-deck-name">{currentDeck}</span>
+                                        <Edit2 size={11} className="sc-deck-edit-icon" />
+                                      </button>
+
+                                      {s.hadBy && (
+                                        <span className="sc-by-pill" title="Teve vitória automática por folga (BY)">
+                                          Teve BY
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {/* Grid de Estatísticas: 100% visível na tela sem precisar de scroll lateral */}
+                                    <div className="sc-metrics-grid">
+                                      <div className="sc-metric-item" title="Partidas: Vitórias - Empates - Derrotas">
+                                        <span className="sc-metric-lbl">Placar (V-E-D)</span>
+                                        <span className="sc-metric-val">
+                                          <span className="sc-win">{s.matchWins}V</span> -{' '}
+                                          <span className="sc-draw">{s.matchDraws}E</span> -{' '}
+                                          <span className="sc-loss">{s.matchLosses}D</span>
+                                        </span>
                                       </div>
-                                    </td>
-                                    <td>
-                                      <div className="stat-pct-badge" title={`Player Game Win%: ${s.pgwPercentage}% (2º Critério TCG)`}>
-                                        <span className="dec-val">{s.pgw.toFixed(2)}</span>
-                                        <span className="pct-val">{s.pgwPercentage}%</span>
+
+                                      <div className="sc-metric-item" title="Saldo de Games (Games Vencidos - Games Perdidos)">
+                                        <span className="sc-metric-lbl">Games (Saldo)</span>
+                                        <span className="sc-metric-val">
+                                          {s.gameDiff > 0 ? `+${s.gameDiff}` : s.gameDiff}{' '}
+                                          <span className="sc-sub-metric">({s.gamesWon}-{s.gamesLost})</span>
+                                        </span>
                                       </div>
-                                    </td>
-                                    <td>
-                                      <div className="stat-pct-badge" title={`Opponent Game Win%: ${s.ogwPercentage}% (3º Critério TCG)`}>
-                                        <span className="dec-val">{s.ogw.toFixed(2)}</span>
-                                        <span className="pct-val">{s.ogwPercentage}%</span>
+
+                                      <div
+                                        className="sc-metric-item highlight"
+                                        title="OMW%: Opponents' Match Win % (1º Critério Oficial Konami)"
+                                      >
+                                        <span className="sc-metric-lbl">OMW% (Mínimos)</span>
+                                        <span className="sc-metric-val text-emerald">{s.omwPercentage}%</span>
                                       </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+
+                                      <div
+                                        className="sc-metric-item"
+                                        title="PGW%: Player Game Win % (2º Critério Oficial Konami)"
+                                      >
+                                        <span className="sc-metric-lbl">PGW%</span>
+                                        <span className="sc-metric-val">{s.pgwPercentage}%</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
 
                           {/* Observações de Desempate */}
                           {(() => {
@@ -596,11 +605,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
       {/* Modal de Edição Rápida e Direta de Nome de Deck */}
       {quickDeckModal && (
         <div className="modal-backdrop" onClick={() => setQuickDeckModal(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
-            <div className="modal-header">
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', background: '#FFFFFF', border: '1.5px solid #CBD5E1', borderRadius: '18px', boxShadow: '0 20px 48px -8px rgba(15, 23, 42, 0.2)' }}>
+            <div className="modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Shield size={20} className="text-gold" />
-                <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', fontWeight: 800 }}>
+                <Shield size={20} style={{ color: 'var(--purple-600, #0D6E62)' }} />
+                <h3 style={{ margin: 0, fontSize: '16px', color: '#0F172A', fontWeight: 800, fontFamily: 'var(--font-title)' }}>
                   Editar Deck do Duelista
                 </h3>
               </div>
@@ -608,21 +617,23 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 type="button"
                 className="btn-icon"
                 onClick={() => setQuickDeckModal(null)}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#64748B', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <div style={{ padding: '14px 0' }}>
+            <div style={{ padding: '16px 20px' }}>
               <div
                 style={{
-                  padding: '8px 12px',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  borderRadius: '6px',
+                  padding: '10px 14px',
+                  background: 'var(--purple-50, #ECFDF5)',
+                  border: '1px solid var(--border-purple, #A7F3D0)',
+                  borderRadius: '10px',
                   marginBottom: '14px',
                   fontSize: '13px',
-                  color: '#cbd5e1',
+                  color: 'var(--purple-700, #0A4F46)',
+                  lineHeight: '1.5',
                 }}
               >
                 Duelista: <strong>{playerMap.get(quickDeckModal.playerId)?.name}</strong>
@@ -635,7 +646,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                   display: 'block',
                   fontSize: '12px',
                   fontWeight: 700,
-                  color: '#cbd5e1',
+                  color: '#334155',
                   marginBottom: '6px',
                 }}
               >
@@ -649,12 +660,14 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 style={{
                   width: '100%',
                   padding: '10px 12px',
-                  background: '#161619',
-                  border: '1px solid #3f3f46',
-                  borderRadius: '6px',
-                  color: '#fff',
+                  background: '#F8FAFC',
+                  border: '1.5px solid #CBD5E1',
+                  borderRadius: '8px',
+                  color: '#0F172A',
                   fontSize: '14px',
+                  fontWeight: 600,
                   boxSizing: 'border-box',
+                  outline: 'none',
                 }}
                 autoFocus
                 onKeyDown={(e) => {
@@ -662,54 +675,21 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 }}
               />
 
-              <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <button
-                  type="button"
-                  className="btn-decklist-add"
-                  style={{ fontSize: '12px' }}
-                  onClick={() => {
-                    if (!quickDeckModal) return;
-                    const curPlayer = playerMap.get(quickDeckModal.playerId);
-                    const sanitizedDeck = quickDeckValue.trim() || 'Edison Deck';
-                    const updatedTournament: Tournament = {
-                      ...quickDeckModal.tournament,
-                      playerDecks: {
-                        ...(quickDeckModal.tournament.playerDecks || {}),
-                        [quickDeckModal.playerId]: sanitizedDeck,
-                      },
-                    };
-                    onUpdateTournament(updatedTournament);
-                    setHistoryDecklistModal({
-                      tournament: updatedTournament,
-                      playerId: quickDeckModal.playerId,
-                      playerName: curPlayer?.name || 'Jogador',
-                      deckName: sanitizedDeck,
-                      decklist: updatedTournament.playerDecklists?.[quickDeckModal.playerId] || null,
-                    });
-                    setQuickDeckModal(null);
-                  }}
-                >
-                  <Layers size={12} />
-                  {quickDeckModal.tournament.playerDecklists?.[quickDeckModal.playerId]
-                    ? 'Editar Decklist Completa'
-                    : 'Criar Decklist deste Deck'}
-                </button>
-              </div>
             </div>
 
-            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div className="modal-actions" style={{ padding: '12px 20px 16px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#F8FAFC', borderBottomLeftRadius: '18px', borderBottomRightRadius: '18px' }}>
               <button
                 type="button"
                 className="btn-secondary-action"
                 onClick={() => setQuickDeckModal(null)}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#475569', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                className="btn-primary-gold"
                 onClick={handleSaveQuickDeck}
-                style={{ padding: '8px 20px', fontSize: '13px' }}
+                style={{ padding: '8px 20px', fontSize: '13px', borderRadius: '8px', border: 'none', background: 'var(--purple-gradient)', color: '#FFFFFF', fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(6, 60, 53, 0.25)' }}
               >
                 Salvar Deck
               </button>
@@ -742,32 +722,33 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
       {/* Modal de Confirmação de Exclusão de Torneio */}
       {tournamentToDelete && (
         <div className="modal-backdrop" onClick={() => setTournamentToDelete(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f43f5e' }}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', background: '#FFFFFF', border: '1.5px solid #CBD5E1', borderRadius: '18px', boxShadow: '0 20px 48px -8px rgba(15, 23, 42, 0.2)' }}>
+            <div className="modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid #FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#DC2626' }}>
                 <AlertTriangle size={20} />
-                <h3 style={{ margin: 0, fontSize: '17px', color: '#fff' }}>Remover Torneio do Histórico?</h3>
+                <h3 style={{ margin: 0, fontSize: '17px', color: '#991B1B', fontWeight: 800, fontFamily: 'var(--font-title)' }}>Remover Torneio do Histórico?</h3>
               </div>
             </div>
-            <div className="modal-body" style={{ padding: '16px 0', fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6' }}>
+            <div className="modal-body" style={{ padding: '16px 20px', fontSize: '14px', color: '#334155', lineHeight: '1.6' }}>
               <p style={{ marginBottom: '12px' }}>
                 Você está prestes a remover o torneio <strong>{tournamentToDelete.name}</strong>.
               </p>
               {tournamentToDelete.countsForLeague !== false ? (
-                <div style={{ background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', borderRadius: '8px', padding: '12px', color: '#fca5a5' }}>
+                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '12px', color: '#991B1B' }}>
                   ⚠️ <strong>Atenção:</strong> Por se tratar de um torneio oficial da Liga, <strong>todos os pontos, vitórias, empates e títulos</strong> concedidos aos duelistas neste torneio serão <strong>revertidos automaticamente</strong> da tabela de classificação.
                 </div>
               ) : (
-                <div style={{ background: 'rgba(34, 211, 238, 0.1)', border: '1px solid rgba(34, 211, 238, 0.3)', borderRadius: '8px', padding: '12px', color: '#a5f3fc' }}>
+                <div style={{ background: '#ECFEFF', border: '1px solid #A5F3FC', borderRadius: '10px', padding: '12px', color: '#0E7490' }}>
                   ℹ️ Este foi um torneio Freeplay. O registro será removido do histórico sem afetar a pontuação da Liga.
                 </div>
               )}
             </div>
-            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div className="modal-actions" style={{ padding: '12px 20px 16px', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#F8FAFC', borderBottomLeftRadius: '18px', borderBottomRightRadius: '18px' }}>
               <button
                 type="button"
                 className="btn-secondary-action"
                 onClick={() => setTournamentToDelete(null)}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#475569', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
@@ -779,16 +760,17 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                   setTournamentToDelete(null);
                 }}
                 style={{
-                  background: '#e11d48',
-                  color: '#fff',
+                  background: '#DC2626',
+                  color: '#FFFFFF',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '8px',
                   padding: '9px 18px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '6px',
+                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)',
                 }}
               >
                 <Trash2 size={16} />

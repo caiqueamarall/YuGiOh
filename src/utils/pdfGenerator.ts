@@ -21,8 +21,8 @@ const PRINT_CSS = `
     padding: 0;
   }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: #1e293b;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #0f172a;
     background: #ffffff;
     font-size: 12px;
     line-height: 1.4;
@@ -45,22 +45,23 @@ const PRINT_CSS = `
     }
   }
   .btn-print {
-    background: #d97706;
+    background: linear-gradient(135deg, #6366F1, #4F46E5);
     color: #ffffff;
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 800;
     font-size: 13px;
     cursor: pointer;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
   }
   .btn-close {
-    background: #64748b;
-    color: #ffffff;
-    border: none;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
     padding: 8px 16px;
-    border-radius: 6px;
-    font-weight: 600;
+    border-radius: 8px;
+    font-weight: 700;
     font-size: 13px;
     cursor: pointer;
   }
@@ -68,12 +69,12 @@ const PRINT_CSS = `
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid #b45309;
+    border-bottom: 2.5px solid #4F46E5;
     padding-bottom: 12px;
     margin-bottom: 14px;
   }
   .pdf-title-group h1 {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 900;
     color: #0f172a;
     letter-spacing: -0.02em;
@@ -81,8 +82,8 @@ const PRINT_CSS = `
   }
   .pdf-title-group .subtitle {
     font-size: 13px;
-    color: #b45309;
-    font-weight: 700;
+    color: #4F46E5;
+    font-weight: 800;
     margin-top: 2px;
   }
   .pdf-meta {
@@ -94,8 +95,8 @@ const PRINT_CSS = `
     color: #0f172a;
   }
   .topcut-banner {
-    background: #fffbeb;
-    border: 1.5px solid #f59e0b;
+    background: #eef2ff;
+    border: 1.5px solid #c7d2fe;
     border-radius: 8px;
     padding: 10px 14px;
     margin-bottom: 14px;
@@ -103,7 +104,7 @@ const PRINT_CSS = `
   .topcut-banner-title {
     font-size: 12px;
     font-weight: 800;
-    color: #b45309;
+    color: #312e81;
     text-transform: uppercase;
     display: flex;
     align-items: center;
@@ -111,7 +112,7 @@ const PRINT_CSS = `
   }
   .topcut-banner-desc {
     font-size: 11px;
-    color: #78350f;
+    color: #4338ca;
     margin-top: 3px;
   }
   table {
@@ -120,15 +121,15 @@ const PRINT_CSS = `
     margin-bottom: 16px;
   }
   th {
-    background: #0f172a;
-    color: #ffffff;
+    background: #eef2ff;
+    color: #312e81;
     font-size: 10.5px;
-    font-weight: 700;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     padding: 8px 6px;
     text-align: center;
-    border: 1px solid #0f172a;
+    border: 1px solid #c7d2fe;
   }
   th.text-left {
     text-align: left;
@@ -448,6 +449,9 @@ async function triggerPrintWindow(title: string, bodyContent: string): Promise<v
 <head>
   <meta charset="UTF-8">
   <title>${title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     ${PRINT_CSS}
   </style>
@@ -706,7 +710,7 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
         ${isTop ? `<span style="font-size: 8.5px; background: #ffedd5; color: #c2410c; border: 1px solid #ea580c; border-radius: 3px; padding: 1px 3px; font-weight: 800; margin-left: 4px;">TOP ${topCut}</span>` : ''}
         ${s.isDropped ? '<span style="font-size: 9px; background: #fee2e2; color: #dc2626; border: 1px solid #f87171; border-radius: 3px; padding: 1px 4px; font-weight: 700; margin-left: 4px;">DROP</span>' : ''}
       </td>
-      <td><span class="deck-pill">${playerDecks[s.playerId] || 'Edison Deck'}</span></td>
+      <td><span class="deck-pill">${playerDecks[s.playerId] || 'Yugioh Deck'}</span></td>
       <td><strong>${s.matchPoints} pts</strong></td>
       <td>${s.matchWins}-${s.matchDraws}-${s.matchLosses}</td>
       <td>${s.gamesWon} - ${s.gamesLost}</td>
@@ -725,8 +729,8 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
     const matchesRows = round.matches.map((m) => {
       const p1 = playerMap.get(m.player1Id);
       const p2 = m.player2Id ? playerMap.get(m.player2Id) : null;
-      const p1Deck = playerDecks[m.player1Id] || 'Edison Deck';
-      const p2Deck = m.player2Id ? playerDecks[m.player2Id] || 'Edison Deck' : '';
+      const p1Deck = playerDecks[m.player1Id] || 'Yugioh Deck';
+      const p2Deck = m.player2Id ? playerDecks[m.player2Id] || 'Yugioh Deck' : '';
 
       if (m.isBy) {
         return `
@@ -806,7 +810,7 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
       : rank === 3
       ? '🥉 3º Lugar • Bronze Nobre'
       : `🥉 ${rank}º Lugar • Top ${rank}`;
-    const deck = playerDecks[s.playerId] || 'Edison Deck';
+    const deck = playerDecks[s.playerId] || 'Yugioh Deck';
     const playerFontSize = topStandings.length >= 5 ? 'font-size: 13px;' : '';
 
     return `

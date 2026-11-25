@@ -28,6 +28,7 @@ export interface Decklist {
 export interface PlayerTournamentHistory {
   tournamentId: string;
   tournamentName: string;
+  format?: string; // Formato do torneio (Edison, Vegas, Avançado, etc.)
   date: string;
   deckName: string;
   decklist?: Decklist; // Decklist completa usada especificamente neste torneio (opcional)
@@ -124,6 +125,7 @@ export interface TournamentStanding {
 export interface Tournament {
   id: string;
   name: string;
+  format?: string; // Formato do torneio (Edison, Vegas, Avançado, etc.)
   date: string;
   totalRounds: number; // 4 ou 5 rodadas
   currentRound: number;

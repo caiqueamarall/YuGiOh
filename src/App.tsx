@@ -25,7 +25,7 @@ import {
 import './App.css';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('ranking');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('tournament');
   const [players, setPlayers] = useState<Player[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
@@ -134,12 +134,13 @@ export function App() {
       if (!standing) return player; // Não participou deste torneio
 
       const isChampion = standing.playerId === championId;
-      const tournamentDeckUsed = playerDecks[player.id] || 'Quickdraw Dandy';
+      const tournamentDeckUsed = playerDecks[player.id] || 'Yugioh Deck';
       const isDropped = (completedTournament.droppedPlayerIds || []).includes(player.id);
 
       const newHistoryEntry: PlayerTournamentHistory = {
         tournamentId: completedTournament.id,
         tournamentName: completedTournament.name,
+        format: completedTournament.format,
         date: completedTournament.date,
         deckName: tournamentDeckUsed,
         decklist: completedTournament.playerDecklists?.[player.id],

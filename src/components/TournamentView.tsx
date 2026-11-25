@@ -21,12 +21,15 @@ import {
   UserPlus,
   Users,
   RotateCcw,
-  Layers,
   X,
   Search,
+  Sliders,
+  ArrowLeftRight,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import type { Player, Tournament, TournamentRound, Decklist } from '../types';
+import type { Player, Tournament, TournamentRound, Match, Decklist } from '../types';
 import {
   generateSwissPairings,
   calculateTournamentStandings,
@@ -68,7 +71,10 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
   };
 
   // Estado para criação de novo torneio
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [tournamentDate, setTournamentDate] = useState<string>(getTodayISO);
+  const [tournamentFormat, setTournamentFormat] = useState<string>('Edison');
   const [tournamentName, setTournamentName] = useState(() => {
     const d = new Date();
     const day = String(d.getDate()).padStart(2, '0');
@@ -93,6 +99,22 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
     }
   }, [selectedPlayerIds.length, hasUserChangedTopCut]);
 
+  // Ao mudar o formato do torneio, atualiza o nome padrão caso não tenha sido customizado
+  const handleFormatChange = (newFormat: string) => {
+    setTournamentFormat(newFormat);
+    if (tournamentDate) {
+      const parts = tournamentDate.split('-');
+      if (parts.length === 3) {
+        const [y, m, d] = parts;
+        const formattedDate = `${d}/${m}/${y}`;
+        const fmtName = newFormat.trim() || 'Yu-Gi-Oh!';
+        if (tournamentName.startsWith('Torneio ') || tournamentName.trim() === '') {
+          setTournamentName(`Torneio ${fmtName} #${formattedDate}`);
+        }
+      }
+    }
+  };
+
   // Ao mudar a data no calendário, atualiza o nome padrão caso não tenha sido customizado
   const handleDateChange = (newDate: string) => {
     setTournamentDate(newDate);
@@ -101,8 +123,9 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
     if (parts.length === 3) {
       const [y, m, d] = parts;
       const formattedDate = `${d}/${m}/${y}`;
-      if (tournamentName.startsWith('Torneio Edison #') || tournamentName.trim() === '') {
-        setTournamentName(`Torneio Edison #${formattedDate}`);
+      const fmtName = tournamentFormat.trim() || 'Yu-Gi-Oh!';
+      if (tournamentName.startsWith('Torneio ') || tournamentName.trim() === '') {
+        setTournamentName(`Torneio ${fmtName} #${formattedDate}`);
       }
     }
   };
@@ -150,6 +173,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
   // Controle de abas internas no torneio ativo
   const [showStandings, setShowStandings] = useState(false);
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
+  const [showEditRoundModal, setShowEditRoundModal] = useState(false);
+  const [manualMatches, setManualMatches] = useState<Match[]>([]);
   const [participantsModalTab, setParticipantsModalTab] = useState<'drops' | 'late-entry'>('drops');
   const [selectedLatePlayerId, setSelectedLatePlayerId] = useState<string>('');
   const [latePlayerDeck, setLatePlayerDeck] = useState<string>('');
@@ -187,7 +212,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
     });
   };
 
-  // Voltar para a rodada anterior (reverter rodada para correção de placares)
+  // Voltar para a rodada anterior (reverter rodada para correção de placares ou pareamentos)
   const handleRevertRound = () => {
     if (!activeTournament || activeTournament.currentRound <= 1) return;
     const currentRoundNum = activeTournament.currentRound;
@@ -213,6 +238,197 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
     });
   };
 
+  // Abrir modal de edição manual de rodada
+  const handleOpenEditRoundModal = () => {
+    if (!activeTournament) return;
+    const roundIdx = Math.max(0, (activeTournament.currentRound || 1) - 1);
+    const currentRnd = activeTournament.rounds?.[roundIdx];
+    const matches = currentRnd?.matches || [];
+    setManualMatches(JSON.parse(JSON.stringify(matches)));
+    setShowEditRoundModal(true);
+  };
+
+  const handleUpdateManualMatchPlayer = (matchIndex: number, slot: 'player1' | 'player2', playerId: string) => {
+    setManualMatches((prev) => {
+      const updated = [...prev];
+      const target = { ...updated[matchIndex] };
+      if (slot === 'player1') {
+        target.player1Id = playerId;
+      } else {
+        if (playerId === 'BYE') {
+          target.player2Id = null;
+          target.isBy = true;
+        } else {
+          target.player2Id = playerId;
+          target.isBy = false;
+        }
+      }
+      updated[matchIndex] = target;
+      return updated;
+    });
+  };
+
+  const handleSwapP1P2 = (matchIndex: number) => {
+    setManualMatches((prev) => {
+      const updated = [...prev];
+      const target = { ...updated[matchIndex] };
+      if (target.isBy || !target.player2Id) return prev;
+      const tmp = target.player1Id;
+      target.player1Id = target.player2Id;
+      target.player2Id = tmp;
+      updated[matchIndex] = target;
+      return updated;
+    });
+  };
+
+  const handleAddManualTable = () => {
+    if (!activeTournament) return;
+    setManualMatches((prev) => [
+      ...prev,
+      {
+        id: `manual-match-${Date.now()}-${prev.length + 1}`,
+        roundNumber: activeTournament.currentRound,
+        tableNumber: prev.length + 1,
+        player1Id: '',
+        player2Id: null,
+        isBy: true,
+        gameWins1: 2,
+        gameWins2: 0,
+        isCompleted: true,
+        isDraw: false,
+        isWO: false,
+        winnerId: null,
+      },
+    ]);
+  };
+
+  const handleRemoveManualTable = (index: number) => {
+    setManualMatches((prev) => {
+      const filtered = prev.filter((_, idx) => idx !== index);
+      return filtered.map((m, idx) => ({ ...m, tableNumber: idx + 1 }));
+    });
+  };
+
+  const handleSaveManualMatches = () => {
+    if (!activeTournament) return;
+    const currentRndIdx = activeTournament.currentRound - 1;
+    const currentRnd = activeTournament.rounds[currentRndIdx];
+    if (!currentRnd) return;
+
+    // Validações de jogadores
+    const activePlayerIds = activeTournament.playerIds.filter(
+      (pid) => !(activeTournament.droppedPlayerIds || []).includes(pid)
+    );
+
+    const hasEmptyP1 = manualMatches.some((m) => !m.player1Id);
+    if (hasEmptyP1) {
+      alert('Erro: Todas as mesas precisam ter o Jogador 1 selecionado.');
+      return;
+    }
+
+    const hasEmptyP2 = manualMatches.some((m) => !m.isBy && !m.player2Id);
+    if (hasEmptyP2) {
+      alert('Erro: Em mesas que não são BY, o Jogador 2 precisa ser selecionado.');
+      return;
+    }
+
+    const counts: Record<string, number> = {};
+    manualMatches.forEach((m) => {
+      if (m.player1Id) counts[m.player1Id] = (counts[m.player1Id] || 0) + 1;
+      if (m.player2Id) counts[m.player2Id] = (counts[m.player2Id] || 0) + 1;
+    });
+
+    const duplicates = Object.keys(counts).filter((pid) => counts[pid] > 1);
+    if (duplicates.length > 0) {
+      const dupNames = duplicates.map((id) => players.find((p) => p.id === id)?.name || id).join(', ');
+      alert(`Erro: Há jogador(es) alocado(s) em mais de uma mesa ao mesmo tempo:\n${dupNames}\n\nCada duelista deve estar em apenas 1 mesa.`);
+      return;
+    }
+
+    const unassigned = activePlayerIds.filter((pid) => !counts[pid]);
+    if (unassigned.length > 0) {
+      const unNames = unassigned.map((id) => players.find((p) => p.id === id)?.name || id).join(', ');
+      if (!confirm(`Atenção: Os seguintes duelistas participantes não foram alocados em nenhuma mesa:\n${unNames}\n\nDeseja salvar mesmo assim?`)) {
+        return;
+      }
+    }
+
+    if (
+      !confirm(
+        `Confirmar as alterações manuais dos pareamentos da Rodada ${activeTournament.currentRound}?\n\n• Os novos confrontos entrarão em vigor imediatamente.\n• Mesas com adversários alterados terão seus placares reiniciados para 0 - 0.`
+      )
+    ) {
+      return;
+    }
+
+    const oldMatches = currentRnd.matches;
+    const updatedMatches: Match[] = manualMatches.map((m, idx) => {
+      const isBy = m.player2Id === null || m.isBy;
+      const oldMatch = oldMatches.find(
+        (om) =>
+          (om.player1Id === m.player1Id && om.player2Id === m.player2Id) ||
+          (om.player1Id === m.player2Id && om.player2Id === m.player1Id)
+      );
+
+      if (isBy) {
+        return {
+          id: m.id || `match-${activeTournament.currentRound}-${idx + 1}-${Date.now()}`,
+          roundNumber: activeTournament.currentRound,
+          tableNumber: idx + 1,
+          player1Id: m.player1Id,
+          player2Id: null,
+          isBy: true,
+          gameWins1: 2,
+          gameWins2: 0,
+          isCompleted: true,
+          isDraw: false,
+          isWO: false,
+          winnerId: m.player1Id,
+        };
+      }
+
+      // Se manteve exatamente o mesmo confronto, preserva resultado
+      if (oldMatch && oldMatch.player1Id === m.player1Id && oldMatch.player2Id === m.player2Id) {
+        return {
+          ...oldMatch,
+          tableNumber: idx + 1,
+        };
+      }
+
+      // Confronto alterado ou novo
+      return {
+        id: `match-${activeTournament.currentRound}-${idx + 1}-${Date.now()}`,
+        roundNumber: activeTournament.currentRound,
+        tableNumber: idx + 1,
+        player1Id: m.player1Id,
+        player2Id: m.player2Id,
+        isBy: false,
+        gameWins1: 0,
+        gameWins2: 0,
+        isCompleted: false,
+        isDraw: false,
+        isWO: false,
+        winnerId: null,
+      };
+    });
+
+    const updatedRound: TournamentRound = {
+      ...currentRnd,
+      matches: updatedMatches,
+      isCompleted: updatedMatches.every((m) => m.isCompleted),
+    };
+
+    const updatedRounds = [...activeTournament.rounds];
+    updatedRounds[currentRndIdx] = updatedRound;
+
+    onUpdateActiveTournament({
+      ...activeTournament,
+      rounds: updatedRounds,
+    });
+
+    setShowEditRoundModal(false);
+  };
+
   // Entrada tardia: Adicionar duelista no meio do torneio
   const handleAddLatePlayer = () => {
     if (!activeTournament || !selectedLatePlayerId) {
@@ -226,7 +442,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
     const playerObj = players.find((p) => p.id === selectedLatePlayerId);
     const playerName = playerObj ? playerObj.name : 'o duelista';
-    const sanitizedDeck = latePlayerDeck.trim() || 'Edison Deck';
+    const sanitizedDeck = latePlayerDeck.trim() || 'Yugioh Deck';
 
     if (
       !window.confirm(
@@ -297,7 +513,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
     const currentName = activeTournament.playerDecks?.[playerId] || '';
     const newName = window.prompt('Digite o nome do deck para este duelista neste torneio:', currentName);
     if (newName !== null) {
-      const sanitized = newName.trim() || 'Edison Deck';
+      const sanitized = newName.trim() || 'Yugioh Deck';
       onUpdateActiveTournament({
         ...activeTournament,
         playerDecks: {
@@ -317,14 +533,15 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
     const sanitizedPlayerDecks: Record<string, string> = {};
     for (const pid of selectedPlayerIds) {
-      sanitizedPlayerDecks[pid] = (tournamentPlayerDecks[pid] || '').trim() || 'Edison Deck';
+      sanitizedPlayerDecks[pid] = (tournamentPlayerDecks[pid] || '').trim() || 'Yugioh Deck';
     }
 
     const finalDate = tournamentDate ? `${tournamentDate}T12:00:00` : new Date().toISOString();
 
     const newTournament: Tournament = {
       id: `tourn-${Date.now()}`,
-      name: tournamentName.trim() || 'Torneio Edison Format',
+      name: tournamentName.trim() || `Torneio ${tournamentFormat.trim() || 'Yu-Gi-Oh!'}`,
+      format: tournamentFormat.trim() || 'Edison',
       date: finalDate,
       totalRounds: totalRounds,
       currentRound: 1,
@@ -411,7 +628,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
         particleCount: 120,
         spread: 80,
         origin: { y: 0.6 },
-        colors: ['#F59E0B', '#10B981', '#8B5CF6', '#FBBF24', '#FFFFFF'],
+        colors: ['#F59E0B', '#10B981', '#0D6E62', '#FBBF24', '#FFFFFF'],
       });
     } catch {
       // Ignora se confetti não estiver disponível
@@ -444,334 +661,535 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
     return (
       <div className="view-container">
-        <div className="hero-banner">
-          <div className="hero-content">
-            <div className="hero-tag">
-              <Swords size={14} className="text-gold" />
-              <span>SISTEMA DE TORNEIO EDISON</span>
+        {/* Hero Card Moderno & Minimalista inspirado nos apps móveis de alta fidelidade */}
+        <div className="modern-hero-card">
+          <div className="modern-hero-header">
+            <div className="modern-hero-brand">
+              <div className="modern-hero-icon-pill">
+                <Swords size={18} />
+              </div>
+              <span className="modern-hero-badge">Torneio Suíço</span>
             </div>
-            <h2 className="hero-title">Criar Novo Torneio Suíço</h2>
-            <p className="hero-subtitle hide-on-xs">
-              Configure as rodadas, selecione os duelistas e inicie as disputas.
-            </p>
-          </div>
-        </div>
-
-        <div className="tournament-create-card">
-          {/* Linha 1: Nome do Torneio e Calendário da Data */}
-          <div className="form-grid-2col">
-            <div className="form-section">
-              <label className="form-label" htmlFor="input-tournament-name">
-                Nome do Torneio:
-              </label>
-              <input
-                id="input-tournament-name"
-                type="text"
-                className="input-large"
-                value={tournamentName}
-                onChange={(e) => setTournamentName(e.target.value)}
-                placeholder="Ex: Torneio Edison #08/10/2026"
-              />
-            </div>
-
-            <div className="form-section">
-              <label className="form-label" htmlFor="btn-tournament-date-picker">
-                <Calendar size={15} className="text-gold" />
-                <span>Data do Torneio:</span>
-              </label>
-              <CustomDatePicker
-                id="btn-tournament-date-picker"
-                value={tournamentDate}
-                onChange={handleDateChange}
-              />
-            </div>
+            <span className="modern-status-pill">
+              <span className="pulse-indicator-dot" />
+              Pronto
+            </span>
           </div>
 
-          {/* Linha 2: Rodadas e Checkbox de Pontuação para Liga vs Freeplay */}
-          <div className="form-grid-2col">
-            {/* Seletor de Rodadas */}
-            <div className="form-section">
-              <label className="form-label">Número de Rodadas:</label>
-              <div className="rounds-selector-grid">
-                <button
-                  type="button"
-                  id="btn-rounds-4"
-                  className={`btn-round-select ${totalRounds === 4 ? 'selected' : ''}`}
-                  onClick={() => setTotalRounds(4)}
-                >
-                  <span className="round-number">4</span>
-                  <span className="round-label-clean">Rodadas</span>
-                </button>
-                <button
-                  type="button"
-                  id="btn-rounds-5"
-                  className={`btn-round-select ${totalRounds === 5 ? 'selected' : ''}`}
-                  onClick={() => setTotalRounds(5)}
-                >
-                  <span className="round-number">5</span>
-                  <span className="round-label-clean">Rodadas</span>
-                </button>
-              </div>
-            </div>
+          <div className="modern-hero-body">
+            <h2 className="modern-hero-title">Gestão de Rodadas</h2>
 
-            {/* Caixa para marcar Liga ou Torneio */}
-            <div className="form-section">
-              <label className="form-label">Tipo de Torneio:</label>
-              <div
-                id="card-toggle-league-points"
-                className={`league-option-card ${countsForLeague ? 'selected-league' : 'selected-freeplay'}`}
-                onClick={() => setCountsForLeague(!countsForLeague)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === ' ' || e.key === 'Enter') {
-                    e.preventDefault();
-                    setCountsForLeague(!countsForLeague);
-                  }
-                }}
-              >
-                <div className="league-option-checkbox-wrapper">
-                  <input
-                    id="check-counts-league"
-                    type="checkbox"
-                    className="league-custom-checkbox"
-                    checked={countsForLeague}
-                    onChange={(e) => setCountsForLeague(e.target.checked)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-                <div className="league-option-info">
-                  <div className="league-option-title-row">
-                    {countsForLeague ? (
-                      <>
-                        <Trophy size={18} className="text-gold" />
-                        <span className="league-option-title">Liga</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={18} className="text-cyan" />
-                        <span className="league-option-title">Torneio</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Linha 3: Quantitativo de Duelistas no TOP */}
-          <div className="form-section">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-              <label className="form-label" style={{ marginBottom: 0 }}>Quantitativo do TOP (Pódio & Destaques):</label>
-              <span className="text-muted text-sm">
-                {selectedPlayerIds.length > 0
-                  ? `Sugestão p/ ${selectedPlayerIds.length} jogadores: TOP ${getDefaultTopCutForPlayerCount(selectedPlayerIds.length)}`
-                  : 'Defina a quantidade de duelistas em destaque'}
-              </span>
-            </div>
-            <div className="top-cut-selector-grid">
-              {[2, 3, 4, 5].map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  id={`btn-top-cut-${num}`}
-                  className={`btn-top-select ${topCut === num ? 'selected' : ''}`}
-                  onClick={() => {
-                    setTopCut(num);
-                    setHasUserChangedTopCut(true);
-                  }}
-                >
-                  <span className="top-cut-number">TOP {num}</span>
-                  <span className="top-cut-label">
-                    {num === 2 ? 'Finalistas' : num === 3 ? 'Pódio Clássico' : num === 4 ? 'Semifinalistas' : 'Top 5 Especial'}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Seleção de Duelistas e Escolha de Deck do Torneio */}
-          <div className="form-section">
-            <div className="player-selection-header">
-              <div>
-                <label className="form-label">Duelistas e Decks Participantes:</label>
-                <span className="text-muted text-sm">
-                  {selectedPlayerIds.length} de {players.filter((p) => p.active).length} selecionados
-                </span>
-              </div>
-              <div className="quick-selection-buttons">
-                <button
-                  type="button"
-                  id="btn-select-all-players"
-                  className="btn-text-action"
-                  onClick={selectAllPlayers}
-                >
-                  Selecionar Todos
-                </button>
-                <button
-                  type="button"
-                  id="btn-deselect-all-players"
-                  className="btn-text-action"
-                  onClick={deselectAllPlayers}
-                >
-                  Limpar
-                </button>
-              </div>
-            </div>
-
-            {isOdd && selectedPlayerIds.length > 0 && (
-              <div className="by-alert-box">
-                <AlertCircle size={18} className="text-gold" />
-                <div>
-                  <strong>Atenção: Número ímpar de participantes ({selectedPlayerIds.length})!</strong>
-                  <p>
-                    A cada rodada, 1 jogador receberá folga automática (BY), recebendo vitória e 3 pontos.
-                    Em caso de empate de pontos no final, quem teve BY terá menor prioridade no desempate.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Campo de Busca de Duelistas */}
-            <div className="roster-search-container">
-              <Search size={15} className="text-muted roster-search-icon" />
-              <input
-                type="text"
-                value={playerSearchQuery}
-                onChange={(e) => setPlayerSearchQuery(e.target.value)}
-                placeholder="Buscar duelista pelo nome..."
-                className="roster-search-input"
-              />
-              {playerSearchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setPlayerSearchQuery('')}
-                  className="btn-clear-roster-search"
-                  title="Limpar busca"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Grid reestruturado com espaçamentos confortáveis e seleção de deck do torneio */}
-            <div className="tournament-player-roster">
-              {(() => {
-                const activeList = players.filter((p) => p.active);
-                const filtered = activeList.filter((p) =>
-                  p.name.toLowerCase().includes(playerSearchQuery.toLowerCase().trim())
-                );
-
-                if (filtered.length === 0) {
-                  return (
-                    <div style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                      Nenhum duelista encontrado com o nome "{playerSearchQuery}".
-                    </div>
-                  );
-                }
-
-                return filtered.map((player) => {
-                  const isSelected = selectedPlayerIds.includes(player.id);
-                  const currentDeck = tournamentPlayerDecks[player.id] ?? '';
-
-                  return (
-                    <div
-                      key={player.id}
-                      className={`roster-player-row ${isSelected ? 'row-selected' : ''}`}
-                    >
-                      <div
-                        className="roster-left-toggle"
-                        onClick={() => togglePlayerSelection(player.id)}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {}}
-                          id={`check-player-${player.id}`}
-                          className="roster-checkbox"
-                        />
-                        <div
-                          className="player-avatar-sm"
-                          style={{ backgroundColor: player.avatarColor || '#3B82F6' }}
-                        >
-                          {player.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div className="roster-player-info">
-                          <span className="roster-player-name">{player.name}</span>
-                          {player.age ? (
-                            <span className="roster-player-age">{player.age} anos</span>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      {/* Escolha do Deck específico deste Torneio */}
-                      <div className="roster-deck-selector">
-                        <label className="roster-deck-label" htmlFor={`input-deck-${player.id}`} title="Deck neste Torneio">
-                          <Shield size={13} className="text-gold" style={{ flexShrink: 0 }} />
-                          <span className="roster-deck-label-text">Deck:</span>
-                        </label>
-                        <div className="roster-deck-input-group">
-                          <input
-                            id={`input-deck-${player.id}`}
-                            type="text"
-                            value={currentDeck}
-                            disabled={!isSelected}
-                            onChange={(e) => handleDeckChange(player.id, e.target.value)}
-                            placeholder="Nome do deck..."
-                            className="input-roster-deck"
-                          />
-                          {isSelected && (() => {
-                            const dl = tournamentPlayerDecklists[player.id];
-                            const hasDl = dl && (dl.mainDeck?.length > 0 || dl.extraDeck?.length > 0);
-                            const countTotal = hasDl
-                              ? dl.mainDeck.reduce((a, b) => a + (b.count || 1), 0)
-                              : 0;
-                            return (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setActiveDecklistModal({
-                                    playerId: player.id,
-                                    playerName: player.name,
-                                    deckName: currentDeck || 'Edison Deck',
-                                    decklist: dl || null,
-                                    isPreTournament: true,
-                                  })
-                                }
-                                className={hasDl ? 'badge-decklist-has' : 'btn-decklist-add'}
-                                title="Montar ou visualizar Decklist (opcional)"
-                              >
-                                <Layers size={11} style={{ flexShrink: 0 }} />
-                                <span>{hasDl ? `Decklist (${countTotal})` : '+ Decklist'}</span>
-                              </button>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-
-          <div className="create-actions">
             <button
-              id="btn-start-tournament-submit"
-              className="btn-start-tournament"
-              disabled={selectedPlayerIds.length < 2}
-              onClick={handleCreateTournament}
+              type="button"
+              className="btn-modern-primary"
+              onClick={() => setShowCreateModal(true)}
+              id="btn-open-create-tournament"
             >
-              <Flame size={20} />
-              <span>
-                {countsForLeague
-                  ? 'Iniciar Torneio da Liga e Gerar 1ª Rodada'
-                  : 'Iniciar Torneio Freeplay e Gerar 1ª Rodada'}
-              </span>
-              <ArrowRight size={20} />
+              <Flame size={18} />
+              <span>Configurar e Iniciar Torneio</span>
+              <ArrowRight size={18} />
             </button>
           </div>
         </div>
+
+        {/* Grade de Atalhos Rápidos Minimalista (Sem textos extensos) */}
+        <div className="modern-shortcuts-grid">
+          <button
+            type="button"
+            className="modern-shortcut-card"
+            onClick={() => setShowRulesModal(true)}
+          >
+            <div className="modern-shortcut-icon" style={{ background: '#ECFDF5', color: '#0D6E62' }}>
+              <Shield size={18} />
+            </div>
+            <div className="modern-shortcut-text">
+              <span className="modern-shortcut-title">Regras do Formato</span>
+              <span className="modern-shortcut-sub">Banlist e prioridades</span>
+            </div>
+            <ChevronRight size={16} className="modern-shortcut-chevron" />
+          </button>
+
+          <button
+            type="button"
+            className="modern-shortcut-card"
+            onClick={() => setSelectedStatModal('OMW')}
+          >
+            <div className="modern-shortcut-icon" style={{ background: '#FFFBEB', color: '#D97706' }}>
+              <Trophy size={18} />
+            </div>
+            <div className="modern-shortcut-text">
+              <span className="modern-shortcut-title">Critérios de Desempate</span>
+              <span className="modern-shortcut-sub">OMW% e Buchholz</span>
+            </div>
+            <ChevronRight size={16} className="modern-shortcut-chevron" />
+          </button>
+        </div>
+
+        {/* ========================================================
+            MODAL DE CONFIGURAÇÃO DE NOVO TORNEIO
+            Habilita uma janela limpa e organizada para o usuário configurar
+            as opções e escolher os duelistas participantes sem poluir a tela.
+            ======================================================== */}
+        {showCreateModal && (
+          <div className="modal-backdrop" onClick={() => setShowCreateModal(false)}>
+            <div
+              className="modal-tournament-setup"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header do Modal */}
+              <div className="modal-setup-header">
+                <div>
+                  <h3 className="modal-setup-title">Configurar Novo Torneio</h3>
+                  <p className="modal-setup-subtitle">
+                    Defina rodadas, nome e selecione os duelistas participantes
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close-modal"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Corpo Scrollável do Modal */}
+              <div className="modal-setup-body">
+                {/* Formato do Torneio */}
+                <div className="form-section" style={{ marginBottom: 0 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '4px' }}>
+                    <label className="form-label" htmlFor="input-tournament-format" style={{ marginBottom: 0 }}>
+                      <Sparkles size={14} className="text-gold" />
+                      <span>Formato do Torneio</span>
+                    </label>
+                    <span style={{ fontSize: '11.5px', color: '#64748B' }}>
+                      Digite ou escolha um formato abaixo:
+                    </span>
+                  </div>
+                  <input
+                    id="input-tournament-format"
+                    type="text"
+                    className="input-large"
+                    value={tournamentFormat}
+                    onChange={(e) => handleFormatChange(e.target.value)}
+                    placeholder="Ex: Edison, Vegas, Avançado, GOAT..."
+                    style={{ marginBottom: '6px' }}
+                  />
+                  {/* Atalhos Rápidos de Formato */}
+                  <div className="format-shortcuts-grid">
+                    {['Edison', 'Vegas', 'Avançado', 'GOAT', 'HAT', 'Moderno'].map((fmt) => {
+                      const isActiveFmt = tournamentFormat.toLowerCase() === fmt.toLowerCase();
+                      return (
+                        <button
+                          key={fmt}
+                          type="button"
+                          onClick={() => handleFormatChange(fmt)}
+                          className={`btn-format-shortcut ${isActiveFmt ? 'active' : ''}`}
+                        >
+                          {fmt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Linha 1: Nome do Torneio e Calendário da Data */}
+                <div className="form-grid-2col">
+                  <div className="form-section">
+                    <label className="form-label" htmlFor="input-tournament-name">
+                      Nome do Torneio:
+                    </label>
+                    <input
+                      id="input-tournament-name"
+                      type="text"
+                      className="input-large"
+                      value={tournamentName}
+                      onChange={(e) => setTournamentName(e.target.value)}
+                      placeholder={`Ex: Torneio ${tournamentFormat || 'Yu-Gi-Oh!'} #08/10/2026`}
+                    />
+                  </div>
+
+                  <div className="form-section">
+                    <label className="form-label" htmlFor="btn-tournament-date-picker">
+                      <Calendar size={15} className="text-gold" />
+                      <span>Data do Torneio:</span>
+                    </label>
+                    <CustomDatePicker
+                      id="btn-tournament-date-picker"
+                      value={tournamentDate}
+                      onChange={handleDateChange}
+                    />
+                  </div>
+                </div>
+
+                {/* Linha 2: Rodadas e Checkbox de Pontuação para Liga vs Freeplay */}
+                <div className="form-grid-2col">
+                  {/* Seletor de Rodadas */}
+                  <div className="form-section">
+                    <label className="form-label">Número de Rodadas:</label>
+                    <div className="rounds-selector-grid">
+                      <button
+                        type="button"
+                        id="btn-rounds-4"
+                        className={`btn-round-select ${totalRounds === 4 ? 'selected' : ''}`}
+                        onClick={() => setTotalRounds(4)}
+                      >
+                        <span className="round-number">4</span>
+                        <span className="round-label-clean">Rodadas</span>
+                      </button>
+                      <button
+                        type="button"
+                        id="btn-rounds-5"
+                        className={`btn-round-select ${totalRounds === 5 ? 'selected' : ''}`}
+                        onClick={() => setTotalRounds(5)}
+                      >
+                        <span className="round-number">5</span>
+                        <span className="round-label-clean">Rodadas</span>
+                      </button>
+                      <div
+                        className={`custom-round-input-card ${totalRounds !== 4 && totalRounds !== 5 ? 'selected' : ''}`}
+                      >
+                        <input
+                          id="input-custom-rounds"
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={totalRounds}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            if (!isNaN(val) && val >= 1 && val <= 20) {
+                              setTotalRounds(val);
+                            }
+                          }}
+                          className="custom-round-number-input"
+                          aria-label="Inserir número de rodadas personalizado"
+                        />
+                        <span className="round-label-clean">Outro</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Caixa para marcar Liga ou Torneio */}
+                  <div className="form-section">
+                    <label className="form-label">Tipo de Torneio:</label>
+                    <div
+                      id="card-toggle-league-points"
+                      className={`league-option-card ${countsForLeague ? 'selected-league' : 'selected-freeplay'}`}
+                      onClick={() => setCountsForLeague(!countsForLeague)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          setCountsForLeague(!countsForLeague);
+                        }
+                      }}
+                    >
+                      <div className="league-option-checkbox-wrapper">
+                        <input
+                          id="check-counts-league"
+                          type="checkbox"
+                          className="league-custom-checkbox"
+                          checked={countsForLeague}
+                          onChange={(e) => setCountsForLeague(e.target.checked)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="league-option-info">
+                        <div className="league-option-title-row">
+                          {countsForLeague ? (
+                            <>
+                              <Trophy size={18} className="text-gold" />
+                              <span className="league-option-title">Oficial da Liga</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={18} className="text-cyan" />
+                              <span className="league-option-title">Torneio Freeplay</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Linha 3: Quantitativo de Duelistas no TOP */}
+                <div className="form-section">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '8px' }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>
+                      <Award size={14} className="text-gold" />
+                      <span>Quantitativo do TOP:</span>
+                    </label>
+                    <span style={{ fontSize: '11.5px', color: '#64748B' }}>
+                      {selectedPlayerIds.length > 0
+                        ? `Sugestão para ${selectedPlayerIds.length} jogadores: TOP ${getDefaultTopCutForPlayerCount(selectedPlayerIds.length)}`
+                        : 'Defina a quantidade de duelistas em destaque'}
+                    </span>
+                  </div>
+                  <div className="top-cut-selector-grid">
+                    {[2, 3, 4, 5].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        id={`btn-top-cut-${num}`}
+                        className={`btn-top-select ${topCut === num ? 'selected' : ''}`}
+                        onClick={() => {
+                          setTopCut(num);
+                          setHasUserChangedTopCut(true);
+                        }}
+                        style={{ padding: '12px 6px' }}
+                      >
+                        <span className="top-cut-number">TOP {num}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Seleção de Duelistas e Nome do Deck */}
+                <div className="form-section">
+                  <div className="player-selection-header">
+                    <div>
+                      <label className="form-label">Duelistas e Decks Participantes:</label>
+                      <span className="text-muted text-sm">
+                        {selectedPlayerIds.length} de {players.filter((p) => p.active).length} selecionados
+                      </span>
+                    </div>
+                    <div className="quick-selection-buttons">
+                      <button
+                        type="button"
+                        id="btn-select-all-players"
+                        className="btn-text-action"
+                        onClick={selectAllPlayers}
+                      >
+                        Selecionar Todos
+                      </button>
+                      <button
+                        type="button"
+                        id="btn-deselect-all-players"
+                        className="btn-text-action"
+                        onClick={deselectAllPlayers}
+                      >
+                        Limpar
+                      </button>
+                    </div>
+                  </div>
+
+                  {isOdd && selectedPlayerIds.length > 0 && (
+                    <div className="by-alert-box">
+                      <AlertCircle size={18} className="text-gold" />
+                      <div>
+                        <strong>Atenção: Número ímpar de participantes ({selectedPlayerIds.length})!</strong>
+                        <p>
+                          A cada rodada, 1 jogador receberá folga automática (BY), recebendo vitória e 3 pontos.
+                          Em caso de empate de pontos no final, quem teve BY terá menor prioridade no desempate.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Campo de Busca de Duelistas */}
+                  <div className="roster-search-container">
+                    <Search size={15} className="text-muted roster-search-icon" />
+                    <input
+                      type="text"
+                      value={playerSearchQuery}
+                      onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                      placeholder="Buscar duelista pelo nome..."
+                      className="roster-search-input"
+                    />
+                    {playerSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setPlayerSearchQuery('')}
+                        className="btn-clear-roster-search"
+                        title="Limpar busca"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Grid de Duelistas com Checkbox e Nome do Deck */}
+                  <div className="tournament-player-roster">
+                    {(() => {
+                      const activeList = players.filter((p) => p.active);
+                      const filtered = activeList.filter((p) =>
+                        p.name.toLowerCase().includes(playerSearchQuery.toLowerCase().trim())
+                      );
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                            Nenhum duelista encontrado com o nome "{playerSearchQuery}".
+                          </div>
+                        );
+                      }
+
+                      return filtered.map((player) => {
+                        const isSelected = selectedPlayerIds.includes(player.id);
+                        const currentDeck = tournamentPlayerDecks[player.id] ?? '';
+
+                        return (
+                          <div
+                            key={player.id}
+                            className={`roster-player-row ${isSelected ? 'row-selected' : ''}`}
+                          >
+                            <div
+                              className="roster-left-toggle"
+                              onClick={() => togglePlayerSelection(player.id)}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => {}}
+                                id={`check-player-${player.id}`}
+                                className="roster-checkbox"
+                              />
+                              <div
+                                className="player-avatar-sm"
+                                style={{ backgroundColor: player.avatarColor || '#3B82F6' }}
+                              >
+                                {player.name.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div className="roster-player-info">
+                                <span className="roster-player-name">{player.name}</span>
+                                {player.age ? (
+                                  <span className="roster-player-age">{player.age} anos</span>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {/* Escolha do Deck específico deste Torneio (Nome apenas para máxima leveza) */}
+                            <div className="roster-deck-selector">
+                              <label className="roster-deck-label" htmlFor={`input-deck-${player.id}`} title="Deck neste Torneio">
+                                <Shield size={13} className="text-gold" style={{ flexShrink: 0 }} />
+                                <span className="roster-deck-label-text">Deck:</span>
+                              </label>
+                              <div className="roster-deck-input-group">
+                                <input
+                                  id={`input-deck-${player.id}`}
+                                  type="text"
+                                  value={currentDeck}
+                                  disabled={!isSelected}
+                                  onChange={(e) => handleDeckChange(player.id, e.target.value)}
+                                  placeholder="Nome do deck..."
+                                  className="input-roster-deck"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer do Modal com Botões de Ação */}
+              <div className="modal-setup-footer">
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  id="btn-start-tournament-submit"
+                  className="btn-modal-submit-tournament"
+                  disabled={selectedPlayerIds.length < 2}
+                  onClick={() => {
+                    handleCreateTournament();
+                    setShowCreateModal(false);
+                  }}
+                >
+                  <span>Iniciar Torneio ({selectedPlayerIds.length})</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================
+            MODAL DE REGULAMENTO EDISON FORMAT 2010
+            ======================================================== */}
+        {showRulesModal && (
+          <div className="modal-backdrop" onClick={() => setShowRulesModal(false)}>
+            <div
+              className="modal-tournament-setup"
+              style={{ maxWidth: '480px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-setup-header">
+                <div>
+                  <h3 className="modal-setup-title">Regulamento Edison Format</h3>
+                  <p className="modal-setup-subtitle">Regras Oficiais Históricas (Abril de 2010)</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close-modal"
+                  onClick={() => setShowRulesModal(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="modal-setup-body" style={{ gap: '14px', fontSize: '13px', lineHeight: 1.5, color: '#334155' }}>
+                <div style={{ background: '#F8FAFC', padding: '14px', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                  <h4 style={{ fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0', fontSize: '12px', lineHeight: 1.25, whiteSpace: 'nowrap', letterSpacing: '-0.015em' }}>
+                    1. Prioridade de Invocação (Ignition Priority)
+                  </h4>
+                  <p style={{ margin: 0, textAlign: 'justify' }}>
+                    No Edison Format, o duelista do turno tem prioridade para ativar o efeito de ignição de monstros (ex: Judgment Dragon, Dark Armed Dragon, Brionac, Snipe Hunter) imediatamente após sua Invocação Normal/Especial bem-sucedida, antes de cartas como Bottomless Trap Hole ou Torrential Tribute resolverem.
+                  </p>
+                </div>
+
+                <div style={{ background: '#F8FAFC', padding: '14px', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                  <h4 style={{ fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0', fontSize: '12px', lineHeight: 1.25, whiteSpace: 'nowrap', letterSpacing: '-0.015em' }}>
+                    2. Pontuação e Sistema Suíço Oficial
+                  </h4>
+                  <p style={{ margin: 0, textAlign: 'justify' }}>
+                    • <strong>Vitória na Rodada</strong>: 3 Pontos<br />
+                    • <strong>Empate</strong>: 1 Ponto cada<br />
+                    • <strong>Derrota</strong>: 0 Pontos<br />
+                    • <strong>BY (Folga em número ímpar)</strong>: Vitória automática e 3 pontos (menor prioridade em caso de desempate).
+                  </p>
+                </div>
+
+                <div style={{ background: '#F8FAFC', padding: '14px', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                  <h4 style={{ fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0', fontSize: '12px', lineHeight: 1.25, whiteSpace: 'nowrap', letterSpacing: '-0.015em' }}>
+                    3. Critérios de Desempate (Buchholz / OMW%)
+                  </h4>
+                  <p style={{ margin: 0, textAlign: 'justify' }}>
+                    O sistema calcula automaticamente o aproveitamento dos oponentes enfrentados (OMW% com piso de 33%), saldo de games (+2, +1, -1, -2), confronto direto, PGW% e OGW%.
+                  </p>
+                </div>
+              </div>
+
+              <div className="modal-setup-footer">
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  style={{ width: '100%', textAlign: 'center' }}
+                  onClick={() => setShowRulesModal(false)}
+                >
+                  Entendi e Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal explicativo com regras oficiais de desempate Suíço (PMW, OMW, PGW, OGW) */}
+        {selectedStatModal && (
+          <StatInfoModal
+            statType={selectedStatModal}
+            onClose={() => setSelectedStatModal(null)}
+          />
+        )}
       </div>
     );
   }
@@ -884,50 +1302,18 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 <div className="tiebreaker-item" title="Player Match Win Percentage">
                   <span className="tb-code">PMW%</span>
                   <span className="tb-label">Player Match Win %</span>
-                  <button
-                    type="button"
-                    className="btn-tb-info"
-                    onClick={() => setSelectedStatModal('PMW')}
-                    title="Clique para entender o PMW%"
-                  >
-                    <Info size={13} />
-                  </button>
                 </div>
                 <div className="tiebreaker-item" title="Opponents' Match Win Percentage">
                   <span className="tb-code">OMW%</span>
                   <span className="tb-label">Opponents' Match Win %</span>
-                  <button
-                    type="button"
-                    className="btn-tb-info"
-                    onClick={() => setSelectedStatModal('OMW')}
-                    title="Clique para entender o OMW% (Mínimos)"
-                  >
-                    <Info size={13} />
-                  </button>
                 </div>
                 <div className="tiebreaker-item" title="Player Game Win Percentage">
                   <span className="tb-code">PGW%</span>
                   <span className="tb-label">Player Game Win %</span>
-                  <button
-                    type="button"
-                    className="btn-tb-info"
-                    onClick={() => setSelectedStatModal('PGW')}
-                    title="Clique para entender o PGW%"
-                  >
-                    <Info size={13} />
-                  </button>
                 </div>
                 <div className="tiebreaker-item" title="Opponents' Game Win Percentage">
                   <span className="tb-code">OGW%</span>
                   <span className="tb-label">Opponents' Game Win %</span>
-                  <button
-                    type="button"
-                    className="btn-tb-info"
-                    onClick={() => setSelectedStatModal('OGW')}
-                    title="Clique para entender o OGW%"
-                  >
-                    <Info size={13} />
-                  </button>
                 </div>
               </div>
               <div className="tiebreaker-rule-note">
@@ -982,7 +1368,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                       <td>
                         <span className="player-deck-badge">
                           <Shield size={11} />
-                          {playerDecks[s.playerId] || 'Edison'}
+                          {playerDecks[s.playerId] || 'Yugioh Deck'}
                         </span>
                       </td>
                       <td>
@@ -1085,6 +1471,14 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Modal explicativo com regras oficiais de desempate Suíço (PMW, OMW, PGW, OGW) */}
+        {selectedStatModal && (
+          <StatInfoModal
+            statType={selectedStatModal}
+            onClose={() => setSelectedStatModal(null)}
+          />
+        )}
       </div>
     );
   }
@@ -1112,6 +1506,23 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
           <div className="round-badge">
             <Flame size={16} className="text-gold" />
             <span>{activeTournament.name}</span>
+            {activeTournament.format && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  background: '#ECFDF5',
+                  color: '#047857',
+                  border: '1px solid #A7F3D0',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {activeTournament.format}
+              </span>
+            )}
             {activeTournament.countsForLeague !== false ? (
               <span className="badge-league-official">Oficial da Liga</span>
             ) : (
@@ -1139,48 +1550,64 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
         <div className="round-hero-buttons">
           <button
             id="btn-toggle-tournament-standings"
+            type="button"
             className={`btn-secondary-action ${showStandings ? 'active' : ''}`}
             onClick={() => setShowStandings(!showStandings)}
+            title="Exibir ou ocultar classificação do torneio"
           >
             <Eye size={15} />
             <span>{showStandings ? 'Ocultar' : 'Classificação'}</span>
           </button>
+
+          <button
+            type="button"
+            className="btn-secondary-action"
+            onClick={handleOpenEditRoundModal}
+            title="Editar pareamentos e mesas manualmente"
+          >
+            <Sliders size={15} />
+            <span>Editar Rodada</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn-secondary-action"
+            onClick={() => setShowParticipantsModal(true)}
+            title="Gerenciar duelistas e registrar desistências"
+          >
+            <Users size={15} />
+            <span>
+              Participantes & Drops
+              {(activeTournament.droppedPlayerIds?.length || 0) > 0
+                ? ` (${activeTournament.droppedPlayerIds!.length})`
+                : ''}
+            </span>
+          </button>
+
           {activeTournament.currentRound > 1 && (
             <button
-              id="btn-revert-round"
+              type="button"
               className="btn-secondary-action"
               onClick={handleRevertRound}
-              title="Voltar para a rodada anterior para corrigir placares e mesas"
-              style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24' }}
+              title="Voltar para a rodada anterior"
             >
-              <RotateCcw size={14} />
+              <RotateCcw size={15} />
               <span>Voltar Rodada</span>
             </button>
           )}
+
           <button
-            id="btn-manage-drops"
-            className="btn-secondary-action"
-            onClick={() => setShowParticipantsModal(true)}
-            style={{
-              borderColor: (activeTournament.droppedPlayerIds?.length || 0) > 0 ? '#ef4444' : undefined,
-              color: (activeTournament.droppedPlayerIds?.length || 0) > 0 ? '#fca5a5' : undefined,
-            }}
-            title="Gerenciar participantes, drops e adicionar jogador"
-          >
-            <Users size={15} />
-            <span>Participantes{(activeTournament.droppedPlayerIds?.length || 0) > 0 ? ` (${activeTournament.droppedPlayerIds!.length})` : ''}</span>
-          </button>
-          <button
-            id="btn-cancel-tournament"
+            type="button"
             className="btn-danger-ghost"
             onClick={() => {
-              if (confirm('Tem certeza de que deseja cancelar este torneio em andamento?')) {
+              if (confirm('Tem certeza de que deseja cancelar este torneio em andamento?\n\nOs confrontos e placares da rodada atual serão descartados.')) {
                 onCancelTournament();
               }
             }}
-            title="Cancelar Torneio"
+            title="Cancelar o torneio em andamento"
           >
-            Cancelar
+            <X size={15} />
+            <span>Cancelar Torneio</span>
           </button>
         </div>
       </div>
@@ -1211,50 +1638,18 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
               <div className="tiebreaker-item" title="Player Match Win Percentage">
                 <span className="tb-code">PMW%</span>
                 <span className="tb-label">Player Match Win %</span>
-                <button
-                  type="button"
-                  className="btn-tb-info"
-                  onClick={() => setSelectedStatModal('PMW')}
-                  title="Clique para entender o PMW%"
-                >
-                  <Info size={13} />
-                </button>
               </div>
               <div className="tiebreaker-item" title="Opponents' Match Win Percentage">
                 <span className="tb-code">OMW%</span>
                 <span className="tb-label">Opponents' Match Win %</span>
-                <button
-                  type="button"
-                  className="btn-tb-info"
-                  onClick={() => setSelectedStatModal('OMW')}
-                  title="Clique para entender o OMW% (Mínimos)"
-                >
-                  <Info size={13} />
-                </button>
               </div>
               <div className="tiebreaker-item" title="Player Game Win Percentage">
                 <span className="tb-code">PGW%</span>
                 <span className="tb-label">Player Game Win %</span>
-                <button
-                  type="button"
-                  className="btn-tb-info"
-                  onClick={() => setSelectedStatModal('PGW')}
-                  title="Clique para entender o PGW%"
-                >
-                  <Info size={13} />
-                </button>
               </div>
               <div className="tiebreaker-item" title="Opponents' Game Win Percentage">
                 <span className="tb-code">OGW%</span>
                 <span className="tb-label">Opponents' Game Win %</span>
-                <button
-                  type="button"
-                  className="btn-tb-info"
-                  onClick={() => setSelectedStatModal('OGW')}
-                  title="Clique para entender o OGW%"
-                >
-                  <Info size={13} />
-                </button>
               </div>
             </div>
             <div className="tiebreaker-rule-note">
@@ -1317,39 +1712,10 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                           >
                             <Shield size={11} style={{ flexShrink: 0 }} />
                             <span className="standings-deck-name-text">
-                              {playerDecks[s.playerId] || 'Edison'}
+                              {playerDecks[s.playerId] || 'Yugioh Deck'}
                             </span>
                             <Edit2 size={10} style={{ opacity: 0.7, marginLeft: '3px', flexShrink: 0 }} />
                           </span>
-                        </div>
-
-                        <div className="standings-deck-actions-row">
-                          {(() => {
-                            const dl = activeTournament.playerDecklists?.[s.playerId];
-                            const hasDl = dl && ((dl.mainDeck?.length || 0) > 0 || (dl.extraDeck?.length || 0) > 0);
-                            const countTotal = hasDl
-                              ? dl.mainDeck.reduce((a, b) => a + (b.count || 1), 0)
-                              : 0;
-                            return (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setActiveDecklistModal({
-                                    playerId: s.playerId,
-                                    playerName: s.playerName,
-                                    deckName: playerDecks[s.playerId] || 'Edison Deck',
-                                    decklist: dl || null,
-                                    isPreTournament: false,
-                                  })
-                                }
-                                className={hasDl ? 'badge-decklist-has' : 'btn-decklist-add'}
-                                title={hasDl ? `Ver Decklist (${countTotal} cartas)` : 'Adicionar Decklist (opcional)'}
-                              >
-                                <Layers size={11} style={{ flexShrink: 0 }} />
-                                <span>{hasDl ? `Decklist (${countTotal})` : '+ Decklist'}</span>
-                              </button>
-                            );
-                          })()}
                         </div>
                       </div>
                     </td>
@@ -1434,8 +1800,8 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
         {currentRound.matches.map((match) => {
           const p1 = playerMap.get(match.player1Id);
           const p2 = match.player2Id ? playerMap.get(match.player2Id) : null;
-          const p1Deck = playerDecks[match.player1Id] || 'Edison Deck';
-          const p2Deck = match.player2Id ? playerDecks[match.player2Id] || 'Edison Deck' : '';
+          const p1Deck = playerDecks[match.player1Id] || 'Yugioh Deck';
+          const p2Deck = match.player2Id ? playerDecks[match.player2Id] || 'Yugioh Deck' : '';
 
           // Se for uma mesa de BY
           if (match.isBy) {
@@ -1543,7 +1909,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 <div className={`duelist-side ${p2IsWinner ? 'winner-side' : ''}`}>
                   <div
                     className="duelist-avatar"
-                    style={{ backgroundColor: p2?.avatarColor || '#8B5CF6' }}
+                    style={{ backgroundColor: p2?.avatarColor || '#0D6E62' }}
                   >
                     {p2?.name.substring(0, 2).toUpperCase()}
                   </div>
@@ -1555,15 +1921,25 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 </div>
               </div>
 
-              {/* Botões rápidos de inserção de resultado Melhor de 3 */}
+              {/* Botões rápidos de inserção de resultado em 3 colunas (formato clássico) */}
               <div className="score-presets-section">
-                <span className="presets-label">Inserir Placar Bo3:</span>
+                <span className="presets-label">Inserir Placar:</span>
                 <div className="presets-aligned-container">
                   {/* Lado Esquerdo: Favorece Jogador 1 */}
                   <div className="preset-side preset-side-left">
                     <span className="preset-side-title" title={p1?.name}>
                       {p1?.name || 'Jogador 1'}
                     </span>
+                    <button
+                      type="button"
+                      className={`btn-preset btn-preset-win ${p1IsWinner && !match.isWO && match.gameWins1 === 3 && match.gameWins2 === 0 ? 'preset-active' : ''}`}
+                      onClick={() =>
+                        handleSetMatchScore(currentRoundIndex, match.id, 3, 0, false, false, match.player1Id)
+                      }
+                      title={`Vitória 3-0 para ${p1?.name}`}
+                    >
+                      3 - 0
+                    </button>
                     <button
                       type="button"
                       className={`btn-preset btn-preset-win ${p1IsWinner && !match.isWO && match.gameWins1 === 2 && match.gameWins2 === 0 ? 'preset-active' : ''}`}
@@ -1636,6 +2012,16 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                     <span className="preset-side-title" title={p2?.name}>
                       {p2?.name || 'Jogador 2'}
                     </span>
+                    <button
+                      type="button"
+                      className={`btn-preset btn-preset-win ${p2IsWinner && !match.isWO && match.gameWins1 === 0 && match.gameWins2 === 3 ? 'preset-active' : ''}`}
+                      onClick={() =>
+                        handleSetMatchScore(currentRoundIndex, match.id, 0, 3, false, false, match.player2Id)
+                      }
+                      title={`Vitória 0-3 para ${p2?.name}`}
+                    >
+                      0 - 3
+                    </button>
                     <button
                       type="button"
                       className={`btn-preset btn-preset-win ${p2IsWinner && !match.isWO && match.gameWins1 === 0 && match.gameWins2 === 2 ? 'preset-active' : ''}`}
@@ -1724,18 +2110,18 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
       {showParticipantsModal && (
         <div className="modal-backdrop" onClick={() => setShowParticipantsModal(false)}>
           <div
-            className="modal-content"
+            className="modal-card modal-content-card"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '540px', width: '92%' }}
+            style={{ maxWidth: '500px', width: '100%' }}
           >
-            <div className="modal-header">
+            <div className="modal-header-row" style={{ padding: '16px 20px', borderBottom: '1px solid #E2E8F0', background: '#FFFFFF' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={20} className="text-gold" />
-                <h3 className="modal-title">Participantes do Torneio</h3>
+                <Users size={18} style={{ color: '#0D6E62' }} />
+                <h3 className="modal-title" style={{ margin: 0 }}>Participantes do Torneio</h3>
               </div>
               <button
                 type="button"
-                className="btn-icon"
+                className="btn-close-modal"
                 onClick={() => setShowParticipantsModal(false)}
                 title="Fechar"
               >
@@ -1748,8 +2134,9 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
               style={{
                 display: 'flex',
                 gap: '8px',
-                padding: '12px 16px 0',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                padding: '10px 16px 0',
+                background: '#FFFFFF',
+                borderBottom: '1px solid #E2E8F0',
               }}
             >
               <button
@@ -1759,15 +2146,15 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '8px 16px',
-                  fontSize: '13px',
+                  padding: '8px 14px',
+                  fontSize: '12.5px',
                   fontWeight: 700,
-                  background: participantsModalTab === 'drops' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                  color: participantsModalTab === 'drops' ? '#f87171' : '#94a3b8',
+                  background: participantsModalTab === 'drops' ? '#FEF2F2' : 'transparent',
+                  color: participantsModalTab === 'drops' ? '#DC2626' : '#64748B',
                   border: 'none',
-                  borderBottom: participantsModalTab === 'drops' ? '2px solid #ef4444' : '2px solid transparent',
+                  borderBottom: participantsModalTab === 'drops' ? '2px solid #EF4444' : '2px solid transparent',
                   cursor: 'pointer',
-                  borderRadius: '6px 6px 0 0',
+                  borderRadius: '8px 8px 0 0',
                 }}
               >
                 <UserMinus size={15} />
@@ -1775,7 +2162,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 {(activeTournament.droppedPlayerIds?.length || 0) > 0 && (
                   <span
                     style={{
-                      background: '#ef4444',
+                      background: '#EF4444',
                       color: '#fff',
                       fontSize: '10px',
                       padding: '1px 6px',
@@ -1794,15 +2181,15 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '8px 16px',
-                  fontSize: '13px',
+                  padding: '8px 14px',
+                  fontSize: '12.5px',
                   fontWeight: 700,
-                  background: participantsModalTab === 'late-entry' ? 'rgba(52, 211, 153, 0.15)' : 'transparent',
-                  color: participantsModalTab === 'late-entry' ? '#34d399' : '#94a3b8',
+                  background: participantsModalTab === 'late-entry' ? '#ECFDF5' : 'transparent',
+                  color: participantsModalTab === 'late-entry' ? '#0D6E62' : '#64748B',
                   border: 'none',
-                  borderBottom: participantsModalTab === 'late-entry' ? '2px solid #34d399' : '2px solid transparent',
+                  borderBottom: participantsModalTab === 'late-entry' ? '2px solid #059669' : '2px solid transparent',
                   cursor: 'pointer',
-                  borderRadius: '6px 6px 0 0',
+                  borderRadius: '8px 8px 0 0',
                 }}
               >
                 <UserPlus size={15} />
@@ -1810,34 +2197,35 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
               </button>
             </div>
 
-            <div style={{ padding: '16px' }}>
+            <div style={{ padding: '16px', overflowY: 'auto', flex: 1 }}>
               {participantsModalTab === 'drops' ? (
                 <>
                   <div
                     style={{
-                      background: 'rgba(245, 158, 11, 0.08)',
-                      border: '1px solid rgba(245, 158, 11, 0.25)',
-                      borderRadius: '8px',
+                      background: '#FFFBEB',
+                      border: '1px solid #FDE68A',
+                      borderRadius: '10px',
                       padding: '10px 14px',
-                      marginBottom: '16px',
+                      marginBottom: '14px',
                       fontSize: '12px',
                       lineHeight: '1.5',
-                      color: '#fde68a',
+                      color: '#92400E',
+                      textAlign: 'justify',
                     }}
                   >
                     <strong>ℹ️ Como funciona o Drop:</strong>
-                    <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>
+                    <p style={{ margin: '4px 0 0', color: '#78350F', textAlign: 'justify' }}>
                       O duelista que dropar <strong>mantém todos os pontos conquistados</strong> até agora e continuará na classificação final com sua pontuação. Ele apenas não será pareado nas próximas rodadas.
                     </p>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '360px', overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto' }}>
                     {activeTournament.playerIds.map((pid) => {
                       const p = playerMap.get(pid);
                       const isDropped = (activeTournament.droppedPlayerIds || []).includes(pid);
                       const playerStanding = standings.find((s) => s.playerId === pid);
                       const pts = playerStanding ? playerStanding.matchPoints : 0;
-                      const currentDeck = playerDecks[pid] || 'Edison Deck';
+                      const currentDeck = playerDecks[pid] || 'Yugioh Deck';
 
                       return (
                         <div
@@ -1847,42 +2235,42 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '10px 12px',
-                            background: isDropped ? 'rgba(239, 68, 68, 0.08)' : 'rgba(255, 255, 255, 0.03)',
-                            border: isDropped ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
-                            borderRadius: '8px',
+                            background: isDropped ? '#FEF2F2' : '#F8FAFC',
+                            border: isDropped ? '1px solid #FECACA' : '1px solid #E2E8F0',
+                            borderRadius: '10px',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                             <div
                               className="player-avatar-sm"
                               style={{
-                                backgroundColor: p?.avatarColor || '#3B82F6',
+                                backgroundColor: p?.avatarColor || '#0D6E62',
                                 opacity: isDropped ? 0.6 : 1,
                               }}
                             >
                               {p?.name.substring(0, 2).toUpperCase()}
                             </div>
-                            <div>
+                            <div style={{ minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontWeight: 'bold', fontSize: '14px', color: isDropped ? '#fca5a5' : '#ffffff' }}>
+                                <span style={{ fontWeight: 700, fontSize: '13.5px', color: isDropped ? '#DC2626' : '#0F172A' }}>
                                   {p?.name}
                                 </span>
                                 {isDropped && (
                                   <span
                                     style={{
                                       fontSize: '10px',
-                                      background: 'rgba(239, 68, 68, 0.25)',
-                                      color: '#f87171',
-                                      padding: '1px 5px',
+                                      background: '#FEE2E2',
+                                      color: '#DC2626',
+                                      padding: '1px 6px',
                                       borderRadius: '4px',
-                                      fontWeight: 'bold',
+                                      fontWeight: 800,
                                     }}
                                   >
                                     DROPADO
                                   </span>
                                 )}
                               </div>
-                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                              <span style={{ fontSize: '11.5px', color: '#64748B' }}>
                                 {currentDeck} • {pts} pts
                               </span>
                             </div>
@@ -1896,8 +2284,12 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                               style={{
                                 padding: '6px 12px',
                                 fontSize: '12px',
-                                borderColor: '#34d399',
-                                color: '#34d399',
+                                background: '#ECFDF5',
+                                border: '1px solid #6EE7B7',
+                                color: '#059669',
+                                borderRadius: '8px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
                               }}
                             >
                               Reintegrar
@@ -1910,8 +2302,12 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                               style={{
                                 padding: '6px 12px',
                                 fontSize: '12px',
-                                color: '#f87171',
-                                borderColor: 'rgba(239, 68, 68, 0.3)',
+                                background: '#FEF2F2',
+                                color: '#DC2626',
+                                border: '1px solid #FECACA',
+                                borderRadius: '8px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
                               }}
                             >
                               Dropar
@@ -1927,18 +2323,19 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 <div>
                   <div
                     style={{
-                      background: 'rgba(52, 211, 153, 0.08)',
-                      border: '1px solid rgba(52, 211, 153, 0.25)',
-                      borderRadius: '8px',
+                      background: '#ECFDF5',
+                      border: '1px solid #A7F3D0',
+                      borderRadius: '10px',
                       padding: '10px 14px',
-                      marginBottom: '16px',
+                      marginBottom: '14px',
                       fontSize: '12px',
                       lineHeight: '1.5',
-                      color: '#a7f3d0',
+                      color: '#065F46',
+                      textAlign: 'justify',
                     }}
                   >
                     <strong>ℹ️ Como funciona a Entrada Tardia (Late Entry):</strong>
-                    <p style={{ margin: '4px 0 0', color: '#e2e8f0' }}>
+                    <p style={{ margin: '4px 0 0', color: '#047857', textAlign: 'justify' }}>
                       Adicione um duelista no meio do torneio. Ele entrará com <strong>0 pontos</strong> pelas rodadas anteriores e começará a ser pareado normalmente a partir da próxima rodada.
                     </p>
                   </div>
@@ -1950,7 +2347,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
                     if (availableLatePlayers.length === 0) {
                       return (
-                        <div style={{ textAlign: 'center', padding: '24px 16px', color: '#94a3b8', fontSize: '13px' }}>
+                        <div style={{ textAlign: 'center', padding: '24px 16px', color: '#64748B', fontSize: '13px' }}>
                           <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
                           <p>Todos os duelistas cadastrados já estão inscritos neste torneio.</p>
                         </div>
@@ -1960,7 +2357,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                             Selecione o Duelista para Incluir:
                           </label>
                           <select
@@ -1976,12 +2373,14 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                             }}
                             style={{
                               width: '100%',
+                              boxSizing: 'border-box',
                               padding: '10px 12px',
-                              background: '#161619',
-                              border: '1px solid #3f3f46',
-                              borderRadius: '8px',
-                              color: '#fff',
+                              background: '#F8FAFC',
+                              border: '1.5px solid #CBD5E1',
+                              borderRadius: '10px',
+                              color: '#0F172A',
                               fontSize: '13px',
+                              fontWeight: 600,
                             }}
                           >
                             <option value="">-- Escolha um jogador cadastrado --</option>
@@ -1995,7 +2394,7 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
                         {selectedLatePlayerId && (
                           <div>
-                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#cbd5e1', marginBottom: '6px' }}>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                               Nome do Deck para este Torneio:
                             </label>
                             <input
@@ -2005,12 +2404,14 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                               placeholder="Ex: Diva Zombie, Blackwing, Machina Gadget..."
                               style={{
                                 width: '100%',
+                                boxSizing: 'border-box',
                                 padding: '10px 12px',
-                                background: '#161619',
-                                border: '1px solid #3f3f46',
-                                borderRadius: '8px',
-                                color: '#fff',
+                                background: '#F8FAFC',
+                                border: '1.5px solid #CBD5E1',
+                                borderRadius: '10px',
+                                color: '#0F172A',
                                 fontSize: '13px',
+                                fontWeight: 600,
                               }}
                             />
                           </div>
@@ -2018,15 +2419,13 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
 
                         <button
                           type="button"
-                          className="btn-primary-gold"
+                          className="btn-modal-submit-tournament"
                           onClick={handleAddLatePlayer}
                           disabled={!selectedLatePlayerId}
                           style={{
-                            marginTop: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px',
+                            width: '100%',
+                            marginTop: '4px',
+                            padding: '11px 16px',
                             opacity: selectedLatePlayerId ? 1 : 0.5,
                           }}
                         >
@@ -2039,14 +2438,432 @@ export const TournamentView: React.FC<TournamentViewProps> = ({
                 </div>
               )}
 
-              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  onClick={() => setShowParticipantsModal(false)}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição Manual de Rodada / Pareamentos */}
+      {showEditRoundModal && activeTournament && (
+        <div className="modal-backdrop" onClick={() => setShowEditRoundModal(false)}>
+          <div
+            className="modal-card modal-content-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '680px',
+              width: '94%',
+              maxHeight: '90vh',
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: 'var(--shadow-modal, 0 20px 48px -8px rgba(15, 23, 42, 0.25))',
+            }}
+          >
+            <div
+              className="modal-header-row"
+              style={{
+                padding: '16px 18px',
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0, flex: 1 }}>
+                <Sliders size={18} style={{ color: 'var(--primary, #0A4F46)', flexShrink: 0 }} />
+                <h3
+                  className="modal-title"
+                  style={{
+                    margin: 0,
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    color: '#0F172A',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  Editar Pareamentos - Rodada {activeTournament.currentRound}
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="btn-close-modal"
+                onClick={() => setShowEditRoundModal(false)}
+                title="Fechar"
+                style={{ flexShrink: 0 }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                padding: '16px 20px',
+                overflowY: 'auto',
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+              }}
+            >
+              <div
+                style={{
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  fontSize: '12px',
+                  color: '#166534',
+                  lineHeight: '1.5',
+                  textAlign: 'justify',
+                }}
+              >
+                <strong>Personalização manual da rodada:</strong> você pode ajustar os duelistas de cada mesa, alterar adversários, inverter posições (Jogador 1 / Jogador 2) ou definir vitória livre (BY). Ao salvar, mesas com confrontos alterados terão seus placares reiniciados para 0 - 0.
+              </div>
+
+              {/* Status de jogadores: Alerta de duplicatas ou pendentes */}
+              {(() => {
+                const activePlayerIds = activeTournament.playerIds.filter(
+                  (pid) => !(activeTournament.droppedPlayerIds || []).includes(pid)
+                );
+                const counts: Record<string, number> = {};
+                manualMatches.forEach((m) => {
+                  if (m.player1Id) counts[m.player1Id] = (counts[m.player1Id] || 0) + 1;
+                  if (m.player2Id) counts[m.player2Id] = (counts[m.player2Id] || 0) + 1;
+                });
+                const duplicates = Object.keys(counts).filter((pid) => counts[pid] > 1);
+                const unassigned = activePlayerIds.filter((pid) => !counts[pid]);
+
+                return (
+                  <>
+                    {duplicates.length > 0 && (
+                      <div
+                        style={{
+                          background: '#FEF2F2',
+                          border: '1px solid #FECACA',
+                          borderRadius: '8px',
+                          padding: '10px 14px',
+                          color: '#B91C1C',
+                          fontSize: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                        <span>
+                          <strong>Atenção:</strong> Jogador(es) repetido(s) em mais de uma mesa:{' '}
+                          {duplicates.map((id) => players.find((p) => p.id === id)?.name || id).join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {unassigned.length > 0 && (
+                      <div
+                        style={{
+                          background: '#FFFBEB',
+                          border: '1px solid #FDE68A',
+                          borderRadius: '8px',
+                          padding: '10px 14px',
+                          color: '#B45309',
+                          fontSize: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <Info size={16} style={{ flexShrink: 0 }} />
+                        <span>
+                          Duelista(s) ativo(s) sem mesa nesta rodada:{' '}
+                          {unassigned.map((id) => players.find((p) => p.id === id)?.name || id).join(', ')}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
+              {/* Lista de mesas / confrontos */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {manualMatches.map((match, mIdx) => {
+                  const activeTournamentPlayers = players.filter(
+                    (p) =>
+                      activeTournament.playerIds.includes(p.id) &&
+                      !(activeTournament.droppedPlayerIds || []).includes(p.id)
+                  );
+
+                  return (
+                    <div
+                      key={match.id || mIdx}
+                      style={{
+                        background: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '12px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: '1px solid #E2E8F0',
+                          paddingBottom: '6px',
+                        }}
+                      >
+                        <span style={{ fontWeight: 800, fontSize: '13px', color: '#1E293B' }}>
+                          Mesa {mIdx + 1} {match.isBy || !match.player2Id ? '• (BY)' : ''}
+                        </span>
+                        {manualMatches.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveManualTable(mIdx)}
+                            className="btn-icon"
+                            style={{ color: '#EF4444', padding: '4px' }}
+                            title="Remover esta mesa"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr auto 1fr',
+                          gap: '8px',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {/* Jogador 1 */}
+                        <div>
+                          <label
+                            style={{
+                              fontSize: '11px',
+                              color: '#64748B',
+                              display: 'block',
+                              marginBottom: '4px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            Jogador 1:
+                          </label>
+                          <select
+                            value={match.player1Id || ''}
+                            onChange={(e) => handleUpdateManualMatchPlayer(mIdx, 'player1', e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              background: '#FFFFFF',
+                              border: '1.5px solid #CBD5E1',
+                              borderRadius: '8px',
+                              color: '#0F172A',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                            }}
+                          >
+                            <option value="">-- Selecione o Jogador 1 --</option>
+                            {activeTournamentPlayers.map((p) => {
+                              const isSelectedInOther = manualMatches.some(
+                                (otherM, otherIdx) =>
+                                  otherIdx !== mIdx &&
+                                  (otherM.player1Id === p.id || otherM.player2Id === p.id)
+                              );
+                              return (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} {isSelectedInOther ? '⚠️' : ''}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+
+                        {/* Botão de Swap */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            paddingTop: '16px',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleSwapP1P2(mIdx)}
+                            disabled={match.isBy || !match.player2Id}
+                            title="Inverter Jogador 1 e 2"
+                            style={{
+                              background: '#FFFFFF',
+                              border: '1.5px solid #CBD5E1',
+                              borderRadius: '8px',
+                              padding: '7px 9px',
+                              color: match.isBy || !match.player2Id ? '#94A3B8' : '#0F172A',
+                              cursor: match.isBy || !match.player2Id ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <ArrowLeftRight size={14} />
+                          </button>
+                        </div>
+
+                        {/* Jogador 2 */}
+                        <div>
+                          <label
+                            style={{
+                              fontSize: '11px',
+                              color: '#64748B',
+                              display: 'block',
+                              marginBottom: '4px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            Jogador 2:
+                          </label>
+                          <select
+                            value={match.isBy || !match.player2Id ? 'BYE' : match.player2Id}
+                            onChange={(e) => handleUpdateManualMatchPlayer(mIdx, 'player2', e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              background: '#FFFFFF',
+                              border: '1.5px solid #CBD5E1',
+                              borderRadius: '8px',
+                              color: match.isBy || !match.player2Id ? '#2563EB' : '#0F172A',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                            }}
+                          >
+                            <option value="BYE">⭐ BY (Vitória Livre - Sem Oponente)</option>
+                            {activeTournamentPlayers.map((p) => {
+                              const isSelectedInOther = manualMatches.some(
+                                (otherM, otherIdx) =>
+                                  otherIdx !== mIdx &&
+                                  (otherM.player1Id === p.id || otherM.player2Id === p.id)
+                              );
+                              return (
+                                <option key={p.id} value={p.id}>
+                                  {p.name} {isSelectedInOther ? '⚠️' : ''}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Botão Adicionar Mesa */}
+              <button
+                type="button"
+                onClick={handleAddManualTable}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '10px',
+                  background: '#F8FAFC',
+                  border: '1.5px dashed #CBD5E1',
+                  borderRadius: '10px',
+                  color: '#475569',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              >
+                <Plus size={16} />
+                <span>Adicionar Nova Mesa</span>
+              </button>
+            </div>
+
+            {/* Rodapé do Modal */}
+            <div
+              style={{
+                padding: '14px 20px',
+                borderTop: '1px solid #E2E8F0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '10px',
+                background: '#F8FAFC',
+              }}
+            >
+              <div>
+                {activeTournament.currentRound > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEditRoundModal(false);
+                      handleRevertRound();
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      background: '#FEF2F2',
+                      border: '1px solid #FECACA',
+                      borderRadius: '8px',
+                      color: '#DC2626',
+                      cursor: 'pointer',
+                    }}
+                    title="Voltar para a rodada anterior para corrigir placares passados"
+                  >
+                    <RotateCcw size={14} />
+                    <span>Voltar para Rodada {activeTournament.currentRound - 1}</span>
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
                   className="btn-secondary-action"
-                  onClick={() => setShowParticipantsModal(false)}
-                  style={{ padding: '8px 20px', fontSize: '13px' }}
+                  onClick={() => setShowEditRoundModal(false)}
+                  style={{ padding: '8px 16px', fontSize: '13px' }}
                 >
-                  Fechar
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary-action"
+                  onClick={handleSaveManualMatches}
+                  style={{
+                    padding: '8px 18px',
+                    fontSize: '13px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: 700,
+                  }}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Salvar Pareamentos</span>
                 </button>
               </div>
             </div>
