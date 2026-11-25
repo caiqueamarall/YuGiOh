@@ -675,8 +675,8 @@ export function exportLeagueRankingPDF(players: Player[]): void {
     ` : ''}
 
     <div class="pdf-footer">
-      <span>Edison League Manager • Sistema de Torneios Edison Format</span>
-      <span>Documento Oficial de Classificação • edisonformat.com</span>
+      <span>Duel League • Gestão de Torneios</span>
+      <span>Gerado em ${dateStr}</span>
     </div>
   `;
 
@@ -896,7 +896,7 @@ export function exportTournamentResultsPDF(tournament: Tournament, players: Play
     ${roundsHtml}
 
     <div class="pdf-footer">
-      <span>Edison League Manager • Relatório Oficial de Torneio</span>
+      <span>Duel League • Gestão de Torneios</span>
       <span>${tournDate} • Edison Format Bo3</span>
     </div>
   `;

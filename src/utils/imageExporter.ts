@@ -216,7 +216,7 @@ function showInstagramFormatSelector(
               Formato Quadrado
             </div>
             <div style="font-size: 11px; color: #059669; font-weight: 700;">
-              1080 × 1080 px
+              2160 × 2160 px (Ultra HD)
             </div>
             <div style="font-size: 10.5px; color: #64748B; margin-top: 3px;">
               Feed do Instagram
@@ -233,7 +233,7 @@ function showInstagramFormatSelector(
               Reto da Tela
             </div>
             <div style="font-size: 11px; color: #059669; font-weight: 700;">
-              1080 × 1920 px
+              2160 × 3840 px (4K HD)
             </div>
             <div style="font-size: 10.5px; color: #64748B; margin-top: 3px;">
               Stories &amp; Tela Cheia
@@ -756,11 +756,15 @@ export function exportTournamentResultsPNG(
     padding;
 
   const workH = Math.max(TARGET_H, naturalHeight);
+  const HD_SCALE = 2; // Super-resolução 2x (2160x2160 ou 2160x3840 4K) para máxima nitidez
   const workCanvas = document.createElement('canvas');
-  workCanvas.width = TARGET_W;
-  workCanvas.height = workH;
+  workCanvas.width = TARGET_W * HD_SCALE;
+  workCanvas.height = workH * HD_SCALE;
   const ctx = workCanvas.getContext('2d');
   if (!ctx) return;
+  ctx.scale(HD_SCALE, HD_SCALE);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   // 1. Fundo Externo Verde Petróleo Midway
   const bgGrad = ctx.createLinearGradient(0, 0, TARGET_W, workH);
@@ -1114,7 +1118,7 @@ export function exportTournamentResultsPNG(
   ctx.fillStyle = '#0D6E62';
   ctx.font = '800 12px "Outfit", -apple-system, sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('Duel League • Gestão de Torneios & Ranking Oficial', padding, footerY + 14);
+  ctx.fillText('Duel League • Gestão de Torneios', padding, footerY + 14);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#64748B';
@@ -1126,21 +1130,23 @@ export function exportTournamentResultsPNG(
   );
   ctx.textAlign = 'left';
 
-  // Garante a resolução final exata (1080x1080 ou 1080x1920)
+  // Garante a resolução final Ultra HD 2x (2160x2160 ou 2160x3840)
   let finalCanvas = workCanvas;
   if (workH !== TARGET_H) {
     finalCanvas = document.createElement('canvas');
-    finalCanvas.width = TARGET_W;
-    finalCanvas.height = TARGET_H;
+    finalCanvas.width = TARGET_W * HD_SCALE;
+    finalCanvas.height = TARGET_H * HD_SCALE;
     const fCtx = finalCanvas.getContext('2d');
     if (fCtx) {
+      fCtx.imageSmoothingEnabled = true;
+      fCtx.imageSmoothingQuality = 'high';
       fCtx.fillStyle = '#063C35';
-      fCtx.fillRect(0, 0, TARGET_W, TARGET_H);
-      const scale = Math.min(TARGET_W / workCanvas.width, TARGET_H / workCanvas.height);
+      fCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+      const scale = Math.min(finalCanvas.width / workCanvas.width, finalCanvas.height / workCanvas.height);
       const drawW = workCanvas.width * scale;
       const drawH = workCanvas.height * scale;
-      const drawX = (TARGET_W - drawW) / 2;
-      const drawY = (TARGET_H - drawH) / 2;
+      const drawX = (finalCanvas.width - drawW) / 2;
+      const drawY = (finalCanvas.height - drawH) / 2;
       fCtx.drawImage(workCanvas, drawX, drawY, drawW, drawH);
     }
   }
@@ -1274,11 +1280,15 @@ export function exportLeagueRankingPNG(
     padding;
 
   const workH = Math.max(TARGET_H, naturalHeight);
+  const HD_SCALE = 2; // Super-resolução 2x (2160x2160 ou 2160x3840 4K) para máxima nitidez
   const workCanvas = document.createElement('canvas');
-  workCanvas.width = TARGET_W;
-  workCanvas.height = workH;
+  workCanvas.width = TARGET_W * HD_SCALE;
+  workCanvas.height = workH * HD_SCALE;
   const ctx = workCanvas.getContext('2d');
   if (!ctx) return;
+  ctx.scale(HD_SCALE, HD_SCALE);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   // 1. Fundo Externo Verde Petróleo Midway
   const bgGrad = ctx.createLinearGradient(0, 0, TARGET_W, workH);
@@ -1615,7 +1625,7 @@ export function exportLeagueRankingPNG(
   ctx.fillStyle = '#0D6E62';
   ctx.font = '800 12px "Outfit", -apple-system, sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('Duel League • Classificação Oficial da Temporada', padding, footerY + 14);
+  ctx.fillText('Duel League • Gestão de Torneios', padding, footerY + 14);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#64748B';
@@ -1630,17 +1640,19 @@ export function exportLeagueRankingPNG(
   let finalCanvas = workCanvas;
   if (workH !== TARGET_H) {
     finalCanvas = document.createElement('canvas');
-    finalCanvas.width = TARGET_W;
-    finalCanvas.height = TARGET_H;
+    finalCanvas.width = TARGET_W * HD_SCALE;
+    finalCanvas.height = TARGET_H * HD_SCALE;
     const fCtx = finalCanvas.getContext('2d');
     if (fCtx) {
+      fCtx.imageSmoothingEnabled = true;
+      fCtx.imageSmoothingQuality = 'high';
       fCtx.fillStyle = '#063C35';
-      fCtx.fillRect(0, 0, TARGET_W, TARGET_H);
-      const scale = Math.min(TARGET_W / workCanvas.width, TARGET_H / workCanvas.height);
+      fCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+      const scale = Math.min(finalCanvas.width / workCanvas.width, finalCanvas.height / workCanvas.height);
       const drawW = workCanvas.width * scale;
       const drawH = workCanvas.height * scale;
-      const drawX = (TARGET_W - drawW) / 2;
-      const drawY = (TARGET_H - drawH) / 2;
+      const drawX = (finalCanvas.width - drawW) / 2;
+      const drawY = (finalCanvas.height - drawH) / 2;
       fCtx.drawImage(workCanvas, drawX, drawY, drawW, drawH);
     }
   }
@@ -2032,11 +2044,15 @@ export async function exportDecklistImagePNG(
     sectionGap +
     footerH;
 
+  const HD_DECK_SCALE = 2;
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = width * HD_DECK_SCALE;
+  canvas.height = height * HD_DECK_SCALE;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
+  ctx.scale(HD_DECK_SCALE, HD_DECK_SCALE);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   // Fundo principal da imagem
   ctx.fillStyle = '#0d0d11';
@@ -2340,7 +2356,7 @@ export async function exportDecklistImagePNG(
   ctx.font = '11.5px "Outfit", -apple-system, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('Yu-Gi-Oh! Edison League Manager • Imagem Oficial de Decklist', paddingX, footerY + footerH / 2);
+  ctx.fillText('Duel League • Gestão de Torneios', paddingX, footerY + footerH / 2);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('pt-BR');
