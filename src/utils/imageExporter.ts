@@ -496,72 +496,87 @@ function drawElaborateStackedPodiumCard(
   const statX = x + w - statW - 18;
   const statY = y + (h - statH) / 2;
 
-  // 4. Coluna Central: Colocação ("1º LUGAR") e Nome do Duelista em destaque no centro,
-  // e a Pílula do Deck com fonte maior posicionada à direita, próxima da caixa de pontuação
+  // 4. Coluna Central: Colocação ("1º LUGAR") e Nome do Duelista à esquerda/centro,
+  // e a Pílula do Deck ajustada dinamicamente ao texto, com margem segura para a caixa de pontuação
   const leftBound = medalCX + medalR + 18;
   const centerY = y + h / 2;
 
-  const maxNameChars = 18;
+  const maxNameChars = 20;
   const cleanPlayerName =
     playerName.length > maxNameChars ? playerName.substring(0, maxNameChars - 1) + '…' : playerName;
   const cleanDeck = deckName.length > 22 ? deckName.substring(0, 21) + '…' : deckName;
-  const deckLabel = `🛡️ ${cleanDeck}`;
 
-  // Mede a pílula do Deck (maior e ancorada à direita, próxima da caixa de pontuação)
-  let deckFontSize = 17.5;
+  // Mede o texto puro do deck + espaço separado para o ícone de escudo
+  let deckFontSize = 15.5;
   ctx.font = `800 ${deckFontSize}px "Outfit", -apple-system, sans-serif`;
-  let deckTextW = ctx.measureText(deckLabel).width;
-  let deckPillW = Math.min(275, Math.max(185, deckTextW + 38));
-  const deckPillH = 44;
+  let deckPureTextW = ctx.measureText(cleanDeck).width;
+  if (deckPureTextW > 185) {
+    deckFontSize = 13.5;
+    ctx.font = `800 ${deckFontSize}px "Outfit", -apple-system, sans-serif`;
+    deckPureTextW = ctx.measureText(cleanDeck).width;
+  }
 
-  // Posiciona a pílula do Deck bem próxima da caixa de pontuação à direita
-  const deckRightGap = 14;
+  const iconSlotW = 22; // espaço para o escudo + gap
+  const pillPadX = 28;  // 14px de cada lado
+  const deckPillW = Math.min(245, Math.max(136, Math.ceil(deckPureTextW + iconSlotW + pillPadX)));
+  const deckPillH = 38;
+
+  // Posiciona a pílula do Deck com 18px de respiro para a caixa de pontuação à direita
+  const deckRightGap = 18;
   const deckPillX = statX - deckRightGap - deckPillW;
   const deckPillY = centerY - deckPillH / 2;
 
   // Área disponível entre o medalhão esquerdo e a pílula do deck para centralizar "1º LUGAR" + Nome do Participante
   const playerAreaLeft = leftBound;
-  const playerAreaRight = deckPillX - 14;
+  const playerAreaRight = deckPillX - 16;
   const playerAreaW = Math.max(120, playerAreaRight - playerAreaLeft);
   const playerCenterX = playerAreaLeft + playerAreaW / 2;
 
   // Título da colocação ("1º LUGAR", "2º LUGAR", "3º LUGAR") centralizado sobre o nome
   ctx.textAlign = 'center';
   ctx.fillStyle = titleColor;
-  ctx.font = '800 13.5px "Outfit", -apple-system, sans-serif';
-  ctx.fillText(titleText, playerCenterX, centerY - 18);
+  ctx.font = '800 13px "Outfit", -apple-system, sans-serif';
+  ctx.fillText(titleText, playerCenterX, centerY - 17);
 
   // Nome do Participante com fonte grande centralizado abaixo do título
-  let nameFontSize = 36;
+  let nameFontSize = 34;
   ctx.font = `900 ${nameFontSize}px "Outfit", -apple-system, sans-serif`;
   if (ctx.measureText(cleanPlayerName).width > playerAreaW - 8) {
-    nameFontSize = 28;
+    nameFontSize = 27;
     ctx.font = `900 ${nameFontSize}px "Outfit", -apple-system, sans-serif`;
   }
   if (ctx.measureText(cleanPlayerName).width > playerAreaW - 4) {
-    nameFontSize = 23;
+    nameFontSize = 22;
     ctx.font = `900 ${nameFontSize}px "Outfit", -apple-system, sans-serif`;
   }
   ctx.fillStyle = '#0F172A';
-  ctx.fillText(cleanPlayerName, playerCenterX, centerY + 20);
+  ctx.fillText(cleanPlayerName, playerCenterX, centerY + 19);
 
-  // Desenha a Pílula do Deck maior e próxima à caixa de pontuação
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-  roundRect(ctx, deckPillX, deckPillY, deckPillW, deckPillH, 22);
+  // Desenha a Pílula do Deck com clipping interno para nunca vazar das bordas
+  ctx.save();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+  roundRect(ctx, deckPillX, deckPillY, deckPillW, deckPillH, 19);
   ctx.fill();
   ctx.strokeStyle = borderCol;
-  ctx.lineWidth = 1.8;
-  roundRect(ctx, deckPillX, deckPillY, deckPillW, deckPillH, 22);
+  ctx.lineWidth = 1.6;
+  roundRect(ctx, deckPillX, deckPillY, deckPillW, deckPillH, 19);
   ctx.stroke();
 
-  if (deckTextW > deckPillW - 24) {
-    deckFontSize = 15;
-    ctx.font = `800 ${deckFontSize}px "Outfit", -apple-system, sans-serif`;
-  }
-  ctx.textAlign = 'center';
+  roundRect(ctx, deckPillX + 2, deckPillY + 2, deckPillW - 4, deckPillH - 4, 17);
+  ctx.clip();
+
+  const totalContentW = iconSlotW + deckPureTextW;
+  const contentStartX = deckPillX + (deckPillW - totalContentW) / 2;
+
   ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = `700 ${Math.round(deckFontSize - 1)}px "Outfit", -apple-system, sans-serif`;
+  ctx.fillText('🛡️', contentStartX, centerY + 1);
+
+  ctx.font = `800 ${deckFontSize}px "Outfit", -apple-system, sans-serif`;
   ctx.fillStyle = deckTextColor;
-  ctx.fillText(deckLabel, deckPillX + deckPillW / 2, centerY + 1);
+  ctx.fillText(cleanDeck, contentStartX + iconSlotW, centerY + 1);
+  ctx.restore();
   ctx.textBaseline = 'alphabetic';
 
   // Renderiza o Painel Direito de Estatísticas
@@ -699,7 +714,7 @@ export function exportTournamentResultsPNG(
         podiumTotalH = topStandings.length * stackedCardH + (topStandings.length - 1) * podiumCardGap;
       }
 
-      // 2. Recalcula espaço restante para as linhas da tabela e gaps
+      // 2. Recalcula espaço restante para as linhas da tabela e gaps (sem deixar buraco branco antes do rodapé)
       const updatedFixedH =
         padding +
         bannerH +
@@ -711,11 +726,11 @@ export function exportTournamentResultsPNG(
         padding;
 
       const availForRowsAndGaps = TARGET_H - updatedFixedH;
-      const maxRowH = 68;
-      rowHeight = Math.max(40, Math.min(maxRowH, Math.floor((availForRowsAndGaps - numSectionGaps * 16) / countRows)));
+      const maxRowH = 110;
+      rowHeight = Math.max(42, Math.min(maxRowH, Math.floor((availForRowsAndGaps - numSectionGaps * 22) / countRows)));
 
       const remainingAfterRows = availForRowsAndGaps - countRows * rowHeight;
-      sectionGap = Math.max(14, Math.min(42, Math.floor(remainingAfterRows / numSectionGaps)));
+      sectionGap = Math.max(16, Math.min(54, Math.floor(remainingAfterRows / numSectionGaps)));
     } else {
       const availForRows = Math.max(countRows * 34, TARGET_H - baseFixedH - numSectionGaps * 12);
       rowHeight = Math.max(34, Math.floor(availForRows / countRows));
@@ -1230,11 +1245,11 @@ export function exportLeagueRankingPNG(
         padding;
 
       const availForRowsAndGaps = TARGET_H - updatedFixedH;
-      const maxRowH = 68;
-      rowHeight = Math.max(40, Math.min(maxRowH, Math.floor((availForRowsAndGaps - numSectionGaps * 16) / countRows)));
+      const maxRowH = 110;
+      rowHeight = Math.max(42, Math.min(maxRowH, Math.floor((availForRowsAndGaps - numSectionGaps * 22) / countRows)));
 
       const remainingAfterRows = availForRowsAndGaps - countRows * rowHeight;
-      sectionGap = Math.max(14, Math.min(42, Math.floor(remainingAfterRows / numSectionGaps)));
+      sectionGap = Math.max(16, Math.min(54, Math.floor(remainingAfterRows / numSectionGaps)));
     } else {
       const availForRows = Math.max(countRows * 34, TARGET_H - baseFixedH - numSectionGaps * 12);
       rowHeight = Math.max(34, Math.floor(availForRows / countRows));
